@@ -1,3 +1,4 @@
+// app/(landing)/_components/Services.tsx
 "use client"
 import React from 'react';
 import { FileText, AlertCircle, MessageSquare, Brain, FileCheck, Shield } from 'lucide-react';
@@ -24,8 +25,9 @@ export default function Services() {
       `}</style>
 
       {/* Changed background to solid white */}
-      <section id="services" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <section id="services" className="bg-[#f1f7ff]">
+        <div className='py-20 bg-white rounded-t-[80px]'>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 rounded-t-4xl">
           <div className="text-center mb-16">
             {/* Reverted text color to dark for better contrast on white background */}
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Our Services</h2>
@@ -85,6 +87,7 @@ export default function Services() {
               </div>
             ))}
           </div>
+        </div>
         </div>
       </section>
     </>
