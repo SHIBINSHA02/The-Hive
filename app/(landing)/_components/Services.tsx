@@ -25,8 +25,8 @@ export default function Services() {
       `}</style>
 
       {/* Changed background to solid white */}
-      <section id="services" className="bg-[#f1f7ff]">
-        <div className='py-20 bg-white rounded-t-[80px]'>
+      <section id="services" className="bg-gradient-to-r from-[#EFF6FF] to-[#BFDBFF]">
+        <div className='py-20 bg-white rounded-t-[80px] m:rounded-t-4xl'>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 rounded-t-4xl">
           <div className="text-center mb-16">
             {/* Reverted text color to dark for better contrast on white background */}

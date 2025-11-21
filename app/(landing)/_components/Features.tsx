@@ -25,7 +25,7 @@ export default function Features() {
   }, []);
 
   return (
-    <section id="features" className="bg-gradient-to-br from-white via-blue-50 to-blue-200 min-h-screen flex items-center py-16">
+    <section id="features" className="bg-gradient-to-br from-blue-50 via-blue-50 to-blue-200 min-h-screen flex items-center py-16 rounded-t-[80px] m:rounded-t-4xl boarder-t-4 border-blue-300">
       <div className="container mx-auto px-4 sm:px-6 lg:px-12 xl:px-20">
         <h2 className="text-4xl lg:text-5xl font-bold text-center text-gray-900 mb-12 lg:mb-16">
           Why Choose The Hive?
