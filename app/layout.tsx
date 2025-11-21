@@ -3,6 +3,10 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
+// 👇 1. Import your components here
+import Navbar from "@/components/Navbar"; 
+import Footer from "@/components/Footer"; 
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -28,7 +32,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {children}
+        {/* 👇 2. Add Navbar at the top */}
+        <Navbar /> 
+        
+        {/* This renders the specific page content (e.g., your Hero, Features) */}
+        {children} 
+        
+        {/* 👇 3. Add Footer at the bottom */}
+        <Footer /> 
       </body>
     </html>
   );
