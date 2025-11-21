@@ -1,4 +1,4 @@
-// app/(landing)/page.tsx
+
 "use client"
 
 import Hero  from "./_components/Hero";
