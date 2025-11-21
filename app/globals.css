@@ -1,3 +1,4 @@
+/* app/globals.css */
 @import "tailwindcss";
 
 :root {
@@ -20,7 +21,7 @@
 }
 
 body {
-  background: var(--background);
+  background: var(--foreground);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }

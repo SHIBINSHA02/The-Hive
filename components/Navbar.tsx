@@ -20,9 +20,9 @@ export default function Navbar() {
 
         {/* Desktop Links */}
         <div className="hidden md:flex space-x-4">
-          <a href="#services" className="hover:text-[#2c6df5] transition-colors">Services</a>
-          <a href="#features" className="hover:text-[#2c6df5] transition-colors">Features</a>
-          <a href="#contact" className="hover:text-[#2c6df5] transition-colors">Contact</a>
+          <a href="#services" className="hover:text-[#2c6df5] text-[#000000] transition-colors">Services</a>
+          <a href="#features" className="hover:text-[#2c6df5] text-[#000000]transition-colors">Features</a>
+          <a href="#contact" className="hover:text-[#2c6df5] text-[#000000]transition-colors">Contact</a>
         </div>
 
         {/* Mobile Menu Button */}
@@ -68,7 +68,7 @@ export default function Navbar() {
           </a>
           <a
             href="#contact"
-            className="block text-gray-700 hover:text-[#2c6df5] transition-colors font-medium py-2"
+            className="block text-gray-700 hover:text-[#2c6df5]  transition-colors font-medium py-2"
             onClick={() => setIsOpen(false)}
           >
             Contact
