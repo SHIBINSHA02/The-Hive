@@ -21,8 +21,8 @@ export default function Navbar() {
         {/* Desktop Links */}
         <div className="hidden md:flex space-x-4">
           <a href="#services" className="hover:text-[#2c6df5] text-[#000000] transition-colors">Services</a>
-          <a href="#features" className="hover:text-[#2c6df5] text-[#000000]transition-colors">Features</a>
-          <a href="#contact" className="hover:text-[#2c6df5] text-[#000000]transition-colors">Contact</a>
+          <a href="#features" className="hover:text-[#2c6df5] text-[#000000] transition-colors">Features</a>
+          <a href="#contact" className="hover:text-[#2c6df5] text-[#000000] transition-colors">Contact</a>
         </div>
 
         {/* Mobile Menu Button */}
