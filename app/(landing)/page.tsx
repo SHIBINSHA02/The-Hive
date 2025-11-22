@@ -1,3 +1,4 @@
+// app/(landing)/page.tsx
 
 "use client"
 
