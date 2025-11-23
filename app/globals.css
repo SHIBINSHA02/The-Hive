@@ -21,7 +21,9 @@
 }
 
 body {
-  background: var(--foreground);
-  color: var(--foreground);
+  background: #60A5FA
+;
+  color: #60A5FA
+;
   font-family: Arial, Helvetica, sans-serif;
 }

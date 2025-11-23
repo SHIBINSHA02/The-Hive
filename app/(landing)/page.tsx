@@ -9,9 +9,11 @@ import Services from "./_components/Services";
 export default function HomePage() {
   return (
     <main>
+      <div className="bg-{#60A5FA]">
       <Hero />
       <Features />
       <Services />
+      </div>
     </main>
   );
 }

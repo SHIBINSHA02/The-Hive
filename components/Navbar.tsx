@@ -1,3 +1,4 @@
+// components/Navbar.tsx
 "use client";
 
 import React, { useState } from "react";
@@ -26,21 +27,21 @@ export default function Navbar() {
         <div className="hidden md:flex space-x-4">
           <Link
             href="/#services"
-            className="hover:text-[#2c6df5] text-[#000000] transition-colors"
+            className="hover:text-[#ffffff] text-[#000000] transition-colors"
           >
             Services
           </Link>
 
           <Link
             href="/#features"
-            className="hover:text-[#2c6df5] text-[#000000] transition-colors"
+            className="hover:text-[#fdfdfd] text-[#000000] transition-colors"
           >
             Features
           </Link>
 
           <Link
             href="/#contact"
-            className="hover:text-[#2c6df5] text-[#000000] transition-colors"
+            className="hover:text-[#ffffff] text-[#000000] transition-colors"
           >
             Contact
           </Link>
@@ -50,7 +51,7 @@ export default function Navbar() {
         <div className="md:hidden">
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="focus:outline-none text-gray-700 hover:text-[#2c6df5] transition-colors"
+            className="focus:outline-none text-gray-700 hover:text-[#fafafa] transition-colors"
             aria-label="Toggle menu"
           >
             {isOpen ? (
@@ -94,7 +95,7 @@ export default function Navbar() {
         <div className="mt-4 space-y-3 bg-white rounded-lg shadow-lg p-4">
           <Link
             href="/#services"
-            className="block text-gray-700 hover:text-[#2c6df5] transition-colors font-medium py-2 border-b border-gray-100"
+            className="block text-gray-700 hover:text-[#dddfe4] transition-colors font-medium py-2 border-b border-gray-100"
             onClick={() => setIsOpen(false)}
           >
             Services
@@ -102,7 +103,7 @@ export default function Navbar() {
 
           <Link
             href="/#features"
-            className="block text-gray-700 hover:text-[#2c6df5] transition-colors font-medium py-2 border-b border-gray-100"
+            className="block text-gray-700 hover:text-[#dddfe4] transition-colors font-medium py-2 border-b border-gray-100"
             onClick={() => setIsOpen(false)}
           >
             Features
@@ -110,7 +111,7 @@ export default function Navbar() {
 
           <Link
             href="/#contact"
-            className="block text-gray-700 hover:text-[#2c6df5] transition-colors font-medium py-2"
+            className="block text-gray-700 hover:text-[#dddfe4] transition-colors font-medium py-2"
             onClick={() => setIsOpen(false)}
           >
             Contact

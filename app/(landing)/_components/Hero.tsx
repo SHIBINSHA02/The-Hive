@@ -11,7 +11,7 @@ export default function Hero() {
   }, []);
 
   return (
-    <section className="bg-gradient-to-br from-blue-50 via-blue-50 to-blue-300 min-h-screen flex items-center overflow-hidden pt-16 sm:pt-0 lg:rounded-[80px] rounded-4xl m-4 sm:m-10 pb-7">
+    <section className="bg-gradient-to-br from-blue-50 via-blue-50 to-blue-300 min-h-screen flex items-center overflow-hidden pt-16 sm:pt-0 lg:rounded-[80px] rounded-4xl m-4 sm:m-10 pb-7  ">
       <div className="w-full px-4 sm:px-6 lg:px-12 xl:px-20">
         <div className="max-w-[1600px] mx-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 xl:gap-20 items-center">
