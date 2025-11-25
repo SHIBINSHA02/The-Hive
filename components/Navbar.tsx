@@ -95,7 +95,7 @@ export default function Navbar() {
         <div className="mt-4 space-y-3 bg-white rounded-lg shadow-lg p-4">
           <Link
             href="/#services"
-            className="block text-gray-700 hover:text-[#dddfe4] transition-colors font-medium py-2 border-b border-gray-100"
+            className="block text-gray-700 hover:text-[#3760c9] transition-colors font-medium py-2 border-b border-gray-100"
             onClick={() => setIsOpen(false)}
           >
             Services
