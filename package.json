@@ -12,14 +12,20 @@
     "@auth/mongodb-adapter": "^3.11.1",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
+    "dns": "^0.2.2",
+    "fs": "^0.0.1-security",
     "lucide-react": "^0.554.0",
     "mongodb": "^6.21.0",
     "mongoose": "^9.0.0",
+    "net": "^1.0.2",
     "next": "16.0.3",
     "next-auth": "^5.0.0-beta.30",
+    "promises": "^0.2.5",
     "react": "19.2.0",
     "react-dom": "19.2.0",
-    "tailwind-merge": "^3.4.0"
+    "tailwind-merge": "^3.4.0",
+    "timers": "^0.1.1",
+    "tls": "^0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

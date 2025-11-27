@@ -86,11 +86,11 @@ export default function Hero() {
                   }`}
               >
                 <a
-                  href="#services"
+                  href="/dashboard"
                   className="text-white px-6 sm:px-10 py-4 text-base sm:text-lg rounded-xl font-semibold hover:scale-105 flex items-center justify-center space-x-3 shadow-lg"
                   style={{ backgroundColor: '#2c6df5' }}
                 >
-                  <span>Explore Services</span>
+                  <span>Dashboard</span>
                   <svg
                     className="h-6 w-6"
                     fill="none"
