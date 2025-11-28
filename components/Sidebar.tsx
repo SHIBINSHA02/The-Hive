@@ -1,3 +1,4 @@
+// components/Sidebar.tsx
 "use client";
 
 import Link from "next/link";
@@ -16,7 +17,7 @@ export default function Sidebar({ isOpen, onClose, onOpen }: SidebarProps) {
             {/* ========================================================== */}
             {/* 1. MOBILE TOP NAVBAR (Visible on Mobile Only)              */}
             {/* ========================================================== */}
-            <div className="fixed top-0 left-0 right-0 h-16 bg-white border-b flex items-center justify-between px-4 z-30 md:hidden">
+            <div className="fixed top-0 left-0 right-0 h-16 bg-white  flex items-center justify-between px-4 z-30 md:hidden">
                 {/* Logo in Mobile Header */}
                 <Link href="/" className="flex items-center">
                     <Image
@@ -52,7 +53,7 @@ export default function Sidebar({ isOpen, onClose, onOpen }: SidebarProps) {
             {/* 3. SIDEBAR DRAWER (Desktop: Static, Mobile: Sliding)       */}
             {/* ========================================================== */}
             <aside
-                className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-50 border-r p-6 transition-transform duration-300 ease-in-out 
+                className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-50  p-6 transition-transform duration-300 ease-in-out 
                 ${isOpen ? "translate-x-0" : "-translate-x-full"} 
                 md:translate-x-0 md:static md:block md:h-screen`}
             >

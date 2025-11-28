@@ -1,3 +1,4 @@
+// app/(protected)/dashboard/layout.tsx
 // components/DashboardLayout.tsx (or your layout file)
 "use client";
 
