@@ -1,22 +1,26 @@
-// app/(protected)/dashboard/layout.tsx
-export default function DashboardLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+// components/DashboardLayout.tsx (or your layout file)
+"use client";
+
+import Sidebar from "@/components/Sidebar";
+import { useState } from "react";;
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   return (
-    <div className="flex min-h-screen">
-      {/* Sidebar (Mock) */}
-      <aside className="hidden w-64 border-r bg-gray-50 p-6 md:block">
-        <h3 className="font-bold text-gray-700">User Menu</h3>
-        <ul className="mt-4 space-y-2">
-          <li className="font-medium text-black">Overview</li>
-          <li className="text-gray-500">Settings</li>
-        </ul>
-      </aside>
-      
-      {/* Main Content */}
-      <main className="flex-1 p-8">{children}</main>
+    <div className="flex min-h-screen bg-white">
+      {/* Sidebar Component */}
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        onOpen={() => setIsSidebarOpen(true)}
+      />
+
+      {/* Main Content Area */}
+      <main className="flex-1 p-6 md:p-8 pt-20 md:pt-8">
+        {/* Note: pt-20 added on mobile to account for the fixed Mobile Navbar height */}
+        {children}
+      </main>
     </div>
   );
 }
