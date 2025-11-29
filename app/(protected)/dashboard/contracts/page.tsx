@@ -163,7 +163,7 @@ export default function ContractPage() {
   });
 
   return (
-    <div className="min-h-screen w-full bg-gray-50/50 p-4 sm:p-6 lg:p-8">
+    <div className=" w-full bg-[#f5f8fc] p-4 sm:p-6 lg:p-8 rounded-4xl ">
       <div className="mx-auto max-w-7xl space-y-8">
         {/* Header Section */}
         <header className="flex flex-col gap-4">
@@ -179,7 +179,7 @@ export default function ContractPage() {
           {/* Quote */}
           <blockquote className="border-l-4 border-black pl-4">
             <p className="font-serif text-lg italic text-gray-700">
-              "A verbal contract isn't worth the paper it's written on."
+              &quot;A verbal contract isn&apos;t worth the paper it&apos;s written on.&quot;
             </p>
             <cite className="mt-1 block text-sm text-gray-500 not-italic">
               — Samuel Goldwyn
@@ -239,7 +239,7 @@ export default function ContractPage() {
         </div>
 
         {/* Contracts Grid */}
-        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 h-[70vh] overflow-y-auto">
           {filteredContracts.map((contract, index) => (
             <div
               key={contract.id}

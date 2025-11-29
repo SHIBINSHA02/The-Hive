@@ -53,7 +53,7 @@ export default function Sidebar({ isOpen, onClose, onOpen }: SidebarProps) {
             {/* 3. SIDEBAR DRAWER (Desktop: Static, Mobile: Sliding)       */}
             {/* ========================================================== */}
             <aside
-                className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-50  p-6 transition-transform duration-300 ease-in-out 
+                className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-50  p-6 transition-transform duration-300 ease-in-out h-[70vh] overflow-y-auto
                 ${isOpen ? "translate-x-0" : "-translate-x-full"} 
                 md:translate-x-0 md:static md:block md:h-screen`}
             >

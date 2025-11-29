@@ -29,7 +29,7 @@ const ContractCard = ({
   };
 
   return (
-    <div className="group relative overflow-hidden rounded-lg bg-card shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1">
+    <div className="group relative overflow-hidden rounded-lg bg-[#ffffff] shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1">
       {/* Background Image */}
       <div className="relative h-32 overflow-hidden">
         <img
