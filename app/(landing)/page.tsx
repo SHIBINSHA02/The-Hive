@@ -6,6 +6,8 @@ import Hero  from "./_components/Hero";
 import Features from "./_components/Features";
 import Services from "./_components/Services";
 import Navbar from "@/components/Navbar";
+import { Testimonials } from "./_components/Testimonials";
+import { Demo } from "./_components/Demo";
 
 export default  function HomePage() {
   return (
@@ -15,6 +17,8 @@ export default  function HomePage() {
       <Hero />
       <Features />
       <Services />
+      <Testimonials />
+      <Demo />
       </div>
     </main>
   );
