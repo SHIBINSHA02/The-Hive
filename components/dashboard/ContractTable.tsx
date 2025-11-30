@@ -43,13 +43,13 @@ export function ContractTable({
     variant = "deadline"
 }: ContractTableProps) {
     return (
-        <div className="bg-card rounded-lg shadow-card overflow-hidden">
+        <div className="bg-card rounded-lg shadow-card ">
             <div className="px-6 py-4 border-b border-border">
-                <h3 className="text-lg font-semibold text-foreground">{title}</h3>
+                <h3 className="text-lg text-blue-600 font-semibold font-sans">{title}</h3>
             </div>
             <div className="overflow-x-auto">
-                <table className="w-full">
-                    <thead className="bg-muted/50">
+                <table className="rounded-3xl bg-blue-50 w-full mt-10 ">
+                    <thead className="bg-muted/50  text-blue-700">
                         <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                                 Client
@@ -73,7 +73,7 @@ export function ContractTable({
                             )}
                         </tr>
                     </thead>
-                    <tbody className="divide-y divide-border">
+                    <tbody className="divide-y divide-border divide-blue-100 ">
                         {contracts.map((contract, index) => (
                             <tr
                                 key={contract.id}
@@ -98,7 +98,7 @@ export function ContractTable({
                                     </span>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                    <span className="text-sm font-medium text-foreground">
+                                    <span className="text-sm font-medium text-red-700">
                                         {contract.amount}
                                     </span>
                                 </td>
@@ -108,13 +108,13 @@ export function ContractTable({
                                     </Badge>
                                 </td>
                                 {showEmailAction && (
-                                    <td className="px-6 py-4 whitespace-nowrap">
+                                    <td className="px-6 py-4  ">
                                         <button
                                            
                                             onClick={() => onSendEmail?.(contract)}
-                                            className="text-xs"
+                                            className="text-xs flex bg-blue-600 text-white rounded-lg px-4 py-3 hover:bg-blue-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                                         >
-                                            <Mail className="h-3 w-3 mr-1" />
+                                            <Mail className="h-auto w-4 mr-1 " />
                                             Send Reminder
                                         </button>
                                     </td>

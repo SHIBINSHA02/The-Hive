@@ -23,9 +23,9 @@ const ContractCard = ({
   backgroundImage,
 }: ContractCardProps) => {
   const getProgressColor = (progress: number) => {
-    if (progress >= 75) return "bg-accent";
-    if (progress >= 50) return "bg-amber-500";
-    return "bg-orange-500";
+    if (progress >= 75) return "bg-blue-600";
+    if (progress >= 50) return "bg-blue-500";
+    return "bg-blue-400";
   };
 
   return (
