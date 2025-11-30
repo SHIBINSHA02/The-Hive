@@ -19,7 +19,7 @@ export function StatCard({ title, value, icon: Icon, trend }: StatCardProps) {
             <div className="flex items-center justify-between">
                 <div>
                     <p className="text-sm font-medium text-muted-foreground">{title}</p>
-                    <p className="text-2xl font-bold text-blue-700 mt-1">{value}</p>
+                    <p className="text-2xl  text-blue-700 mt-1">{value}</p>
                     {trend && (
                         <p className=
                             "text-xs mt-1">
@@ -27,7 +27,7 @@ export function StatCard({ title, value, icon: Icon, trend }: StatCardProps) {
                         </p>
                     )}
                 </div>
-                <div className="h-12 w-12 rounded-lg bg-accent flex items-center justify-center">
+                <div className="h-12 w-12 rounded-xl bg-blue-100 flex items-center justify-center">
                     <Icon className="h-6 w-6 text-primary" />
                 </div>
             </div>

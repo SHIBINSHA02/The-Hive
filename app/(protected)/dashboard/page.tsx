@@ -33,9 +33,13 @@ const upcomingPayments: Contract[] = [
 ];
 
 export default function DashboardPage() {
+  const handleSendReminder = (contract: Contract) => {
+    // Implement email sending logic here
+    alert(`Reminder email sent to ${contract.clientName} for contract "${contract.contractTitle}"`);
+  };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="bg-background">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <header className="mb-8">
@@ -77,6 +81,41 @@ export default function DashboardPage() {
             trend={{ value: 3, isPositive: false }}
           />
         </section>
+        <div className="space-y-6">
+          {/* Top 5 Contracts - Deadline Near */}
+          <section>
+            <ContractTable
+              title="🕐 Top 5 Contracts - Deadline Approaching"
+              contracts={deadlineContracts}
+              variant="deadline"
+            />
+          </section>
+
+          {/* Two Column Layout for Payment Tables */}
+          <div className="space-y-6">
+            {/* Delayed Payments */}
+            <section>
+              <ContractTable
+                title="⚠️ Delayed Payment Deadlines"
+                contracts={delayedPayments}
+                showEmailAction
+                onSendEmail={handleSendReminder}
+                variant="delayed"
+              />
+            </section>
+
+            {/* Upcoming Payments */}
+            <section>
+              <ContractTable
+                title="💰 Next Payments Due"
+                contracts={upcomingPayments}
+                showEmailAction
+                onSendEmail={handleSendReminder}
+                variant="payment"
+              />
+            </section>
+          </div>
+        </div>
     </div>
     </div>
   );
