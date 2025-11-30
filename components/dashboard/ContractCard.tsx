@@ -37,19 +37,22 @@ const ContractCard = ({
           alt={title}
           className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-card via-card/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-top from-card via-card/60 to-transparent" />
         
-        {/* Company Logo */}
-        <div className="absolute bottom-0 left-4 translate-y-1/2">
-          <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-card shadow-lg ring-4 ring-card">
-            <img
-              src={companyLogo}
-              alt={companyName}
-              className="h-10 w-10 rounded-lg object-contain"
-            />
-          </div>
-        </div>
+        
+        
       </div>
+      {/* Company Logo */}
+      <div className="absolute top-25 left-4 z-50 bg-white">
+  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-card shadow-lg ring-4 ring-card">
+    <img
+      src={companyLogo}
+      alt={companyName}
+      className="h-10 w-10 rounded-lg object-contain"
+    />
+  </div>
+</div>
+
 
       {/* Content */}
       <div className="px-4 pb-4 pt-10">

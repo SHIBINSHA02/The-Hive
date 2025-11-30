@@ -171,7 +171,7 @@ export default function ContractPage() {
             <h1 className="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl">
               Contract Management
             </h1>
-            <p className="mt-2 text-lg text-gray-500">
+            <p className="mt-2 text-lg text-blue-500">
               Streamline your business agreements with powerful contract tracking and management tools.
             </p>
           </div>
@@ -181,7 +181,7 @@ export default function ContractPage() {
             <p className="font-serif text-lg italic text-gray-700">
               &quot;A verbal contract isn&apos;t worth the paper it&apos;s written on.&quot;
             </p>
-            <cite className="mt-1 block text-sm text-gray-500 not-italic">
+            <cite className="mt-1 block text-sm text-blue-500 not-italic">
               — Samuel Goldwyn
             </cite>
           </blockquote>
@@ -193,7 +193,7 @@ export default function ContractPage() {
           <div className="flex flex-wrap items-center gap-3">
             <button
               onClick={() => setCreateDialogOpen(true)}
-              className="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white shadow hover:bg-black/90 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-all duration-300"
+              className="inline-flex items-center justify-center rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white shadow hover:bg-black/90 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2 transition-all duration-300"
             >
               <Plus className="mr-2 h-4 w-4" />
               Create Contract
