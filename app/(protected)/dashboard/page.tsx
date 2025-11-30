@@ -5,6 +5,7 @@ import { Users, DollarSign, Activity, FileText, Clock, AlertCircle } from "lucid
 import { EmergencyEmailDialog } from "@/components/dashboard/EmergencyEmailDialog";
 
 import { ContractTable, Contract } from "@/components/dashboard/ContractTable";
+import { StatCard } from "@/components/dashboard/StatCard";
 // Mock data for demonstration
 const deadlineContracts: Contract[] = [
   { id: "1", clientName: "Acme Corp", contractTitle: "Software License Agreement", deadline: "Dec 2, 2024", amount: "$45,000", status: "urgent", email: "contact@acme.com" },
@@ -50,6 +51,32 @@ export default function DashboardPage() {
             <EmergencyEmailDialog />
           </div>
         </header>
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <StatCard
+            title="Total Clients"
+            value="1,234"
+            icon={Users}
+            trend={{ value: 12, isPositive: true }}
+          />
+          <StatCard
+            title="Total Revenue"
+            value="$12,345"
+            icon={DollarSign}
+            trend={{ value: 8, isPositive: true }}
+          />
+          <StatCard
+            title="Active Contracts"
+            value="573"
+            icon={FileText}
+            trend={{ value: 5, isPositive: true }}
+          />
+          <StatCard
+            title="Pending Actions"
+            value="24"
+            icon={AlertCircle}
+            trend={{ value: 3, isPositive: false }}
+          />
+        </section>
     </div>
     </div>
   );
