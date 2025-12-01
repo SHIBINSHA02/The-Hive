@@ -84,7 +84,7 @@ export default function Sidebar({ isOpen, onClose, onOpen }: SidebarProps) {
                         <Link href="/dashboard" onClick={onClose}>Overview</Link>
                     </li>
                     <li className="text-gray-500 hover:text-black hover:bg-gray-200 p-2 rounded-lg transition-colors">
-                        <Link href="/dashboard/contracts" onClick={onClose}>My Contracts</Link>
+                        <Link href="/dashboard/mycontracts" onClick={onClose}>My Contracts</Link>
                     </li>
                     <li className="text-gray-500 hover:text-black hover:bg-gray-200 p-2 rounded-lg transition-colors">
                         <Link href="/dashboard/lifecycle" onClick={onClose}>Lifecycle</Link>

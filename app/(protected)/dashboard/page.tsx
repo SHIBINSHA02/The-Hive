@@ -4,40 +4,151 @@ import { Users, DollarSign, Activity, FileText, Clock, AlertCircle } from "lucid
 
 import { EmergencyEmailDialog } from "@/components/dashboard/EmergencyEmailDialog";
 
-import { ContractTable, Contract } from "@/components/dashboard/ContractTable";
 import { StatCard } from "@/components/dashboard/StatCard";
-// Mock data for demonstration
-const deadlineContracts: Contract[] = [
-  { id: "1", clientName: "Acme Corp", contractTitle: "Software License Agreement", deadline: "Dec 2, 2024", amount: "$45,000", status: "urgent", email: "contact@acme.com" },
-  { id: "2", clientName: "TechStart Inc", contractTitle: "Service Level Agreement", deadline: "Dec 5, 2024", amount: "$28,500", status: "urgent", email: "legal@techstart.com" },
-  { id: "3", clientName: "Global Solutions", contractTitle: "Partnership Contract", deadline: "Dec 8, 2024", amount: "$125,000", status: "warning", email: "partnerships@global.com" },
-  { id: "4", clientName: "Innovate Labs", contractTitle: "NDA Agreement", deadline: "Dec 12, 2024", amount: "$5,000", status: "warning", email: "legal@innovate.com" },
-  { id: "5", clientName: "Summit Holdings", contractTitle: "Vendor Agreement", deadline: "Dec 15, 2024", amount: "$67,000", status: "normal", email: "procurement@summit.com" },
+import { RowContractCard } from "@/components/dashboard/RowContractCard";
+
+const mockContracts = [
+  {
+    id: 1,
+    companyName: "Apple Inc.",
+    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg",
+    title: "Enterprise Software License",
+    description: "Annual software licensing agreement for enterprise-level solutions including cloud services and support.",
+    startDate: "Jan 15, 2024",
+    deadline: "Dec 31, 2024",
+    progress: 65,
+    backgroundImage: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=800&auto=format&fit=crop",
+  },
+  {
+    id: 2,
+    companyName: "Google LLC",
+    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg",
+    title: "Cloud Infrastructure Partnership",
+    description: "Strategic partnership for cloud infrastructure deployment and managed services across multiple regions.",
+    startDate: "Mar 01, 2024",
+    deadline: "Feb 28, 2025",
+    progress: 35,
+    backgroundImage: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop",
+  },
+  {
+    id: 3,
+    companyName: "Microsoft",
+    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg",
+    title: "Security Compliance Audit",
+    description: "Comprehensive security audit and compliance certification for enterprise systems and data protection.",
+    startDate: "Feb 10, 2024",
+    deadline: "Aug 10, 2024",
+    progress: 85,
+    backgroundImage: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&auto=format&fit=crop",
+  },
+  {
+    id: 4,
+    companyName: "Amazon",
+    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg",
+    title: "Supply Chain Integration",
+    description: "Integration of supply chain management systems with real-time tracking and analytics capabilities.",
+    startDate: "Apr 05, 2024",
+    deadline: "Oct 05, 2024",
+    progress: 50,
+    backgroundImage: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&auto=format&fit=crop",
+  },
+  {
+    id: 5,
+    companyName: "Tesla",
+    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/b/bb/Tesla_T_symbol.svg",
+    title: "Sustainable Energy Contract",
+    description: "Long-term agreement for sustainable energy solutions and electric vehicle fleet management services.",
+    startDate: "May 20, 2024",
+    deadline: "May 19, 2026",
+    progress: 15,
+    backgroundImage: "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&auto=format&fit=crop",
+  },
+  {
+    id: 6,
+    companyName: "Meta",
+    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg",
+    title: "Digital Marketing Agreement",
+    description: "Comprehensive digital marketing and advertising services agreement with performance-based metrics.",
+    startDate: "Jun 01, 2024",
+    deadline: "Nov 30, 2024",
+    progress: 40,
+    backgroundImage: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800&auto=format&fit=crop",
+  },
+  {
+    id: 7,
+    companyName: "Apple Inc.",
+    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg",
+    title: "Enterprise Software License",
+    description: "Annual software licensing agreement for enterprise-level solutions including cloud services and support.",
+    startDate: "Jan 15, 2024",
+    deadline: "Dec 31, 2024",
+    progress: 65,
+    backgroundImage: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=800&auto=format&fit=crop",
+  },
+  {
+    id: 8,
+    companyName: "Google LLC",
+    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg",
+    title: "Cloud Infrastructure Partnership",
+    description: "Strategic partnership for cloud infrastructure deployment and managed services across multiple regions.",
+    startDate: "Mar 01, 2024",
+    deadline: "Feb 28, 2025",
+    progress: 35,
+    backgroundImage: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop",
+  },
+  {
+    id: 9,
+    companyName: "Microsoft",
+    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg",
+    title: "Security Compliance Audit",
+    description: "Comprehensive security audit and compliance certification for enterprise systems and data protection.",
+    startDate: "Feb 10, 2024",
+    deadline: "Aug 10, 2024",
+    progress: 85,
+    backgroundImage: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&auto=format&fit=crop",
+  },
+  {
+    id: 10,
+    companyName: "Amazon",
+    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg",
+    title: "Supply Chain Integration",
+    description: "Integration of supply chain management systems with real-time tracking and analytics capabilities.",
+    startDate: "Apr 05, 2024",
+    deadline: "Oct 05, 2024",
+    progress: 50,
+    backgroundImage: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&auto=format&fit=crop",
+  },
+  {
+    id: 11,
+    companyName: "Tesla",
+    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/b/bb/Tesla_T_symbol.svg",
+    title: "Sustainable Energy Contract",
+    description: "Long-term agreement for sustainable energy solutions and electric vehicle fleet management services.",
+    startDate: "May 20, 2024",
+    deadline: "May 19, 2026",
+    progress: 15,
+    backgroundImage: "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&auto=format&fit=crop",
+  },
+  {
+    id: 12,
+    companyName: "Meta",
+    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg",
+    title: "Digital Marketing Agreement",
+    description: "Comprehensive digital marketing and advertising services agreement with performance-based metrics.",
+    startDate: "Jun 01, 2024",
+    deadline: "Nov 30, 2024",
+    progress: 40,
+    backgroundImage: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800&auto=format&fit=crop",
+  },
 ];
 
-const delayedPayments: Contract[] = [
-  { id: "6", clientName: "Alpha Industries", contractTitle: "Consulting Agreement", deadline: "Nov 15, 2024", amount: "$32,000", status: "overdue", email: "finance@alpha.com" },
-  { id: "7", clientName: "Beta Corp", contractTitle: "Maintenance Contract", deadline: "Nov 20, 2024", amount: "$18,500", status: "overdue", email: "accounts@beta.com" },
-  { id: "8", clientName: "Delta Systems", contractTitle: "Support Agreement", deadline: "Nov 25, 2024", amount: "$24,000", status: "overdue", email: "billing@delta.com" },
-  { id: "9", clientName: "Omega Tech", contractTitle: "Development Contract", deadline: "Nov 28, 2024", amount: "$56,000", status: "overdue", email: "payments@omega.com" },
-];
-
-const upcomingPayments: Contract[] = [
-  { id: "10", clientName: "Zenith Corp", contractTitle: "Annual License", deadline: "Dec 1, 2024", amount: "$15,000", status: "urgent", email: "finance@zenith.com" },
-  { id: "11", clientName: "Phoenix Ltd", contractTitle: "Subscription Plan", deadline: "Dec 3, 2024", amount: "$8,500", status: "urgent", email: "billing@phoenix.com" },
-  { id: "12", clientName: "Nova Industries", contractTitle: "Enterprise Plan", deadline: "Dec 7, 2024", amount: "$42,000", status: "warning", email: "accounts@nova.com" },
-  { id: "13", clientName: "Apex Solutions", contractTitle: "Pro Subscription", deadline: "Dec 10, 2024", amount: "$12,000", status: "warning", email: "finance@apex.com" },
-  { id: "14", clientName: "Prime Tech", contractTitle: "Team License", deadline: "Dec 14, 2024", amount: "$22,500", status: "normal", email: "billing@prime.com" },
-  { id: "15", clientName: "Elite Corp", contractTitle: "Annual Support", deadline: "Dec 18, 2024", amount: "$35,000", status: "normal", email: "support@elite.com" },
-  { id: "16", clientName: "Stellar Inc", contractTitle: "Premium Plan", deadline: "Dec 22, 2024", amount: "$19,000", status: "normal", email: "accounts@stellar.com" },
-];
 
 export default function DashboardPage() {
-  const handleSendReminder = (contract: Contract) => {
+  const handleSendReminder = () => {
     // Implement email sending logic here
-    alert(`Reminder email sent to ${contract.clientName} for contract "${contract.contractTitle}"`);
+    alert(`Reminder email sent to the client!`);
   };
-
+  const items = mockContracts
   return (
     <div className="bg-background ">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-y-scroll h-[95vh] ">
@@ -80,6 +191,27 @@ export default function DashboardPage() {
             icon={AlertCircle}
             trend={{ value: 3, isPositive: false }}
           />
+        </section>
+
+        <section className="space-y-8">
+          {
+            items.map((item) => (
+              <RowContractCard
+                key={item.id}
+                companyName={item.companyName}
+                companyLogo={item.companyLogo}
+                title={item.title}
+                description={item.description}
+                startDate={item.startDate}
+                deadline={item.deadline}
+                progress={item.progress}
+              />
+
+            ))
+          }
+               
+          
+         
         </section>
         
          

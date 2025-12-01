@@ -1,3 +1,4 @@
+// app/(protected)/dashboard/mycontracts/layout.tsx
 // app/(protected)/dashboard/contracts/layout.tsx
 "use client";
 import { ReactNode } from "react";
