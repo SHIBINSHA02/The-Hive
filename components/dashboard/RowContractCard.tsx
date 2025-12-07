@@ -81,7 +81,7 @@ export const RowContractCard = (
           <h1 className="text-xl font-semibold text-gray-800 truncate mb-1">
             {title}
           </h1>
-          <p className="text-sm text-gray-500 line-clamp-2">
+          <p className="text-sm text-blue-800 line-clamp-2">
             {description}
           </p>
         </div>
@@ -119,7 +119,7 @@ export const RowContractCard = (
           </div>
           <div className="text-gray-500 text-right">
             <span className="block font-normal">Deadline</span>
-            <span className="text-red-500 font-semibold">{deadline}</span>
+            <span className="text-blue-500 font-semibold">{deadline}</span>
           </div>
         </div>
 
