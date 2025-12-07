@@ -31,7 +31,7 @@ const options = {
 
                 await connectDB();
 
-                const user = await UserModel.findOne({ email }).lean();
+                const user = await UserModel.findOne({ email }).select("+password").lean();
                 if (!user || !user.password) return null;
 
                 const valid = await bcrypt.compare(password, user.password);
@@ -66,6 +66,4 @@ const options = {
         },
     },
 };
-
-const handler = NextAuth(options);
-export { handler as GET, handler as POST };
+export const { handlers: { GET, POST } } = NextAuth(options);
