@@ -23,7 +23,7 @@ export async function POST(req: Request) {
     user.resetTokenExpiry = Date.now() + 1000 * 60 * 15; // 15 minutes
     await user.save();
 
-    await sendResetEmail(String(user.email), token);
+//    / await sendResetEmail(String(user.email), token);
 
     return NextResponse.json({ message: "If that email exists, a reset link was sent" });
 }
