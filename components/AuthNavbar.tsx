@@ -1,3 +1,4 @@
+// components/AuthNavbar.tsx
 "use client";
 
 import Image from "next/image";
