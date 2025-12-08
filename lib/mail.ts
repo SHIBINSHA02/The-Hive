@@ -1,8 +1,9 @@
-import { Resend } from 'resend';
+// lib/mail.ts
+// import { Resend } from 'resend';
 
 // Initialize Resend client using the environment variable RESEND_API_KEY
 // The environment variable is automatically picked up by the SDK.
-const resend = new Resend(process.env.RESEND_API_KEY);
+// const resend = new Resend(process.env.RESEND_API_KEY);
 
 /**
  * Sends a password reset email to the user.
