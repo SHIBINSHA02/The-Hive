@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { connectDB } from "@/db";
 import User from "@/db/models/User";
-import { sendResetEmail } from "@/lib/mail";
+// import { sendResetEmail } from "@/lib/mail";
 
 export async function POST(req: Request) {
     await connectDB();
