@@ -1,5 +1,7 @@
 // app/not-found.tsx
 
+import Link from "next/link";
+
 export default function NotFound() {
     return (
         <div className="min-h-screen flex flex-col items-center justify-center gap-4">
@@ -7,9 +9,9 @@ export default function NotFound() {
             <p className="text-muted-foreground">
                 The page you&apos;re looking for doesn&apos;t exist.
             </p>
-            <a href="/" className="underline">
+            <Link href="/" className="underline">
                 Go back home
-            </a>
+            </Link>
         </div>
     );
 }
