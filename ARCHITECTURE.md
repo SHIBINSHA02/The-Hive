@@ -1,3 +1,4 @@
+<!-- ARCHITECTURE.md -->
 # The Hive - Architecture & Routes Documentation
 
 ## 📋 Project Overview
