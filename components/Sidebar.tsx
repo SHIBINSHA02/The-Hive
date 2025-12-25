@@ -1,105 +1,163 @@
-// components/Sidebar.tsx
 "use client";
 
 import Link from "next/link";
 import Image from "next/image";
-import { X, Menu } from "lucide-react"; // Import Menu icon
+import { X, Menu } from "lucide-react";
+
+import {
+  SignedIn,
+  SignedOut,
+  UserButton,
+  useUser,
+  SignInButton,
+  SignOutButton,
+} from "@clerk/nextjs";
 
 interface SidebarProps {
-    isOpen: boolean;
-    onClose: () => void;
-    onOpen: () => void; // Added onOpen to handle the mobile trigger
+  isOpen: boolean;
+  onClose: () => void;
+  onOpen: () => void;
 }
 
 export default function Sidebar({ isOpen, onClose, onOpen }: SidebarProps) {
-    return (
-        <>
-            {/* ========================================================== */}
-            {/* 1. MOBILE TOP NAVBAR (Visible on Mobile Only)              */}
-            {/* ========================================================== */}
-            <div className="fixed top-0 left-0 right-0 h-16 bg-white  flex items-center justify-between px-4 z-30 md:hidden">
-                {/* Logo in Mobile Header */}
-                <Link href="/" className="flex items-center">
-                    <Image
-                        src="/whiteBG.svg"
-                        alt="The Hive Logo"
-                        width={120} // Slightly smaller for mobile
-                        height={34}
-                        className="object-contain"
-                    />
-                </Link>
+  const { user } = useUser();
 
-                {/* Hamburger Button to Open Sidebar */}
-                <button
-                    onClick={onOpen}
-                    className="p-2 text-gray-700 hover:bg-gray-100 rounded-md transition-colors"
-                    aria-label="Open Menu"
-                >
-                    <Menu size={24} />
-                </button>
+  return (
+    <>
+      {/* ================= MOBILE TOP NAV ================= */}
+      <div className="fixed top-0 left-0 right-0 h-16 bg-white flex items-center justify-between px-4 z-30 md:hidden">
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/whiteBG.svg"
+            alt="The Hive Logo"
+            width={120}
+            height={34}
+            className="object-contain"
+          />
+        </Link>
+
+        <button
+          onClick={onOpen}
+          className="p-2 text-gray-700 hover:bg-gray-100 rounded-md transition"
+          aria-label="Open Menu"
+        >
+          <Menu size={24} />
+        </button>
+      </div>
+
+      {/* ================= OVERLAY ================= */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      {/* ================= SIDEBAR ================= */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-50 p-6 transition-transform duration-300 ease-in-out  overflow-y-auto
+        ${isOpen ? "translate-x-0" : "-translate-x-full"} 
+        md:translate-x-0 md:static md:block md:h-screen`}
+      >
+        {/* -------- Mobile Close Header -------- */}
+        <div className="flex justify-between items-center mb-6">
+          <Link href="/" onClick={onClose}>
+            <Image
+              src="/whiteBG.svg"
+              alt="The Hive Logo"
+              width={150}
+              height={42}
+              className="object-contain"
+            />
+          </Link>
+
+          <button
+            onClick={onClose}
+            className="p-1 md:hidden text-gray-700 hover:text-black transition"
+          >
+            <X size={24} />
+          </button>
+        </div>
+
+        {/* ================= WHEN LOGGED IN ================= */}
+        <SignedIn>
+          {/* User Profile Header */}
+          <div className="  rounded-xl p-4 mb-6 ">
+            <div className="flex items-center space-x-3">
+              <UserButton appearance={{ elements: { avatarBox: "h-10 w-10" } }} />
+              <div>
+                <p className="font-semibold text-gray-800">
+                  {user?.fullName || "User"}
+                </p>
+                <p className="text-gray-500 text-sm">
+                  {user?.primaryEmailAddress?.emailAddress}
+                </p>
+              </div>
             </div>
+          </div>
 
-            {/* ========================================================== */}
-            {/* 2. OVERLAY (Backdrop for Mobile Drawer)                    */}
-            {/* ========================================================== */}
-            {isOpen && (
-                <div
-                    className="fixed inset-0 z-40 bg-black/50 md:hidden"
-                    onClick={onClose}
-                />
-            )}
+          <h3 className="hidden md:block font-bold text-gray-700 mb-4 mt-2 border-t pt-4">
+            User Menu
+          </h3>
 
-            {/* ========================================================== */}
-            {/* 3. SIDEBAR DRAWER (Desktop: Static, Mobile: Sliding)       */}
-            {/* ========================================================== */}
-            <aside
-                className={`fixed inset-y-0 left-0 z-50 w-64 bg-gray-50  p-6 transition-transform duration-300 ease-in-out h-[70vh] overflow-y-auto
-                ${isOpen ? "translate-x-0" : "-translate-x-full"} 
-                md:translate-x-0 md:static md:block md:h-screen`}
-            >
-                {/* Mobile Header INSIDE the drawer (To close it) */}
-                <div className="flex justify-between items-center mb-6">
-                    <div className="flex items-center space-x-2">
-                        <Link href="/" onClick={onClose} className="text-xl font-extrabold text-indigo-600">
-                            <Image
-                                src="/whiteBG.svg"
-                                alt="The Hive Logo"
-                                width={150}
-                                height={42}
-                                className="object-contain"
-                            />
-                        </Link>
-                    </div>
+          <ul className="space-y-2">
+            <li className="font-medium text-black hover:bg-gray-200 p-2 rounded-lg transition">
+              <Link href="/dashboard" onClick={onClose}>
+                Overview
+              </Link>
+            </li>
+            <li className="text-gray-600 hover:text-black hover:bg-gray-200 p-2 rounded-lg transition">
+              <Link href="/dashboard/mycontracts" onClick={onClose}>
+                My Contracts
+              </Link>
+            </li>
+            <li className="text-gray-600 hover:text-black hover:bg-gray-200 p-2 rounded-lg transition">
+              <Link href="/dashboard/lifecycle" onClick={onClose}>
+                Lifecycle
+              </Link>
+            </li>
+            <li className="text-gray-600 hover:text-black hover:bg-gray-200 p-2 rounded-lg transition">
+              <Link href="/dashboard/requests" onClick={onClose}>
+                Contract Requests
+              </Link>
+            </li>
+            <li className="text-gray-600 hover:text-black hover:bg-gray-200 p-2 rounded-lg transition">
+              <Link href="/dashboard/notifications" onClick={onClose}>
+                Notifications
+              </Link>
+            </li>
+            <li className="text-gray-600 hover:text-black hover:bg-gray-200 p-2 rounded-lg transition">
+              <Link href="/dashboard/settings" onClick={onClose}>
+                Settings
+              </Link>
+            </li>
+          </ul>
 
-                    {/* Close Button - Visible on Mobile only */}
-                    <button onClick={onClose} className="p-1 md:hidden text-gray-700 hover:text-black transition-colors">
-                        <X size={24} />
-                    </button>
-                </div>
+          {/* Logout Button */}
+          <div className="mt-8">
+            <SignOutButton redirectUrl="/">
+              <button className="w-full border-red-600 border hover:bg-red-200 text-red-600 bg-red-50 py-2 rounded-lg transition">
+                Logout
+              </button>
+            </SignOutButton>
+          </div>
+        </SignedIn>
 
-                <h3 className="hidden md:block font-bold text-gray-700 mb-4 mt-6 border-t pt-4">User Menu</h3>
+        {/* ================= WHEN LOGGED OUT ================= */}
+        <SignedOut>
+          <div className="mt-20 text-center">
+            <p className="text-gray-600 mb-4 font-medium">
+              Please login to access dashboard
+            </p>
 
-                <ul className="space-y-2">
-                    <li className="font-medium text-black hover:bg-gray-200 p-2 rounded-lg transition-colors">
-                        <Link href="/dashboard" onClick={onClose}>Overview</Link>
-                    </li>
-                    <li className="text-gray-500 hover:text-black hover:bg-gray-200 p-2 rounded-lg transition-colors">
-                        <Link href="/dashboard/mycontracts" onClick={onClose}>My Contracts</Link>
-                    </li>
-                    <li className="text-gray-500 hover:text-black hover:bg-gray-200 p-2 rounded-lg transition-colors">
-                        <Link href="/dashboard/lifecycle" onClick={onClose}>Lifecycle</Link>
-                    </li>
-                    <li className="text-gray-500 hover:text-black hover:bg-gray-200 p-2 rounded-lg transition-colors">
-                        <Link href="/dashboard/requests" onClick={onClose}>Contract Requests</Link>
-                    </li>
-                    <li className="text-gray-500 hover:text-black hover:bg-gray-200 p-2 rounded-lg transition-colors">
-                        <Link href="/dashboard/notifications" onClick={onClose}>Notifications</Link>
-                    </li>
-                    <li className="text-gray-500 hover:text-black hover:bg-gray-200 p-2 rounded-lg transition-colors">
-                        <Link href="/dashboard/settings" onClick={onClose}>Settings</Link>
-                    </li>
-                </ul>
-            </aside>
-        </>
-    );
+            <SignInButton mode="modal">
+              <button className="w-full bg-blue-700 hover:bg-blue-800 text-white py-2 rounded-lg font-semibold transition">
+                Login
+              </button>
+            </SignInButton>
+          </div>
+        </SignedOut>
+      </aside>
+    </>
+  );
 }

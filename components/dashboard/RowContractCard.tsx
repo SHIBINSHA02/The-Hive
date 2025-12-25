@@ -1,4 +1,3 @@
-// components/dashboard/RowContractCard.tsx
 "use client";
 
 interface ContractCardProps {
@@ -11,20 +10,15 @@ interface ContractCardProps {
   progress: number;
 }
 
-// 🎯 NEW: Circular Progress Bar Component using SVG
 const CircularProgressBar = ({ progress }: { progress: number }) => {
-  const radius = 20; // Radius of the circle
+  const radius = 20;
   const circumference = 2 * Math.PI * radius;
-  // Calculation to determine how much of the stroke is filled
   const strokeDashoffset = circumference - (progress / 100) * circumference;
-
-  // Determine color for the progress stroke
   const strokeColor = progress === 100 ? "stroke-green-500" : "stroke-blue-500";
 
   return (
-    <div className="relative w-14 h-14">
+    <div className="relative w-12 h-12 sm:w-14 sm:h-14">
       <svg className="w-full h-full transform -rotate-90">
-        {/* Background Circle (The track) */}
         <circle
           className="text-gray-200"
           strokeWidth="4"
@@ -33,88 +27,78 @@ const CircularProgressBar = ({ progress }: { progress: number }) => {
           cx="28"
           cy="28"
         />
-
-        {/* Progress Circle (The filled part) */}
         <circle
           className={`${strokeColor} transition-all duration-500`}
           strokeWidth="4"
           strokeDasharray={circumference}
           strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round" // Makes the end of the line rounded
+          strokeLinecap="round"
           fill="transparent"
           r={radius}
           cx="28"
           cy="28"
         />
       </svg>
-
-      {/* Centered Percentage Text */}
-      <span className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-700">
+      <span className="absolute inset-0 flex items-center justify-center text-[10px] sm:text-xs font-bold text-gray-700">
         {progress}%
       </span>
     </div>
   );
 };
 
-
-export const RowContractCard = (
-  {
-    companyName,
-    companyLogo,
-    title,
-    description,
-    startDate,
-    deadline,
-    progress,
-
-  }: ContractCardProps
-) => {
-
+export const RowContractCard = ({
+  companyName,
+  companyLogo,
+  title,
+  description,
+  startDate,
+  deadline,
+  progress,
+}: ContractCardProps) => {
   return (
-    // Main Card Container
-    <div className="w-full bg-white p-6 rounded-xl border border-gray-100 shadow-lg hover:shadow-xl transition duration-300 ease-in-out">
+    <div className="w-full bg-white p-4 sm:p-6 rounded-xl border border-gray-100 shadow-md hover:shadow-xl transition duration-300">
 
-      <div className="flex justify-between items-start mb-4">
-
-        {/* Contract Title and Description */}
-        <div className="max-w-[70%]">
-          <h1 className="text-xl font-semibold text-gray-800 truncate mb-1">
+      {/* Top Section */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+        
+        {/* Title + Description */}
+        <div className="w-full sm:max-w-[75%]">
+          <h1 className="text-lg sm:text-xl font-semibold text-gray-800 truncate mb-1">
             {title}
           </h1>
-          <p className="text-sm text-blue-800 line-clamp-2">
+
+          <p className="text-sm sm:text-base text-blue-800 line-clamp-3 sm:line-clamp-2">
             {description}
           </p>
         </div>
 
-        {/* Progress Indicator (Moved to Top Right) */}
-        <div className="flex-shrink-0">
+        {/* Progress */}
+        <div className="flex justify-start sm:justify-end">
           <CircularProgressBar progress={progress} />
         </div>
       </div>
 
+      {/* Bottom Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-t pt-4 gap-3">
 
-      {/* Footer: Company Info and Dates */}
-      <div className="flex justify-between items-center border-t pt-4">
-
-        {/* Company Info */}
+        {/* Company */}
         <div className="flex items-center space-x-3">
-          <div className="border border-gray-200 w-8 h-8 rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+          <div className="border border-gray-200 w-9 h-9 sm:w-10 sm:h-10 rounded-full flex items-center justify-center overflow-hidden">
             <img
               className="h-full w-full object-contain p-0.5"
               src={companyLogo}
               alt={`${companyName} logo`}
             />
           </div>
-          <h2 className="text-sm font-medium text-gray-600">
+          <h2 className="text-sm sm:text-base font-medium text-gray-600">
             {companyName}
           </h2>
         </div>
 
-
-        {/* Date Group */}
-        <div className="flex space-x-4 text-xs font-medium">
+        {/* Dates */}
+        <div className="flex justify-between sm:justify-end gap-6 text-xs sm:text-sm font-medium">
           <div className="text-gray-500 text-right">
-            <span className="block font-normal">Start Date</span>
+            <span className="block font-normal">Start</span>
             <span className="text-gray-800">{startDate}</span>
           </div>
           <div className="text-gray-500 text-right">
@@ -125,6 +109,5 @@ export const RowContractCard = (
 
       </div>
     </div>
-
   );
 };

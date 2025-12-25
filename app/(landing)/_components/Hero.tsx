@@ -2,6 +2,7 @@
 "use client"
 import React from 'react';
 import { FileText, Brain } from 'lucide-react';
+import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
 
 export default function Hero() {
   const [isVisible, setIsVisible] = React.useState(false);
@@ -81,34 +82,64 @@ export default function Hero() {
               >
                 Streamline contractor agreements with AI-driven contract generation, analysis, and management powered by deep learning.
               </p>
-              <div
-                className={`mt-8 lg:mt-12 flex flex-col sm:flex-row gap-4 sm:gap-5 justify-center lg:justify-start transition-all duration-700 delay-1000 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
+              {/* CTA Buttons */}
+                <div
+                  className={`mt-8 lg:mt-12 flex flex-col sm:flex-row gap-4 sm:gap-5 justify-center lg:justify-start transition-all duration-700 delay-1000 ${
+                    isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                   }`}
-              >
-                <a
-                  href="/dashboard"
-                  className="text-white px-6 sm:px-10 py-4 text-base sm:text-lg rounded-xl font-semibold hover:scale-105 flex items-center justify-center space-x-3 shadow-lg"
-                  style={{ backgroundColor: '#2c6df5' }}
                 >
-                  <span>Dashboard</span>
-                  <svg
-                    className="h-6 w-6"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    strokeWidth="2"
+
+                  {/* When user is NOT logged in */}
+                  <SignedOut>
+                    <SignInButton mode="modal">
+                      <button
+                        className="text-white px-6 sm:px-10 py-4 text-base sm:text-lg rounded-xl font-semibold hover:scale-105 flex items-center justify-center space-x-3 shadow-lg"
+                        style={{ backgroundColor: '#1154B9FF' }}
+                      >
+                        <span>Get Started</span>
+                        <svg
+                          className="h-6 w-6"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                          strokeWidth="2"
+                        >
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                        </svg>
+                      </button>
+                    </SignInButton>
+                  </SignedOut>
+
+                  {/* When user IS logged in */}
+                  <SignedIn>
+                    <a
+                      href="/dashboard"
+                      className="text-white px-6 sm:px-10 py-4 text-base sm:text-lg rounded-xl font-semibold hover:scale-105 flex items-center justify-center space-x-3 shadow-lg"
+                      style={{ backgroundColor: '#1154B9FF' }}
+                    >
+                      <span>Dashboard</span>
+                      <svg
+                        className="h-6 w-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                        strokeWidth="2"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                      </svg>
+                    </a>
+                  </SignedIn>
+
+                  {/* Request Demo button stays same */}
+                  <a
+                    href="#demo"
+                    className="border-2 text-base sm:text-lg rounded-xl font-semibold px-6 sm:px-10 py-4 shadow-md hover:scale-105"
+                    style={{ borderColor: '#1154B9FF', color: '#1154B9FF', backgroundColor: '#ebf2ff' }}
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                  </svg>
-                </a>
-                <a
-                  href="#demo"
-                  className="border-2 text-base sm:text-lg rounded-xl font-semibold px-6 sm:px-10 py-4 shadow-md hover:scale-105"
-                  style={{ borderColor: '#2c6df5', color: '#2c6df5', backgroundColor: '#ebf2ff' }}
-                >
-                  Request a Demo
-                </a>
-              </div>
+                    Request a Demo
+                  </a>
+                </div>
+
             </div>
           </div>
         </div>
