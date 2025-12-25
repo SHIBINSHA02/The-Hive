@@ -1,10 +1,25 @@
 // middleware.ts
-import { clerkMiddleware } from "@clerk/nextjs/server";
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 
-export const middleware = clerkMiddleware({
-  publicRoutes: ["/", "/api/webhook/clerk"],
+const isPublicRoute = createRouteMatcher([
+  "/",
+  "/api/webhook/clerk",
+]);
+
+export default clerkMiddleware(async (auth, req) => {
+  const { userId, redirectToSignIn } = await auth();
+
+  if (isPublicRoute(req)) return;
+
+  if (!userId) {
+    return redirectToSignIn({ returnBackUrl: req.url });
+  }
 });
 
 export const config = {
-  matcher: ["/((?!_next|.*\\..*).*)"],
+  matcher: [
+    "/((?!.+\\.[\\w]+$|_next).*)",
+    "/",
+    "/(api|trpc)(.*)",
+  ],
 };
