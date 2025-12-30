@@ -43,7 +43,7 @@ const ContractCard = ({
         
       </div>
       {/* Company Logo */}
-      <div className="absolute top-25 left-4 z-50 bg-white">
+      <div className="absolute top-25 left-4 z-40 bg-white">
   <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-card shadow-lg ring-4 ring-card">
     <img
       src={companyLogo}

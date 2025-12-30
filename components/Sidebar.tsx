@@ -56,7 +56,7 @@ export default function Sidebar({ isOpen, onClose, onOpen }: SidebarProps) {
 
       {/* ================= SIDEBAR ================= */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64  p-6 transition-transform duration-300 ease-in-out  overflow-y-auto 
+        className={`fixed inset-y-0 left-0 z-50 w-64  p-6 transition-transform duration-300 ease-in-out  overflow-y-auto bg-white
         ${isOpen ? "translate-x-0" : "-translate-x-full"} 
         md:translate-x-0 md:static md:block md:h-screen`}
       >
