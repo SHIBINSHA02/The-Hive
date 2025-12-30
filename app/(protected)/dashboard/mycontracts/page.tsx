@@ -159,8 +159,8 @@ export default function ContractPage() {
   });
 
   return (
-    <div className="w-full bg-[#f5f8fc] px-3 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-8 rounded-4xl min-h-screen">
-      <div className="mx-auto max-w-7xl space-y-8">
+    <div className="w-full bg-[#f5f8fc] px-3 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-8 rounded-4xl min-h-screen ">
+      <div className="lg:mx-auto mx-0 max-w-7xl space-y-8">
 
         {/* ---------- HEADER ---------- */}
         <header className="flex flex-col gap-3 sm:gap-4">
