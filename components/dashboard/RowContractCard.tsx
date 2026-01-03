@@ -1,3 +1,4 @@
+// components/dashboard/RowContractCard.tsx
 "use client";
 
 interface ContractCardProps {
@@ -17,32 +18,38 @@ const CircularProgressBar = ({ progress }: { progress: number }) => {
   const strokeColor = progress === 100 ? "stroke-green-500" : "stroke-blue-500";
 
   return (
-    <div className="relative w-12 h-12 sm:w-14 sm:h-14">
-      <svg className="w-full h-full transform -rotate-90">
-        <circle
-          className="text-gray-200"
-          strokeWidth="4"
-          fill="transparent"
-          r={radius}
-          cx="28"
-          cy="28"
-        />
-        <circle
-          className={`${strokeColor} transition-all duration-500`}
-          strokeWidth="4"
-          strokeDasharray={circumference}
-          strokeDashoffset={strokeDashoffset}
-          strokeLinecap="round"
-          fill="transparent"
-          r={radius}
-          cx="28"
-          cy="28"
-        />
-      </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-[10px] sm:text-xs font-bold text-gray-700">
-        {progress}%
-      </span>
-    </div>
+   <div className="relative w-12 h-12 sm:w-14 sm:h-14">
+  <svg
+    className="w-full h-full transform -rotate-90"
+    viewBox="0 0 56 56"
+  >
+    <circle
+      className="text-gray-200"
+      strokeWidth="4"
+      fill="transparent"
+      r={radius}
+      cx="28"
+      cy="28"
+    />
+
+    <circle
+      className={`${strokeColor} transition-all duration-500`}
+      strokeWidth="4"
+      strokeDasharray={circumference}
+      strokeDashoffset={strokeDashoffset}
+      strokeLinecap="round"
+      fill="transparent"
+      r={radius}
+      cx="28"
+      cy="28"
+    />
+  </svg>
+
+  <span className="absolute inset-0 flex items-center justify-center text-[10px] sm:text-xs font-bold text-gray-700">
+    {progress}%
+  </span>
+</div>
+
   );
 };
 
@@ -73,8 +80,8 @@ export const RowContractCard = ({
         </div>
 
         {/* Progress */}
-        <div className="flex justify-start sm:justify-end">
-          <CircularProgressBar progress={progress} />
+        <div className="flex justify-end w-full">
+          <CircularProgressBar progress={progress}  />
         </div>
       </div>
 

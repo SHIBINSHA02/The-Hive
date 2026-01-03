@@ -8,6 +8,7 @@ import { Plus, Filter, LayoutGrid, List, Search } from "lucide-react";
 import CreateContractDialog from "@/components/dashboard/CreateContractDialog";
 // Assuming you have a ContractCard component. If not, I've provided a simple version below the main component.
 import ContractCard from "@/components/dashboard/ContractCard"; 
+import Link from "next/link";
 
 const mockContracts = [
   {
@@ -250,7 +251,13 @@ export default function ContractPage() {
               className="animate-in fade-in slide-in-from-bottom-4 duration-500"
               style={{ animationDelay: `${index * 80}ms` }}
             >
+              <Link 
+              href={`/dashboard/mycontracts/${encodeURIComponent(contract.title)}`}
+              className="block"
+            >
               <ContractCard {...contract} />
+            </Link>
+
             </div>
           ))}
         </div>
