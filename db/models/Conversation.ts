@@ -33,20 +33,24 @@ const ConversationSchema = new mongoose.Schema({
   },
 
   contractId: {
-    type: String,
-    required: true
-  },
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Contract",
+  required: true
+},
 
   participants: {
-    client: {
-      type: String,
-      required: true
-    },
-    contractor: {
-      type: String,
-      required: true
-    }
+  client: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "ClientProfile",
+    required: true
   },
+  contractor: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "ContractProfile",
+    required: true
+  }
+},
+
 
   messages: {
     type: [MessageSchema],

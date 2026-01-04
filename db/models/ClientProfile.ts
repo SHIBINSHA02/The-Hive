@@ -1,17 +1,18 @@
-// db/models/ClientProfile.ts
-// db/models/ClientProfile.ts
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IClientProfile extends Document {
-  userId: string;
-  profileId: string;
+  user: mongoose.Types.ObjectId;
   name?: string;
 }
 
 const ClientProfileSchema = new Schema<IClientProfile>(
   {
-    userId: { type: String, required: true, unique: true },
-    profileId: { type: String, required: true, unique: true },
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      unique: true
+    },
     name: String
   },
   { timestamps: true }

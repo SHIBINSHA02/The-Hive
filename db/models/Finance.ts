@@ -5,10 +5,11 @@ const TransactionSchema = new mongoose.Schema({
   transactionId: { type: String, required: true, unique: true },
 
   type: {
-    type: String,
-    enum: ["credit", "debit"],
-    required: true
-  },
+  type: String,
+  enum: ["credit", "debit", "pending"],
+  required: true
+},
+
 
   amount: {
     type: Number,
@@ -55,20 +56,24 @@ const FinancialSchema = new mongoose.Schema({
     unique: true
   },
 
-  contractId: {
-    type: String,
-    required: true
-  },
+  contract: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "Contract",
+  required: true
+},
 
-  client: {
-    type: String,
-    required: true
-  },
+client: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "ClientProfile",
+  required: true
+},
 
-  contractor: {
-    type: String,
-    required: true
-  },
+contractor: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "ContractProfile",
+  required: true
+},
+
 
   totalAmount: {
     type: Number,

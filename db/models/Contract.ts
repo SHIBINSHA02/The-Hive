@@ -47,15 +47,18 @@ const ContractSchema = new mongoose.Schema({
     default: 0
   },
 
-  client: {
-    type: String,
-    required: true
-  },
+client: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "ClientProfile",
+  required: true
+},
 
-  contractor: {
-    type: String,
-    required: true
-  },
+contractor: {
+  type: mongoose.Schema.Types.ObjectId,
+  ref: "ContractProfile",
+  required: true
+},
+
 
   conversationId: {
     type: String

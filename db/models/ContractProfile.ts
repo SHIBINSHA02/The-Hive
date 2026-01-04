@@ -2,15 +2,18 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IContractProfile extends Document {
-  userId: string;
-  profileId: string;
+  user: mongoose.Types.ObjectId;
   name?: string;
 }
 
 const ContractProfileSchema = new Schema<IContractProfile>(
   {
-    userId: { type: String, required: true, unique: true },
-    profileId: { type: String, required: true, unique: true },
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      unique: true 
+    },
     name: String
   },
   { timestamps: true }
