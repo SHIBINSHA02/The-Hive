@@ -1,3 +1,4 @@
+// db/models/User.ts
 import mongoose, { Schema, Document, Model } from "mongoose";
 
 // 1. Define the interface representing a document in MongoDB
