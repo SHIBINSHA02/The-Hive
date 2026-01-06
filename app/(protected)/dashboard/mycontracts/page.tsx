@@ -1,163 +1,83 @@
 // app/(protected)/dashboard/mycontracts/page.tsx
-// app/(protected)/dashboard/contracts/page.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, Filter, LayoutGrid, List, Search } from "lucide-react";
-// We import the Dialog we created in the previous step
 import CreateContractDialog from "@/components/dashboard/CreateContractDialog";
-// Assuming you have a ContractCard component. If not, I've provided a simple version below the main component.
-import ContractCard from "@/components/dashboard/ContractCard"; 
+import ContractCard from "@/components/dashboard/ContractCard";
 import Link from "next/link";
 
-const mockContracts = [
-  {
-    id: 1,
-    companyName: "Apple Inc.",
-    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg",
-    title: "Enterprise Software License",
-    description: "Annual software licensing agreement for enterprise-level solutions including cloud services and support.",
-    startDate: "Jan 15, 2024",
-    deadline: "Dec 31, 2024",
-    progress: 65,
-    backgroundImage: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=800&auto=format&fit=crop",
-  },
-  {
-    id: 2,
-    companyName: "Google LLC",
-    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg",
-    title: "Cloud Infrastructure Partnership",
-    description: "Strategic partnership for cloud infrastructure deployment and managed services across multiple regions.",
-    startDate: "Mar 01, 2024",
-    deadline: "Feb 28, 2025",
-    progress: 35,
-    backgroundImage: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop",
-  },
-  {
-    id: 3,
-    companyName: "Microsoft",
-    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg",
-    title: "Security Compliance Audit",
-    description: "Comprehensive security audit and compliance certification for enterprise systems and data protection.",
-    startDate: "Feb 10, 2024",
-    deadline: "Aug 10, 2024",
-    progress: 85,
-    backgroundImage: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&auto=format&fit=crop",
-  },
-  {
-    id: 4,
-    companyName: "Amazon",
-    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg",
-    title: "Supply Chain Integration",
-    description: "Integration of supply chain management systems with real-time tracking and analytics capabilities.",
-    startDate: "Apr 05, 2024",
-    deadline: "Oct 05, 2024",
-    progress: 50,
-    backgroundImage: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&auto=format&fit=crop",
-  },
-  {
-    id: 5,
-    companyName: "Tesla",
-    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/b/bb/Tesla_T_symbol.svg",
-    title: "Sustainable Energy Contract",
-    description: "Long-term agreement for sustainable energy solutions and electric vehicle fleet management services.",
-    startDate: "May 20, 2024",
-    deadline: "May 19, 2026",
-    progress: 15,
-    backgroundImage: "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&auto=format&fit=crop",
-  },
-  {
-    id: 6,
-    companyName: "Meta",
-    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg",
-    title: "Digital Marketing Agreement",
-    description: "Comprehensive digital marketing and advertising services agreement with performance-based metrics.",
-    startDate: "Jun 01, 2024",
-    deadline: "Nov 30, 2024",
-    progress: 40,
-    backgroundImage: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800&auto=format&fit=crop",
-  },
-  {
-    id: 7,
-    companyName: "Apple Inc.",
-    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg",
-    title: "Enterprise Software License",
-    description: "Annual software licensing agreement for enterprise-level solutions including cloud services and support.",
-    startDate: "Jan 15, 2024",
-    deadline: "Dec 31, 2024",
-    progress: 65,
-    backgroundImage: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=800&auto=format&fit=crop",
-  },
-  {
-    id: 8,
-    companyName: "Google LLC",
-    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg",
-    title: "Cloud Infrastructure Partnership",
-    description: "Strategic partnership for cloud infrastructure deployment and managed services across multiple regions.",
-    startDate: "Mar 01, 2024",
-    deadline: "Feb 28, 2025",
-    progress: 35,
-    backgroundImage: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop",
-  },
-  {
-    id: 9,
-    companyName: "Microsoft",
-    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg",
-    title: "Security Compliance Audit",
-    description: "Comprehensive security audit and compliance certification for enterprise systems and data protection.",
-    startDate: "Feb 10, 2024",
-    deadline: "Aug 10, 2024",
-    progress: 85,
-    backgroundImage: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&auto=format&fit=crop",
-  },
-  {
-    id: 10,
-    companyName: "Amazon",
-    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg",
-    title: "Supply Chain Integration",
-    description: "Integration of supply chain management systems with real-time tracking and analytics capabilities.",
-    startDate: "Apr 05, 2024",
-    deadline: "Oct 05, 2024",
-    progress: 50,
-    backgroundImage: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&auto=format&fit=crop",
-  },
-  {
-    id: 11,
-    companyName: "Tesla",
-    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/b/bb/Tesla_T_symbol.svg",
-    title: "Sustainable Energy Contract",
-    description: "Long-term agreement for sustainable energy solutions and electric vehicle fleet management services.",
-    startDate: "May 20, 2024",
-    deadline: "May 19, 2026",
-    progress: 15,
-    backgroundImage: "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&auto=format&fit=crop",
-  },
-  {
-    id: 12,
-    companyName: "Meta",
-    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/7/7b/Meta_Platforms_Inc._logo.svg",
-    title: "Digital Marketing Agreement",
-    description: "Comprehensive digital marketing and advertising services agreement with performance-based metrics.",
-    startDate: "Jun 01, 2024",
-    deadline: "Nov 30, 2024",
-    progress: 40,
-    backgroundImage: "https://images.unsplash.com/photo-1611162617474-5b21e879e113?w=800&auto=format&fit=crop",
-  },
-];
-
 const filterOptions = ["All Contracts", "Active", "Pending", "Completed"];
+
 export default function ContractPage() {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [activeFilter, setActiveFilter] = useState("All Contracts");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredContracts = mockContracts.filter((contract) => {
+  const [contracts, setContracts] = useState<Contract[]>([]);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // Fetch contracts
+  useEffect(() => {
+    const fetchContracts = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch("/api/contracts");
+
+        if (!res.ok) throw new Error("Failed to fetch contracts");
+
+        const data = await res.json();
+        setContracts(data);
+      }catch (err: unknown) {
+  const message =
+    err instanceof Error ? err.message : "Something went wrong";
+  setError(message);
+}
+finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContracts();
+  }, []);
+
+  // Filter + Search
+  const filteredContracts = contracts.filter((contract) => {
     const matchesSearch =
-      contract.companyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      contract.title.toLowerCase().includes(searchQuery.toLowerCase());
+      contract.companyName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      contract.contractTitle?.toLowerCase().includes(searchQuery.toLowerCase());
+
+    if (activeFilter === "Active")
+      return matchesSearch && contract.contractStatus === "active";
+
+    if (activeFilter === "Pending")
+      return matchesSearch && contract.contractStatus === "pending";
+
+    if (activeFilter === "Completed")
+      return matchesSearch && contract.contractStatus === "completed";
 
     return matchesSearch;
   });
+
+  // Loading State
+  if (loading) {
+    return (
+      <div className="min-h-screen flex justify-center items-center text-lg text-blue-700">
+        Loading contracts...
+      </div>
+    );
+  }
+
+  // Error State
+  if (error) {
+    return (
+      <div className="min-h-screen flex justify-center items-center text-red-500 text-lg font-semibold">
+        {error}
+      </div>
+    );
+  }
 
   return (
     <div className="w-full bg-[#f5f8fc] px-3 sm:px-6 lg:px-10 py-4 sm:py-6 lg:py-8 rounded-4xl min-h-screen ">
@@ -231,7 +151,7 @@ export default function ContractPage() {
               />
             </div>
 
-            {/* View Toggle (Desktop Only) */}
+            {/* View Toggle */}
             <div className="hidden sm:flex items-center gap-1 rounded-lg border border-gray-200 p-1">
               <button className="rounded-md bg-gray-100 p-2 text-black">
                 <LayoutGrid className="h-4 w-4" />
@@ -247,17 +167,25 @@ export default function ContractPage() {
         <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 min-h-[60vh]">
           {filteredContracts.map((contract, index) => (
             <div
-              key={contract.id}
+              key={contract._id}
               className="animate-in fade-in slide-in-from-bottom-4 duration-500"
               style={{ animationDelay: `${index * 80}ms` }}
             >
               <Link 
-              href={`/dashboard/mycontracts/${encodeURIComponent(contract.title)}`}
-              className="block"
-            >
-              <ContractCard {...contract} />
-            </Link>
-
+                  href={`/dashboard/mycontracts/${contract._id}`}
+                className="block"
+              >
+                <ContractCard
+                  companyName={contract.companyName}
+                  companyLogo={contract.companyLogoUrl || ""}
+                  title={contract.contractTitle}
+                  description={contract.description || contract.summary || ""}
+                  startDate={new Date(contract.startDate).toDateString()}
+                  deadline={new Date(contract.deadline).toDateString()}
+                  progress={contract.progress || 0}
+                  backgroundImage={contract.bgImageUrl || ""}
+                />
+              </Link>
             </div>
           ))}
         </div>

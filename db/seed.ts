@@ -53,120 +53,124 @@ async function seed() {
 
     console.log("👤 Profiles Created");
 
-    // ------------------------------
-    // 2️⃣ CONTRACTS
-    // ------------------------------
-   // ------------------------------
-// 2️⃣ CONTRACTS
+  // ------------------------------
+// 2️⃣ CONTRACTS (REALISTIC DATA)
 // ------------------------------
 const contracts = [];
 
-for (let i = 0; i < 10; i++) {
-  const client = clientProfiles[i % clientProfiles.length];
-  const contractor =
-    contractorProfiles[(i + 1) % contractorProfiles.length];
+const REAL_CONTRACTS = [
+  {
+    title: "Enterprise Software License Agreement",
+    company: "Apple Inc.",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg",
+    bg: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=800&auto=format&fit=crop",
+    description:
+      "Annual enterprise software licensing including maintenance, feature updates, and premium technical assistance."
+  },
+  {
+    title: "Cloud Infrastructure Partnership",
+    company: "Google LLC",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg",
+    bg: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop",
+    description:
+      "Strategic collaboration for deployment of scalable cloud infrastructure across global environments."
+  },
+  {
+    title: "Security Compliance Audit",
+    company: "Microsoft",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg",
+    bg: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&auto=format&fit=crop",
+    description:
+      "End-to-end cybersecurity assessment, risk evaluation, and compliance certification."
+  },
+  {
+    title: "Supply Chain Integration",
+    company: "Amazon",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg",
+    bg: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&auto=format&fit=crop",
+    description:
+      "Integration of intelligent logistics and real-time shipment tracking capabilities."
+  },
+  {
+    title: "Sustainable Energy Contract",
+    company: "Tesla",
+    logo: "https://upload.wikimedia.org/wikipedia/commons/b/bb/Tesla_T_symbol.svg",
+    bg: "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&auto=format&fit=crop",
+    description:
+      "Multi-year agreement for renewable energy infrastructure and EV fleet support."
+  }
+];
 
-  const title = `Project ${i + 1}`;
-  const company = `Company ${i + 1}`;
+for (let i = 0; i < 10; i++) {
+  const base = REAL_CONTRACTS[i % REAL_CONTRACTS.length];
+
+  const client = clientProfiles[i % clientProfiles.length];
+  const contractor = contractorProfiles[(i + 1) % contractorProfiles.length];
 
   const summary = `
-This contract establishes a formal agreement between ${company} and the assigned contractor 
-for execution of ${title}. The project includes structured milestones, financial terms,
-defined responsibilities, and delivery deadlines. Both parties agree to collaborate to ensure
-on-time delivery while maintaining quality and compliance standards.
+This contract establishes an official agreement between ${base.company} and the contractor
+for execution of "${base.title}". The agreement defines responsibilities, milestones,
+financial commitments, and delivery expectations.
   `.trim();
 
-  const contractContent = `
-# ${title} — Official Contract
+  const content = `
+# ${base.title}
 
-**Company:** ${company}  
+**Company:** ${base.company}  
 **Client Profile:** ${client.name}  
 **Contractor Profile:** ${contractor.name}  
 **Start Date:** ${new Date().toDateString()}  
 
 ---
 
-## 1. Introduction
-This Agreement is made between ${company} ("Client") and the assigned Contractor ("Service Provider").
-Both parties acknowledge this document as a legally binding contract.
+## Scope
+The contractor agrees to successfully execute the contract deliverables while maintaining quality
+and ensuring timely communication.
 
----
+## Financial Terms
+The payment structure is milestone-based with clear auditing and review checkpoints.
 
-## 2. Work Scope
-- The contractor agrees to complete ${title}.
-- All deliverables must meet quality expectations.
-- Changes to scope require mutual written approval.
+## Responsibilities
+Both parties agree to mutual professionalism, confidentiality, and compliance with legal standards.
 
----
-
-## 3. Responsibilities
-### Client Responsibilities:
-- Provide clear requirements
-- Provide necessary access/resources
-- Release payments per milestone schedule
-
-### Contractor Responsibilities:
-- Deliver agreed work
-- Maintain communication
-- Meet deadlines
-
----
-
-## 4. Milestones & Deadlines
-Phase 1:
-- Description: Initial implementation
-- Status: Paid
-
-Phase 2:
-- Description: Final delivery
-- Status: Pending
-
----
-
-## 5. Financial Terms
-- Payments linked to milestone completion
-- Currency: INR
-- Late payments may delay delivery
-
----
-
-## 6. Termination
-Either party may terminate the agreement with proper notice.
-Work completed up to termination must be compensated.
-
----
-
-## 7. Legal
-Both parties agree to comply with all applicable local and international legal frameworks.
-
----
-
-Signed electronically by both parties.
+Signed electronically.
   `.trim();
 
   const contract = await Contract.create({
     contractId: `CON-${1000 + i}`,
-    contractTitle: title,
-    companyName: company,
+    contractTitle: base.title,
+    companyName: base.company,
+    companyLogoUrl: base.logo,
+    bgImageUrl: base.bg,
+    description: base.description,
+
     startDate: new Date(),
-    deadline: new Date(Date.now() + 1000 * 60 * 60 * 24 * 30),
+    deadline: new Date(Date.now() + 1000 * 60 * 60 * 24 * (60 + i * 10)),
     progress: Math.floor(Math.random() * 100),
+
     client: client._id,
     contractor: contractor._id,
-    contractStatus: ["pending", "active", "completed"][i % 3],
-    description: `This is contract description for ${title}`,
-    clauses: ["Work quality must be maintained", "Confidentiality required"],
-    keypoints: ["Milestone based", "Legal binding", "Quality required"],
 
-    // ✅ NEW FIELDS
+    clauses: [
+      "Confidentiality must be maintained",
+      "Quality standards are mandatory"
+    ],
+
+    keypoints: [
+      "Milestone based payment",
+      "Legally binding agreement",
+      "Requires compliance & quality"
+    ],
+
     summary,
-    contractContent
+    contractContent: content,
+    contractStatus: ["pending", "active", "completed"][i % 3]
   });
 
   contracts.push(contract);
 }
 
-console.log("📄 Contracts Created");
+console.log("📄 Contracts Created with Realistic Content");
 
  
 
