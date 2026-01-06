@@ -14,7 +14,8 @@ export default function ContractPage() {
   const [activeFilter, setActiveFilter] = useState("All Contracts");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const [contracts, setContracts] = useState<any[]>([]);
+  const [contracts, setContracts] = useState<Contract[]>([]);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -29,9 +30,12 @@ export default function ContractPage() {
 
         const data = await res.json();
         setContracts(data);
-      } catch (err: any) {
-        setError(err.message || "Something went wrong");
-      } finally {
+      }catch (err: unknown) {
+  const message =
+    err instanceof Error ? err.message : "Something went wrong";
+  setError(message);
+}
+finally {
         setLoading(false);
       }
     };
@@ -60,7 +64,7 @@ export default function ContractPage() {
   // Loading State
   if (loading) {
     return (
-      <div className="min-h-screen flex justify-center items-center text-lg font-semibold">
+      <div className="min-h-screen flex justify-center items-center text-lg text-blue-700">
         Loading contracts...
       </div>
     );
@@ -168,11 +172,10 @@ export default function ContractPage() {
               style={{ animationDelay: `${index * 80}ms` }}
             >
               <Link 
-                href={`/dashboard/mycontracts/${contract._id}`}
+                  href={`/dashboard/mycontracts/${contract._id}`}
                 className="block"
               >
                 <ContractCard
-                  id={contract._id}
                   companyName={contract.companyName}
                   companyLogo={contract.companyLogoUrl || ""}
                   title={contract.contractTitle}

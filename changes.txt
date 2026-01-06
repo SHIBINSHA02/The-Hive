@@ -1,3 +1,4 @@
+changes.txt
 
 1. Added Docker-based MongoDB
 What: Created docker-compose.yml and ran MongoDB in a local Docker container.
