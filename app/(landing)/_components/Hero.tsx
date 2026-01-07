@@ -74,7 +74,7 @@ export default function Hero() {
                 className={`text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-gray-900 leading-tight transition-all duration-700 delay-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
                   }`}
               >
-                Empower Your Agreements with <span style={{ color: '#2c6df5' }}>The Hive</span>
+                Empower Your Agreements with <br /> <span style={{ color: '#2c6df5' }}>The Hive</span>
               </h1>
               <p
                 className={`mt-6 lg:mt-8 text-lg sm:text-xl lg:text-2xl text-gray-600 leading-relaxed transition-all duration-700 delay-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
