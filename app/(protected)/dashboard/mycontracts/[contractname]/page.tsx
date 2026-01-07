@@ -6,11 +6,15 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { Contract } from "@/types/contract";
 export default function ContractDetailsPage() {
   const { contractname } = useParams(); // <-- contains contractId
   const contractId = decodeURIComponent(contractname as string);
 
-  const [data, setData] = useState<any>(null);
+  
+
+const [data, setData] = useState<Contract | null>(null);
+
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -27,9 +31,9 @@ export default function ContractDetailsPage() {
 
         if (!res.ok) throw new Error("Failed to fetch contract");
 
-        const json = await res.json();
+        const json:Contract = await res.json();
         setData(json);
-      } catch (err: any) {
+      } catch (err) {
         setError(err.message || "Something went wrong");
       } finally {
         setLoading(false);

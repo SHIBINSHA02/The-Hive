@@ -1,14 +1,22 @@
 // types/contract.ts
-type Contract = {
-      _id: string;
+export interface Contract {
+  _id: string;
+  contractId: string;
+  contractTitle: string;
   companyName: string;
   companyLogoUrl?: string;
-  contractTitle: string;
+  bgImageUrl?: string;
+
   description?: string;
   summary?: string;
+
   startDate: string;
   deadline: string;
-  progress?: number;
-  bgImageUrl?: string;
-  contractStatus: "active" | "pending" | "completed";
-};
+
+  progress: number;
+  contractStatus: "pending" | "active" | "completed" | string;
+
+  clauses?: string[];
+  keypoints?: string[];
+  contractContent: string;
+}
