@@ -17,7 +17,7 @@ export default  function HomePage() {
       <Hero />
       <Features />
       <Services />
-      <Testimonials />
+      {/* <Testimonials /> */}
       <Demo />
       </div>
     </main>
