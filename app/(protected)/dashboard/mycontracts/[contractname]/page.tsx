@@ -99,7 +99,7 @@ const [data, setData] = useState<Contract | null>(null);
 
       {/* Summary & Progress */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="rounded-xl border bg-white p-5 shadow">
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
           <h2 className="font-semibold text-lg">Summary</h2>
           <p className="mt-2 text-gray-700 whitespace-pre-line">
             {data.summary}
@@ -124,7 +124,7 @@ const [data, setData] = useState<Contract | null>(null);
           </div>
         </div>
 
-        <div className="rounded-xl border bg-white p-5 shadow">
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
           <h2 className="font-semibold text-lg">Progress</h2>
 
           <div className="mt-3 w-full bg-gray-200 rounded-full h-3">
@@ -151,7 +151,7 @@ const [data, setData] = useState<Contract | null>(null);
       </div>
 
       {/* Clauses */}
-      <div className="rounded-xl border bg-white p-5 shadow">
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
         <h2 className="font-semibold text-lg">Clauses</h2>
         <ul className="list-disc ml-6 mt-2 text-gray-700">
           {data.clauses?.map((c: string, idx: number) => (
@@ -161,7 +161,7 @@ const [data, setData] = useState<Contract | null>(null);
       </div>
 
       {/* Full Contract */}
-      <div className="rounded-xl border bg-white p-5 shadow">
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
       <h2 className="font-semibold text-lg">Contract Document</h2>
 
       <div className="prose max-w-none mt-3">
