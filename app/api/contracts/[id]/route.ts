@@ -34,56 +34,61 @@ async function authorize(contractId: string, clerkId: string) {
 
 export async function GET(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { userId: clerkId } =await auth();
+  const { id } = await context.params; // ⬅️ FIX
+
+  const { userId: clerkId } = await auth();
   if (!clerkId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const contract = await authorize(params.id, clerkId);
+  const contract = await authorize(id, clerkId);
   if (!contract)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   return NextResponse.json(contract);
 }
 
+
 export async function PUT(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
+  const { id } = await context.params;
+
   const { userId: clerkId } = await auth();
   if (!clerkId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const exists = await authorize(params.id, clerkId);
+  const exists = await authorize(id, clerkId);
   if (!exists)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json();
-
-  const updated = await Contract.findByIdAndUpdate(params.id, body, {
-    new: true
-  });
+  const updated = await Contract.findByIdAndUpdate(id, body, { new: true });
 
   return NextResponse.json(updated);
 }
 
+
 export async function PATCH(
   req: Request,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
-  const { userId: clerkId } =await  auth();
+  const { id } = await context.params;
+
+  const { userId: clerkId } = await auth();
   if (!clerkId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const exists = await authorize(params.id, clerkId);
+  const exists = await authorize(id, clerkId);
   if (!exists)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   const body = await req.json();
 
   const updated = await Contract.findByIdAndUpdate(
-    params.id,
+    id,
     { $set: body },
     { new: true }
   );
