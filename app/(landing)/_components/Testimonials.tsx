@@ -1,7 +1,7 @@
 // app/(landing)/_components/Testimonials.tsx
 export function Testimonials() {  
     return (
-    <section id="testimonials" className="bg-gradient-to-t from-30% from-blue-100 to-white flex items-center py-16 rounded-b-[80px] m:rounded-b-4xl boarder-b-4 border-blue-300">
+    <section id="testimonials" className="bg-gradient-to-t from-30% from-blue-100 to-white flex items-center py-16 lg:rounded-b-4xl boarder-b-4 border-blue-300">
         <div className="container mx-auto px-4 sm:px-6 lg:px-12 xl:px-20">
             <h2 className="text-4xl lg:text-5xl font-bold text-center text-gray-900 mb-12 lg:mb-16">
                 What Our Clients Say

@@ -1,12 +1,11 @@
 // app/(protected)/dashboard/mycontracts/create-contract/page.tsx
-'use client';
-
+"use client"
 import React from 'react';
 
-export default function createContractPage () {
+export default function Page() {
   return (
     <div>
-      good
+      introduction
     </div>
   );
 }

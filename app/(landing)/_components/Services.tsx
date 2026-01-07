@@ -26,12 +26,12 @@ export default function Services() {
 
       {/* Changed background to solid white */}
       <section id="services" className="bg-gradient-to-r from-[#EFF6FF] to-[#BFDBFF]">
-        <div className='py-20 bg-white rounded-t-[80px] m:rounded-t-4xl'>
+        <div className='py-20 bg-white lg:rounded-t-4xl rounded-t-2xl'>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 rounded-t-4xl">
           <div className="text-center mb-16">
             {/* Reverted text color to dark for better contrast on white background */}
             <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Our Services</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto  lg:p-0 px-3">
               Comprehensive AI-powered solutions for all your contract management needs
             </p>
           </div>
