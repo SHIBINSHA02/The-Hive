@@ -6,6 +6,7 @@ import { Plus, Filter, LayoutGrid, List, Search } from "lucide-react";
 import CreateContractDialog from "@/components/dashboard/CreateContractDialog";
 import ContractCard from "@/components/dashboard/ContractCard";
 import Link from "next/link";
+import { Contract } from "@/types/contract";
 
 const filterOptions = ["All Contracts", "Active", "Pending", "Completed"];
 
