@@ -1,11 +1,5 @@
-// app/(protected)/dashboard/mycontracts/create-contract/page.tsx
-"use client"
-import React from 'react';
+import { redirect } from "next/navigation";
 
-export default function Page() {
-  return (
-    <div>
-      introduction
-    </div>
-  );
+export default function CreateContractPage() {
+  redirect("/dashboard/mycontracts/create-contract/step-1");
 }
