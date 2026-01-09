@@ -21,7 +21,7 @@ const RequestCard: React.FC<RequestCardProps> = ({ contract }) => {
   };
 
   return (
-    <div className="group relative overflow-hidden rounded-xl bg-white shadow-card border border-gray-100 flex flex-col h-full">
+    <div className="group relative overflow-hidden rounded-xl bg-white shadow-card border border-gray-100 flex flex-col h-full ">
 
       {/* Background Image */}
       <div className="relative h-28 overflow-hidden">
