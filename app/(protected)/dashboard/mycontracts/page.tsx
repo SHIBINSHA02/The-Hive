@@ -3,15 +3,16 @@
 
 import { useEffect, useState } from "react";
 import { Plus, Filter, LayoutGrid, List, Search } from "lucide-react";
-import CreateContractDialog from "@/components/dashboard/CreateContractDialog";
 import ContractCard from "@/components/dashboard/ContractCard";
 import Link from "next/link";
 import { Contract } from "@/types/contract";
+import { useRouter } from "next/navigation";
 
 const filterOptions = ["All Contracts", "Active", "Pending", "Completed"];
 
 export default function ContractPage() {
-  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const router = useRouter();
+ 
   const [activeFilter, setActiveFilter] = useState("All Contracts");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -113,7 +114,7 @@ finally {
 
             {/* Create Button */}
             <button
-              onClick={() => setCreateDialogOpen(true)}
+             onClick={() => router.push("/dashboard/mycontracts/create-contract")}
               className="inline-flex items-center justify-center rounded-md bg-blue-700 px-4 py-2 text-sm font-medium text-white shadow hover:bg-black/90 transition-all duration-300"
             >
               <Plus className="mr-2 h-4 w-4" />
@@ -205,7 +206,7 @@ finally {
             </p>
 
             <button
-              onClick={() => setCreateDialogOpen(true)}
+             onClick={() => router.push("/dashboard/mycontracts/create-contract")}
               className="mt-4 inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white shadow hover:bg-black/90"
             >
               <Plus className="mr-2 h-4 w-4" />
@@ -215,8 +216,7 @@ finally {
         )}
       </div>
 
-      {/* Create Contract Dialog */}
-      <CreateContractDialog open={createDialogOpen} onOpenChange={setCreateDialogOpen} />
+    
     </div>
   );
 }
