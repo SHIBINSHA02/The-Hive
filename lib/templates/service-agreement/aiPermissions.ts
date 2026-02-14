@@ -1,0 +1,184 @@
+/**
+ * aiPermissions.ts
+ * ----------------
+ * This file defines which placeholders AI is allowed to auto-fill.
+ *
+ * WHY THIS FILE EXISTS:
+ * In a contract system, some fields are safe for AI to generate (ex: rewriting
+ * service descriptions), but other fields are legally sensitive and must never
+ * be guessed (ex: payment amount, liability cap, governing law).
+ *
+ * This file acts as a strict policy layer so the generator or AI workflow
+ * knows what is permitted.
+ *
+ * NOTE:
+ * Validation logic is NOT done here.
+ * Validation is handled in validatePlaceholders.ts
+ */
+
+import { PlaceholderKey } from "./placeholders";
+
+export const placeholderAIPermissions: Record<
+  PlaceholderKey,
+  { allowAI: boolean; reason: string }
+> = {
+  AGREEMENT_TITLE: {
+    allowAI: true,
+    reason: "Safe. AI can suggest a professional agreement title.",
+  },
+
+  EFFECTIVE_DATE: {
+    allowAI: false,
+    reason: "Legal effective date must be user-confirmed.",
+  },
+
+  PARTY_A_NAME: {
+    allowAI: false,
+    reason: "Legal identity must be accurate and user-provided.",
+  },
+  PARTY_A_TYPE: {
+    allowAI: false,
+    reason: "Must be explicitly chosen (Individual / Company).",
+  },
+  PARTY_A_ADDRESS: {
+    allowAI: false,
+    reason: "Must be accurate and user-provided.",
+  },
+  PARTY_A_EMAIL: {
+    allowAI: false,
+    reason: "Must be accurate and user-provided.",
+  },
+
+  PARTY_B_NAME: {
+    allowAI: false,
+    reason: "Legal identity must be accurate and user-provided.",
+  },
+  PARTY_B_TYPE: {
+    allowAI: false,
+    reason: "Must be explicitly chosen (Individual / Company).",
+  },
+  PARTY_B_ADDRESS: {
+    allowAI: false,
+    reason: "Must be accurate and user-provided.",
+  },
+  PARTY_B_EMAIL: {
+    allowAI: false,
+    reason: "Must be accurate and user-provided.",
+  },
+
+  SERVICE_DESCRIPTION: {
+    allowAI: true,
+    reason: "AI may rewrite/expand service scope wording safely.",
+  },
+  DELIVERABLES: {
+    allowAI: true,
+    reason: "AI may format deliverables into clean contract language.",
+  },
+  SERVICE_LOCATION: {
+    allowAI: false,
+    reason: "Service location impacts obligations and must be confirmed.",
+  },
+
+  START_DATE: {
+    allowAI: false,
+    reason: "Start date must be explicitly agreed.",
+  },
+  END_DATE: {
+    allowAI: false,
+    reason: "End date must be explicitly agreed.",
+  },
+  CONTRACT_TERM_DESCRIPTION: {
+    allowAI: true,
+    reason: "AI may phrase the contract term in proper language.",
+  },
+
+  PAYMENT_AMOUNT: {
+    allowAI: false,
+    reason: "AI must never invent monetary values.",
+  },
+  PAYMENT_CURRENCY: {
+    allowAI: false,
+    reason: "Currency must be explicitly selected.",
+  },
+  PAYMENT_SCHEDULE: {
+    allowAI: true,
+    reason: "AI may phrase payment schedule wording (monthly/milestone).",
+  },
+  PAYMENT_METHOD: {
+    allowAI: false,
+    reason: "Payment method must be explicitly agreed.",
+  },
+
+  LATE_PAYMENT_INTEREST: {
+    allowAI: false,
+    reason: "Penalty/interest must be explicitly agreed.",
+  },
+  TAXES_DESCRIPTION: {
+    allowAI: true,
+    reason: "AI may generate standard tax responsibility language.",
+  },
+
+  CONFIDENTIALITY_TERM: {
+    allowAI: false,
+    reason: "Confidentiality duration is legally sensitive.",
+  },
+
+  IP_OWNERSHIP_MODEL: {
+    allowAI: false,
+    reason: "IP ownership is a major legal decision.",
+  },
+
+  LIABILITY_CAP: {
+    allowAI: false,
+    reason: "Liability caps are legally sensitive.",
+  },
+
+  GOVERNING_LAW_STATE: {
+    allowAI: false,
+    reason: "Jurisdiction must be explicitly chosen.",
+  },
+  GOVERNING_LAW_COUNTRY: {
+    allowAI: false,
+    reason: "Jurisdiction must be explicitly chosen.",
+  },
+
+  DISPUTE_RESOLUTION_METHOD: {
+    allowAI: true,
+    reason: "AI may suggest dispute methods, but user must confirm.",
+  },
+  ARBITRATION_LOCATION: {
+    allowAI: false,
+    reason: "Arbitration location must be explicitly agreed.",
+  },
+
+  NOTICE_METHOD: {
+    allowAI: true,
+    reason: "AI may format notice clause wording.",
+  },
+  NOTICE_ADDRESS_PARTY_A: {
+    allowAI: false,
+    reason: "Must be accurate user-provided notice address.",
+  },
+  NOTICE_ADDRESS_PARTY_B: {
+    allowAI: false,
+    reason: "Must be accurate user-provided notice address.",
+  },
+
+  PARTY_A_SIGNATORY_NAME: {
+    allowAI: false,
+    reason: "Must match actual signatory name.",
+  },
+  PARTY_A_SIGNATORY_TITLE: {
+    allowAI: false,
+    reason: "Must match actual signatory role.",
+  },
+
+  PARTY_B_SIGNATORY_NAME: {
+    allowAI: false,
+    reason: "Must match actual signatory name.",
+  },
+  PARTY_B_SIGNATORY_TITLE: {
+    allowAI: false,
+    reason: "Must match actual signatory role.",
+  },
+} as const;
