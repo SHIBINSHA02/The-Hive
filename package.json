@@ -1,0 +1,52 @@
+{
+  "name": "the-hive",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint",
+    "seed": "tsx db/seed.ts"
+  },
+  "dependencies": {
+    "@auth/mongodb-adapter": "^3.11.1",
+    "@clerk/nextjs": "^6.36.5",
+    "axios": "^1.13.2",
+    "bcryptjs": "^3.0.3",
+    "clsx": "^2.1.1",
+    "data-fns": "^1.1.0",
+    "date-fns": "^4.1.0",
+    "dotenv": "^16.4.5",
+    "fs": "^0.0.1-security",
+    "lucide-react": "^0.554.0",
+    "mongodb": "^6.21.0",
+    "mongoose": "^9.0.2",
+    "net": "^1.0.2",
+    "next": "^16.1.1",
+    "next-auth": "^4.24.13",
+    "promises": "^0.2.5",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-icons": "^5.5.0",
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "svix": "^1.82.0",
+    "tailwind-merge": "^3.4.0",
+    "tailwind-scrollbar-hide": "^4.0.0",
+    "timers": "^0.1.1",
+    "tls": "^0.0.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20.19.27",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.0.3",
+    "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.7.0",
+    "typescript": "^5.9.3"
+  }
+}

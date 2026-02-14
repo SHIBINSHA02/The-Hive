@@ -1,0 +1,313 @@
+// lib/notificationService.ts
+import mongoose from "mongoose";
+import Notification from "@/db/models/Notification";
+import Contract from "@/db/models/Contract";
+import Financial from "@/db/models/Finance";
+import ClientProfile from "@/db/models/ClientProfile";
+import ContractProfile from "@/db/models/ContractProfile";
+import User from "@/db/models/User";
+
+interface NotificationData {
+  user: mongoose.Types.ObjectId;
+  type: 'request' | 'alert' | 'payment' | 'update';
+  title: string;
+  description: string;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  status: 'pending' | 'approved' | 'rejected' | 'completed' | 'overdue';
+  contractName?: string;
+  contractId?: string;
+  contract?: mongoose.Types.ObjectId;
+  amount?: number;
+  dueDate?: Date;
+  sender?: string;
+  senderAvatar?: string;
+  actions?: Array<{
+    label: string;
+    type: 'primary' | 'secondary' | 'destructive';
+    action: string;
+  }>;
+}
+
+/**
+ * Generates notifications for a specific user based on their contracts
+ */
+export async function generateUserNotifications(userId: mongoose.Types.ObjectId): Promise<void> {
+  const user = await User.findById(userId);
+  if (!user) return;
+
+  // Get user profiles
+  const clientProfile = await ClientProfile.findOne({ user: userId });
+  const contractorProfile = await ContractProfile.findOne({ user: userId });
+
+  const conditions: Record<string, unknown>[] = [];
+  if (clientProfile) conditions.push({ client: clientProfile._id });
+  if (contractorProfile) conditions.push({ contractor: contractorProfile._id });
+
+  if (!conditions.length) return;
+
+  // Fetch all contracts for the user
+  const contracts = await Contract.find({ $or: conditions })
+    .populate("client")
+    .populate("contractor")
+    .lean();
+
+  // Fetch finance data for all contracts
+  const contractIds = contracts.map((c) => c._id);
+  const financeRecords = await Financial.find({
+    contract: { $in: contractIds },
+  }).lean();
+
+  // Create a map of contract ID to finance data
+  const financeMap = new Map(
+    financeRecords.map((f) => {
+      const contractId = typeof f.contract === 'object' && f.contract?._id
+        ? f.contract._id.toString()
+        : f.contract.toString();
+      return [contractId, f];
+    })
+  );
+
+  const now = new Date();
+  const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
+  const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
+  const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
+
+  const notificationsToCreate: NotificationData[] = [];
+
+  for (const contract of contracts) {
+    const contractDeadline = new Date(contract.deadline);
+    const contractStartDate = new Date(contract.startDate);
+    const isUserClient = contract.client && 
+      (typeof contract.client === 'object' ? contract.client._id.toString() : contract.client.toString()) === 
+      (clientProfile?._id.toString() || '');
+    
+    const otherParty = isUserClient ? contract.contractor : contract.client;
+    const otherPartyName = typeof otherParty === 'object' 
+      ? (otherParty?.name || contract.companyName || 'Unknown')
+      : contract.companyName || 'Unknown';
+
+    // 1. Contract Agreement Request (pending contracts)
+    if (contract.contractStatus === 'pending') {
+      const daysUntilDeadline = Math.ceil((contractDeadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      const priority: 'low' | 'medium' | 'high' | 'urgent' = 
+        daysUntilDeadline < 0 ? 'urgent' :
+        daysUntilDeadline <= 3 ? 'urgent' :
+        daysUntilDeadline <= 7 ? 'high' : 'medium';
+
+      // Check if notification already exists
+      const existingNotification = await Notification.findOne({
+        user: userId,
+        contract: contract._id,
+        type: 'request',
+        status: 'pending'
+      });
+
+      if (!existingNotification) {
+        notificationsToCreate.push({
+          user: userId,
+          type: 'request',
+          title: 'Contract Agreement Request',
+          description: `${otherPartyName} has requested your approval for the ${contract.contractTitle}.`,
+          priority,
+          status: 'pending',
+          contractName: contract.contractTitle,
+          contractId: contract.contractId,
+          contract: contract._id,
+          sender: otherPartyName,
+          senderAvatar: otherPartyName.substring(0, 2).toUpperCase(),
+          actions: [
+            { label: 'Review', type: 'primary', action: 'review' },
+            { label: 'Decline', type: 'destructive', action: 'decline' },
+          ],
+        });
+      }
+    }
+
+    // 2. Contract Expiring Soon (active contracts approaching deadline)
+    if (contract.contractStatus === 'active') {
+      const daysUntilDeadline = Math.ceil((contractDeadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysUntilDeadline > 0 && daysUntilDeadline <= 30) {
+        const priority: 'low' | 'medium' | 'high' | 'urgent' = 
+          daysUntilDeadline <= 3 ? 'urgent' :
+          daysUntilDeadline <= 7 ? 'high' : 'medium';
+
+        // Check if notification already exists (within last 7 days)
+        const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const existingNotification = await Notification.findOne({
+          user: userId,
+          contract: contract._id,
+          type: 'alert',
+          title: 'Contract Expiring Soon',
+          createdAt: { $gte: sevenDaysAgo }
+        });
+
+        if (!existingNotification) {
+          notificationsToCreate.push({
+            user: userId,
+            type: 'alert',
+            title: 'Contract Expiring Soon',
+            description: `The ${contract.contractTitle} with ${contract.companyName} expires in ${daysUntilDeadline} day${daysUntilDeadline !== 1 ? 's' : ''}. Consider renewal.`,
+            priority,
+            status: 'pending',
+            contractName: contract.contractTitle,
+            contractId: contract.contractId,
+            contract: contract._id,
+            dueDate: contractDeadline,
+            actions: [
+              { label: 'Renew', type: 'primary', action: 'renew' },
+              { label: 'Archive', type: 'secondary', action: 'archive' },
+            ],
+          });
+        }
+      }
+    }
+
+    // 3. Payment notifications from finance data
+    const finance = financeMap.get(contract._id.toString());
+    if (finance) {
+      // Check for upcoming payment milestones
+      for (const milestone of finance.milestones || []) {
+        if (!milestone || milestone.isPaid) continue;
+        if (!milestone.dueDate || !milestone.amount) continue;
+
+        const milestoneDueDate = new Date(milestone.dueDate);
+        const daysUntilDue = Math.ceil((milestoneDueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (daysUntilDue <= 30 && daysUntilDue >= -7) {
+          const priority: 'low' | 'medium' | 'high' | 'urgent' = 
+            daysUntilDue < 0 ? 'urgent' :
+            daysUntilDue <= 3 ? 'urgent' :
+            daysUntilDue <= 7 ? 'high' : 'medium';
+
+          const status: 'pending' | 'approved' | 'rejected' | 'completed' | 'overdue' = 
+            daysUntilDue < 0 ? 'overdue' : 'pending';
+
+          // Check if notification already exists for this milestone
+          const existingNotification = await Notification.findOne({
+            user: userId,
+            contract: contract._id,
+            type: 'payment',
+            amount: milestone.amount,
+            dueDate: milestoneDueDate
+          });
+
+          if (!existingNotification) {
+            notificationsToCreate.push({
+              user: userId,
+              type: 'payment',
+              title: daysUntilDue < 0 ? 'Payment Overdue' : 'Payment Due Soon',
+              description: daysUntilDue < 0
+                ? `Payment of $${milestone.amount.toLocaleString()} for the ${contract.contractTitle} is ${Math.abs(daysUntilDue)} day${Math.abs(daysUntilDue) !== 1 ? 's' : ''} overdue.`
+                : `Payment of $${milestone.amount.toLocaleString()} for the ${contract.contractTitle} is due in ${daysUntilDue} day${daysUntilDue !== 1 ? 's' : ''}.`,
+              priority,
+              status,
+              contractName: contract.contractTitle,
+              contractId: contract.contractId,
+              contract: contract._id,
+              amount: milestone.amount,
+              dueDate: milestoneDueDate,
+              actions: [
+                { label: 'Pay Now', type: 'primary', action: 'pay' },
+                { label: daysUntilDue < 0 ? 'Contact Support' : 'View Details', type: 'secondary', action: daysUntilDue < 0 ? 'support' : 'view' },
+              ],
+            });
+          }
+        }
+      }
+
+      // Overall payment status alerts
+      if (finance.paymentStatus === 'overdue' && finance.dueAmount > 0) {
+        const existingNotification = await Notification.findOne({
+          user: userId,
+          contract: contract._id,
+          type: 'alert',
+          title: 'Payment Overdue',
+          status: 'overdue'
+        });
+
+        if (!existingNotification) {
+          notificationsToCreate.push({
+            user: userId,
+            type: 'alert',
+            title: 'Payment Overdue',
+            description: `Outstanding payment of $${finance.dueAmount.toLocaleString()} for the ${contract.contractTitle} requires immediate attention.`,
+            priority: 'urgent',
+            status: 'overdue',
+            contractName: contract.contractTitle,
+            contractId: contract.contractId,
+            contract: contract._id,
+            amount: finance.dueAmount,
+            actions: [
+              { label: 'Pay Now', type: 'primary', action: 'pay' },
+              { label: 'Contact Support', type: 'secondary', action: 'support' },
+            ],
+          });
+        }
+      }
+    }
+
+    // 4. Contract status updates (completed contracts)
+    if (contract.contractStatus === 'completed') {
+      const completedDate = new Date(contract.deadline);
+      const daysSinceCompletion = Math.ceil((now.getTime() - completedDate.getTime()) / (1000 * 60 * 60 * 24));
+      
+      if (daysSinceCompletion <= 7) {
+        const existingNotification = await Notification.findOne({
+          user: userId,
+          contract: contract._id,
+          type: 'update',
+          title: 'Contract Completed'
+        });
+
+        if (!existingNotification) {
+          notificationsToCreate.push({
+            user: userId,
+            type: 'update',
+            title: 'Contract Completed',
+            description: `The ${contract.contractTitle} has been completed and is now archived.`,
+            priority: 'low',
+            status: 'completed',
+            contractName: contract.contractTitle,
+            contractId: contract.contractId,
+            contract: contract._id,
+            actions: [
+              { label: 'View Contract', type: 'primary', action: 'view' },
+            ],
+          });
+        }
+      }
+    }
+  }
+
+  // Bulk insert notifications
+  if (notificationsToCreate.length > 0) {
+    await Notification.insertMany(notificationsToCreate);
+  }
+}
+
+/**
+ * Generates notifications for all users (called by daily cron job)
+ */
+export async function generateAllUserNotifications(): Promise<{ success: boolean; usersProcessed: number; notificationsCreated: number }> {
+  try {
+    const users = await User.find({});
+    let totalNotifications = 0;
+
+    for (const user of users) {
+      const beforeCount = await Notification.countDocuments({ user: user._id });
+      await generateUserNotifications(user._id);
+      const afterCount = await Notification.countDocuments({ user: user._id });
+      totalNotifications += (afterCount - beforeCount);
+    }
+
+    return {
+      success: true,
+      usersProcessed: users.length,
+      notificationsCreated: totalNotifications
+    };
+  } catch (error) {
+    console.error('Error generating notifications for all users:', error);
+    throw error;
+  }
+}

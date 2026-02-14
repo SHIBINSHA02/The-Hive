@@ -1,0 +1,51 @@
+changes.txt
+
+1. Added Docker-based MongoDB
+What: Created docker-compose.yml and ran MongoDB in a local Docker container.
+Why: Provides a consistent, isolated database environment for all devs without installing MongoDB manually.
+
+2. Created .env.local
+What: Added required env variables (MONGODB_URI, NEXTAUTH_SECRET, NEXTAUTH_URL, NEXT_PUBLIC_URL).
+Why: Next.js and NextAuth need these to run securely and connect to the correct MongoDB instance
+
+4. Verified Register API actually writes to the DB
+What: Tested the /api/register endpoint using both UI and PowerShell request.
+Why: To confirm DB connection + hashing + user creation all work end-to-end.
+Result: Two users were successfully created and visible inside the_hive.users.
+
+5. Confirmed NextAuth + Credentials provider works
+What: Ensured authorize() loads user, compares hashed password, and returns a session-safe object.
+Why: Needed for secure login using database credentials.
+
+6. Validated MongoDB via mongosh
+What: Entered the Docker container using docker exec and inspected collections.
+Why: To confirm that documents created by the app were truly being saved in MongoDB.
+
+
+Docker commands used
+docker compose up -d ==> for starting the container
+docker compose down ==> for stopping the container
+docker exec -it hive-mongo mongosh ==> for inspecting the database
+inside it>> show collections 
+inside it>> db.users.find().pretty() for seeing the users
+
+5. Fixed login — password not being selected
+Originally:
+findOne({ email }).lean();
+→ This dropped password in some cases → bcrypt always failed → login failed.
+Fix:
+findOne({ email }).select("+password").lean();
+Result: bcrypt comparison works and login succeeds.
+
+7. Fixed NextAuth v5 handler export
+
+Originally (v4 syntax — incompatible with v5):
+
+const handler = NextAuth(options);
+export { handler as GET, handler as POST };
+
+Fixed (v5 syntax):
+export const { handlers: { GET, POST } } = NextAuth(options);
+Why:
+In v5, NextAuth(options) returns an object — not a function.
+Without this fix → /api/auth/providers and login break with HTTP 500.
