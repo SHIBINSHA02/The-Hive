@@ -115,4 +115,4 @@ contractor: {
 
 }, { timestamps: true });
 
-export default mongoose.model("Financial", FinancialSchema);
+export default mongoose.models.Financial ?? mongoose.model("Financial", FinancialSchema);

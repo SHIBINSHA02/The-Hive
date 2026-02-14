@@ -20,3 +20,21 @@ export interface Contract {
   keypoints?: string[];
   contractContent: string;
 }
+
+export interface FinanceMilestone {
+  title?: string;
+  amount: number;
+  dueDate: string | Date;
+  isPaid: boolean;
+}
+
+export interface Financial {
+  _id: string;
+  financialId: string;
+  totalAmount: number;
+  paidAmount: number;
+  dueAmount: number;
+  currency?: string;
+  milestones?: FinanceMilestone[];
+  paymentStatus?: "not_started" | "in_progress" | "partial" | "completed" | "overdue";
+}

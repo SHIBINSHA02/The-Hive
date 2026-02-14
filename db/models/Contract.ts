@@ -94,4 +94,4 @@ contractor: {
 
 }, { timestamps: true });
 
-export default mongoose.model("Contract", ContractSchema);
+export default mongoose.models.Contract ?? mongoose.model("Contract", ContractSchema);
