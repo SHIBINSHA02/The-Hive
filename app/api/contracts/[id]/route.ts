@@ -7,6 +7,7 @@ import User from "@/db/models/User";
 import Contract from "@/db/models/Contract";
 import ClientProfile from "@/db/models/ClientProfile";
 import ContractProfile from "@/db/models/ContractProfile";
+import Financial from "@/db/models/Finance";
 
 async function authorize(contractId: string, clerkId: string) {
   await connectDB();
@@ -46,7 +47,9 @@ export async function GET(
   if (!contract)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  return NextResponse.json(contract);
+  const finance = await Financial.findOne({ contract: id });
+
+  return NextResponse.json({ contract, finance });
 }
 
 

@@ -6,14 +6,19 @@ import { useParams } from "next/navigation";
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Contract } from "@/types/contract";
+import { Contract, Financial } from "@/types/contract";
+
+interface ContractDetailsResponse {
+  contract: Contract;
+  finance: Financial | null;
+}
+
 export default function ContractDetailsPage() {
   const { contractname } = useParams(); // <-- contains contractId
   const contractId = decodeURIComponent(contractname as string);
 
-  
-
-const [data, setData] = useState<Contract | null>(null);
+  const [data, setData] = useState<Contract | null>(null);
+  const [finance, setFinance] = useState<Financial | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -31,8 +36,9 @@ const [data, setData] = useState<Contract | null>(null);
 
         if (!res.ok) throw new Error("Failed to fetch contract");
 
-        const json:Contract = await res.json();
-        setData(json);
+        const json: ContractDetailsResponse = await res.json();
+        setData(json.contract);
+        setFinance(json.finance ?? null);
       } catch (err) {
         setError(err.message || "Something went wrong");
       } finally {
@@ -148,6 +154,94 @@ const [data, setData] = useState<Contract | null>(null);
             </ul>
           </div>
         </div>
+      </div>
+
+      {/* Finance */}
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
+        <h2 className="font-semibold text-lg">Finance</h2>
+        {finance ? (
+          <div className="mt-4 space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div>
+                <p className="text-sm text-gray-600">Total Amount</p>
+                <p className="font-semibold text-lg">
+                  {new Intl.NumberFormat("en-IN", {
+                    style: "currency",
+                    currency: finance.currency || "INR",
+                  }).format(finance.totalAmount)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Paid Amount</p>
+                <p className="font-semibold text-lg text-blue-600">
+                  {new Intl.NumberFormat("en-IN", {
+                    style: "currency",
+                    currency: finance.currency || "INR",
+                  }).format(finance.paidAmount)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Due Amount</p>
+                <p className="font-semibold text-lg text-blue-600">
+                  {new Intl.NumberFormat("en-IN", {
+                    style: "currency",
+                    currency: finance.currency || "INR",
+                  }).format(finance.dueAmount)}
+                </p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Payment Status</p>
+                <span
+                  className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                    finance.paymentStatus === "completed"
+                    ? "bg-blue-100 text-blue-800"
+                      : finance.paymentStatus === "overdue"
+                      ? "bg-blue-700 text-white"
+                        : finance.paymentStatus === "partial"
+                        ? "bg-blue-700 text-white"
+                          : "bg-gray-100 text-gray-800"
+                  }`}
+                >
+                  {finance.paymentStatus?.replace(/_/g, " ") ?? "N/A"}
+                </span>
+              </div>
+            </div>
+
+            {finance.milestones && finance.milestones.length > 0 && (
+              <div className="mt-6">
+                <h3 className="font-semibold mb-3">Milestones</h3>
+                <ul className="space-y-3">
+                  {finance.milestones.map((m, idx) => (
+                    <li
+                      key={idx}
+                      className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border border-gray-100 bg-gray-50"
+                    >
+                      <div>
+                        <p className="font-medium">{m.title || `Milestone ${idx + 1}`}</p>
+                        <p className="text-sm text-gray-600">
+                          Due: {new Date(m.dueDate).toLocaleDateString()} ·{" "}
+                          {new Intl.NumberFormat("en-IN", {
+                            style: "currency",
+                            currency: finance.currency || "INR",
+                          }).format(m.amount)}
+                        </p>
+                      </div>
+                      <span
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium ${
+                          m.isPaid ? "bg-blue-100 text-blue-800" : "bg-blue-700 text-white"
+                        }`}
+                      >
+                        {m.isPaid ? "Paid" : "Unpaid"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </div>
+        ) : (
+          <p className="mt-4 text-gray-600">No financial data available.</p>
+        )}
       </div>
 
       {/* Clauses */}
