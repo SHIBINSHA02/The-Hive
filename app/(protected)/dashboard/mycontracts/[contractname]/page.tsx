@@ -173,7 +173,7 @@ export default function ContractDetailsPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Paid Amount</p>
-                <p className="font-semibold text-lg text-green-600">
+                <p className="font-semibold text-lg text-blue-600">
                   {new Intl.NumberFormat("en-IN", {
                     style: "currency",
                     currency: finance.currency || "INR",
@@ -182,7 +182,7 @@ export default function ContractDetailsPage() {
               </div>
               <div>
                 <p className="text-sm text-gray-600">Due Amount</p>
-                <p className="font-semibold text-lg text-red-600">
+                <p className="font-semibold text-lg text-blue-600">
                   {new Intl.NumberFormat("en-IN", {
                     style: "currency",
                     currency: finance.currency || "INR",
@@ -194,11 +194,11 @@ export default function ContractDetailsPage() {
                 <span
                   className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
                     finance.paymentStatus === "completed"
-                      ? "bg-green-100 text-green-800"
+                    ? "bg-blue-100 text-blue-800"
                       : finance.paymentStatus === "overdue"
-                        ? "bg-red-100 text-red-800"
+                      ? "bg-blue-700 text-white"
                         : finance.paymentStatus === "partial"
-                          ? "bg-amber-100 text-amber-800"
+                        ? "bg-blue-700 text-white"
                           : "bg-gray-100 text-gray-800"
                   }`}
                 >
@@ -228,7 +228,7 @@ export default function ContractDetailsPage() {
                       </div>
                       <span
                         className={`px-2.5 py-1 rounded-full text-xs font-medium ${
-                          m.isPaid ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                          m.isPaid ? "bg-blue-100 text-blue-800" : "bg-blue-700 text-white"
                         }`}
                       >
                         {m.isPaid ? "Paid" : "Unpaid"}
