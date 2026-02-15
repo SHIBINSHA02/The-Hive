@@ -100,6 +100,14 @@ export type PlaceholderKey = keyof typeof contractPlaceholders;
 
 /**
  * Type helper:
+ * Creates an object type mapping placeholder keys to their string values.
+ * Used for storing actual placeholder data when generating contracts.
+ * Example: { PARTY_A_NAME: "Acme Corp", PAYMENT_AMOUNT: "5000 USD", ... }
+ */
+export type PlaceholderValueMap = Record<PlaceholderKey, string>;
+
+/**
+ * Type helper:
  * Extracts the allowed placeholder type for a given key.
  */
 export type PlaceholderDefinition = (typeof contractPlaceholders)[PlaceholderKey];

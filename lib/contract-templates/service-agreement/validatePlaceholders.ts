@@ -1,6 +1,6 @@
 // validatePlaceholders.ts
 
-import { contractPlaceholders, PlaceholderKey } from "./placeholders";
+import { contractPlaceholders, PlaceholderKey, PlaceholderType } from "./placeholders";
 
 /**
  * validatePlaceholders.ts
@@ -21,8 +21,6 @@ import { contractPlaceholders, PlaceholderKey } from "./placeholders";
  * If PARTY_A_NAME is required but missing, it will return it under missingRequired.
  * If EFFECTIVE_DATE is expected to be "date" but user gives "hello", it will return a datatype error.
  */
-
-export type PlaceholderType = "string" | "text" | "date";
 
 export type PlaceholderValidationError = {
   key: PlaceholderKey;
