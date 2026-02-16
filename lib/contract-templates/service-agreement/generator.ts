@@ -1,100 +1,113 @@
 /**
  * generator.ts
  * ------------
- * Contract Generation Engine
- *
- * RESPONSIBILITY:
- * Builds the final contract text by assembling clauses in the correct order
- * and replacing all placeholders using validated values.
- *
- * NOTE:
- * - This module assumes placeholderValues are already validated.
- * - AI is NOT required here. AI refinement happens before generation.
+ * The engine that assembles legal text.
+ * * DESIGN PHILOSOPHY:
+ * 1. Deterministic: Clauses are always in the order defined in structure.ts.
+ * 2. Safe: If a field is missing, it shows a visible marker [MISSING: KEY] instead of a blank space.
+ * 3. Preview-Friendly: The 'isDraft' flag allows the UI to render incomplete contracts during editing.
  */
 
 import { contractStructure, ClauseId } from "./structure";
 import { coreClauses, CoreClauseId } from "./clauses/core";
 import { optionalClauses, OptionalClauseId } from "./clauses/optional";
 import { PlaceholderKey, PlaceholderValueMap } from "./placeholders";
+import { validatePlaceholders } from "./validatePlaceholders";
 
 /**
- * Input type for contract generation.
- *
- * placeholderValues must contain all required values.
- * selectedOptionalClauses controls which optional sections are included.
+ * Input configuration for the generator.
+ * * @param placeholderValues - The current form data from the UI.
+ * @param selectedOptionalClauses - IDs of optional clauses selected in Step 5.
+ * @param isDraft - If true, validation errors won't throw an exception (useful for Preview).
  */
 export type GenerateContractInput = {
-  placeholderValues: PlaceholderValueMap;
-  selectedOptionalClauses?: OptionalClauseId[];
+  placeholderValues: Partial<PlaceholderValueMap>;
+  selectedOptionalClauses?: string[];
+  isDraft?: boolean;
 };
 
 /**
- * generateContract()
- *
- * Main generator function that produces the final contract text.
- *
- * Steps:
- * 1. Combine core + selected optional clauses
- * 2. Assemble them in correct legal order (structure.ts)
- * 3. Replace placeholders like {{PARTY_A_NAME}} with real values
- * 4. Return final contract text as a string
+ * Main assembly function.
  */
 export function generateContract(input: GenerateContractInput): string {
-  const { placeholderValues, selectedOptionalClauses = [] } = input;
+  const { 
+    placeholderValues, 
+    selectedOptionalClauses = [], 
+    isDraft = false 
+  } = input;
 
   /**
-   * Build clause map:
-   * - Core clauses are always included
-   * - Optional clauses are included only if selected by user
+   * STEP 1: Validation
+   * We cast placeholderValues as the full Map for the validator's benefit,
+   * but we only throw a hard error if isDraft is false (Final Generation).
+   */
+  const validation = validatePlaceholders(placeholderValues as PlaceholderValueMap);
+
+  if (!validation.isValid && !isDraft) {
+    const missing = validation.missingRequired.join(", ");
+    const datatypeErrors = validation.datatypeErrors.map((e) => e.key).join(", ");
+
+    let errorMessage = "Validation failed.";
+    if (validation.missingRequired.length > 0) errorMessage += ` Missing: ${missing}.`;
+    if (validation.datatypeErrors.length > 0) errorMessage += ` Invalid formats: ${datatypeErrors}.`;
+
+    throw new Error(errorMessage);
+  }
+
+  /**
+   * STEP 2: Clause Collection
+   * Start with core clauses, then add optional ones if they are valid IDs.
    */
   const allClauses: Partial<Record<ClauseId, string>> = {
     ...coreClauses,
   };
 
   for (const clauseId of selectedOptionalClauses) {
-    allClauses[clauseId] = optionalClauses[clauseId];
+    // Safety check: ensure the string from the UI actually exists in our template
+    if (clauseId in optionalClauses) {
+      allClauses[clauseId as OptionalClauseId] = optionalClauses[clauseId as OptionalClauseId];
+    }
   }
 
   /**
-   * Assemble clauses in the exact order defined in structure.ts.
-   * This ensures consistent formatting and correct legal flow.
+   * STEP 3: Ordering
+   * Loop through the master structure and pick the text from our collection.
+   * This ensures Clause 1 always comes before Clause 2.
    */
   const orderedClauseTexts: string[] = [];
 
   for (const clauseId of contractStructure) {
     const clauseText = allClauses[clauseId];
-
     if (clauseText) {
       orderedClauseTexts.push(clauseText);
     }
   }
 
   /**
-   * Join clauses with spacing between sections.
+   * STEP 4: Assembly
+   * Join sections with double newlines for a clean legal layout.
    */
   let contractText = orderedClauseTexts.join("\n\n");
 
   /**
-   * Replace all placeholders with actual values.
-   *
-   * Example:
-   * "Party A: {{PARTY_A_NAME}}" → "Party A: Acme Corporation"
-   *
-   * Using split/join ensures replacement for ALL occurrences.
+   * STEP 5: Placeholder Replacement
+   * We replace tokens like {{PARTY_A_NAME}} with the actual value.
    */
   for (const key in placeholderValues) {
-    const placeholderKey = key as PlaceholderKey;
-    const value = placeholderValues[placeholderKey];
-
-    const placeholder = `{{${placeholderKey}}}`;
-    contractText = contractText.split(placeholder).join(String(value));
+    const value = placeholderValues[key as PlaceholderKey];
+    
+    // We only replace if there is actually a value (even an empty string)
+    if (value !== undefined) {
+      const placeholderToken = `{{${key}}}`;
+      // Split/Join is faster and safer for global replacement in large strings
+      contractText = contractText.split(placeholderToken).join(String(value));
+    }
   }
 
   /**
-   * Safety fallback:
-   * If any placeholders remain, replace them with a visible marker.
-   *
-   * This should not happen if validatePlaceholders() was used correctly.
+   * STEP 6: Fallback for missing data
+   * If any {{KEYS}} remain (because they weren't in the placeholderValues),
+   * we highlight them so the user/admin knows the document is incomplete.
    */
   contractText = contractText.replace(/\{\{([^}]+)\}\}/g, "[MISSING: $1]");
 
@@ -102,51 +115,32 @@ export function generateContract(input: GenerateContractInput): string {
 }
 
 /**
- * getRequiredPlaceholders()
- *
- * Extracts all placeholders used by:
- * - all core clauses
- * - selected optional clauses
- *
- * Useful for UI generation, validation, and pre-checking required inputs.
+ * Utility to find every placeholder mentioned in the text of a specific 
+ * selection of clauses. Used to generate form fields dynamically.
  */
-export function getRequiredPlaceholders(
-  selectedOptionalClauses: OptionalClauseId[] = []
+export function getUsedPlaceholders(
+  selectedOptionalClauses: string[] = []
 ): PlaceholderKey[] {
   const placeholderPattern = /\{\{([^}]+)\}\}/g;
   const foundPlaceholders = new Set<PlaceholderKey>();
 
-  /**
-   * Scan all core clauses for placeholders.
-   */
+  // Scan Core
   for (const key in coreClauses) {
-    const clauseText = coreClauses[key as CoreClauseId];
-
-    for (const match of clauseText.matchAll(placeholderPattern)) {
+    const text = coreClauses[key as CoreClauseId];
+    for (const match of text.matchAll(placeholderPattern)) {
       foundPlaceholders.add(match[1] as PlaceholderKey);
     }
   }
 
-  /**
-   * Scan selected optional clauses for placeholders.
-   */
+  // Scan Selected Optional
   for (const clauseId of selectedOptionalClauses) {
-    const clauseText = optionalClauses[clauseId];
-
-    for (const match of clauseText.matchAll(placeholderPattern)) {
-      foundPlaceholders.add(match[1] as PlaceholderKey);
+    if (clauseId in optionalClauses) {
+      const text = optionalClauses[clauseId as OptionalClauseId];
+      for (const match of text.matchAll(placeholderPattern)) {
+        foundPlaceholders.add(match[1] as PlaceholderKey);
+      }
     }
   }
 
   return Array.from(foundPlaceholders);
 }
-
-/**
- * Typical Flow:
- *
- * 1. Collect user input (UI form)
- * 2. validatePlaceholders() ensures required fields exist
- * 3. (Optional) aiFillPlaceholders() improves allowAI fields
- * 4. generateContract() builds the final contract string
- * 5. Display / Export / PDF
- */
