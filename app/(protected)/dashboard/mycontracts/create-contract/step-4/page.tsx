@@ -4,7 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useContract } from "../_context/ContractContext";
 import { FormField } from "@/components/contract/FormField";
 
-export default function StepTwoPage() {
+export default function StepFourPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const type = searchParams.get("type");
@@ -14,7 +14,7 @@ export default function StepTwoPage() {
   if (!type || !template) return null;
 
   // 1. Get configuration for Step 2 (Index 1)
-  const stepConfig = template.templateConfig.steps[1];
+  const stepConfig = template.templateConfig.steps[3];
 
   /**
    * SEQUENTIAL GATE LOGIC
@@ -46,7 +46,7 @@ export default function StepTwoPage() {
       <div className="flex justify-between items-center pt-6 border-t border-gray-100">
         {/* PREVIOUS: Always enabled */}
         <button
-          onClick={() => router.push(`./step-1?type=${type}`)}
+          onClick={() => router.push(`./step-3?type=${type}`)}
           className="px-6 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
         >
           Previous
@@ -55,7 +55,7 @@ export default function StepTwoPage() {
         {/* NEXT: Gated by logic */}
         <div className="flex flex-col items-end">
           <button
-            onClick={() => router.push(`./step-3?type=${type}`)}
+            onClick={() => router.push(`./step-5?type=${type}`)}
             disabled={!isStepComplete}
             className={`px-8 py-2 rounded-md shadow-sm font-medium transition-all ${
               isStepComplete
