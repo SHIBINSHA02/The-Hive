@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useContract } from "../_context/ContractContext";
-import { Loader2, FileText, ChevronLeft, Download } from "lucide-react";
+import { Loader2, FileText, ChevronLeft, Download, CheckCircle, Save } from "lucide-react";
 
 export default function PreviewPage() {
   const router = useRouter();
@@ -11,13 +11,10 @@ export default function PreviewPage() {
   const type = searchParams.get("type");
   
   const { template, formData, selectedClauses } = useContract();
-  const [isSaving, setIsSaving] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   /**
-   * 1. ASSEMBLE THE CONTRACT
-   * We use useMemo to generate the full text. 
-   * Since we updated generator.ts to support 'isDraft', this won't crash 
-   * even if some fields are missing.
+   * 1. LIVE PREVIEW ASSEMBLY (Draft Mode)
    */
   const fullContractText = useMemo(() => {
     if (!template) return "";
@@ -29,21 +26,59 @@ export default function PreviewPage() {
   }, [template, formData, selectedClauses]);
 
   /**
-   * 2. FINAL GENERATION & SAVE
-   * This sends the data to your (soon to be built) API to 
-   * save it in the database and potentially generate a PDF.
+   * 2. DOWNLOAD PDF LOGIC (Current Primary Action)
    */
-  const handleFinalize = async () => {
-    setIsSaving(true);
+  const handleDownloadPDF = async () => {
+    setIsProcessing(true);
+    try {
+      const response = await fetch("/api/contract/generate-pdf", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contractType: type, formData, selectedClauses }),
+      });
+
+      if (!response.ok) throw new Error("Failed to assemble PDF content.");
+
+      const { fullText, title } = await response.json();
+
+      const element = document.createElement("div");
+      element.innerHTML = `
+        <div style="font-family: 'Times New Roman', serif; padding: 50px; line-height: 1.6; color: black;">
+          <h1 style="text-align: center; text-transform: uppercase;">${title}</h1>
+          <div style="white-space: pre-wrap;">${fullText}</div>
+        </div>
+      `;
+
+      const opt = {
+        margin: 0.75,
+        filename: `${title.replace(/\s+/g, "_")}_Final.pdf`,
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' as const}
+      };
+
+      const html2pdf = (await import('html2pdf.js')).default;
+      await html2pdf().set(opt).from(element).save();
+
+    } catch (error: any) {
+      console.error(error);
+      alert("Error generating PDF. Ensure all required fields are filled.");
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  /**
+   * 3. DATABASE SAVE LOGIC (Commented for Future Use)
+   * * Uncomment this when you have your Prisma schema and /api/contract/generate route ready.
+   */
+  /*
+  const handleSaveToDatabase = async () => {
+    setIsProcessing(true);
     try {
       const response = await fetch("/api/contract/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contractType: type,
-          formData,
-          selectedClauses,
-        }),
+        body: JSON.stringify({ contractType: type, formData, selectedClauses }),
       });
 
       if (response.ok) {
@@ -51,11 +86,12 @@ export default function PreviewPage() {
       }
     } catch (error) {
       console.error("Failed to save contract", error);
-      alert("Error saving contract. Please try again.");
+      alert("Error saving to database.");
     } finally {
-      setIsSaving(false);
+      setIsProcessing(false);
     }
   };
+  */
 
   if (!template) return null;
 
@@ -69,21 +105,19 @@ export default function PreviewPage() {
             Final Review
           </h1>
           <p className="text-sm text-gray-500">
-            Review the full legal text before finalizing your agreement.
+            Review your agreement. Download the final PDF below.
           </p>
         </div>
       </div>
 
-      {/* THE CONTRACT DOCUMENT VIEWER */}
-      {/* We use a specific 'paper' look here to distinguish it from a form */}
+      {/* DOCUMENT VIEWER */}
       <div className="bg-white border border-gray-200 shadow-xl rounded-lg overflow-hidden min-h-[600px] flex flex-col">
         <div className="bg-gray-50 border-b border-gray-200 px-6 py-3 flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-          <span>Draft Version</span>
+          <span className="flex items-center gap-1.5"><CheckCircle className="h-3 w-3 text-green-500" /> Draft Preview</span>
           <span>{template.templateConfig.name}</span>
         </div>
         
-        <div className="p-12 flex-1 overflow-y-auto bg-[white]">
-          {/* whitespace-pre-wrap is essential to respect the \n line breaks */}
+        <div className="p-12 flex-1 overflow-y-auto bg-white">
           <div className="max-w-2xl mx-auto text-gray-800 leading-relaxed font-serif whitespace-pre-wrap text-sm">
             {fullContractText}
           </div>
@@ -100,18 +134,29 @@ export default function PreviewPage() {
           Back to Edit
         </button>
 
-        <button
-          onClick={handleFinalize}
-          disabled={isSaving}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-bold shadow-lg shadow-blue-100 transition-all flex items-center gap-2 disabled:opacity-50"
-        >
-          {isSaving ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : (
-            <Download className="h-4 w-4" />
-          )}
-          Finalize & Save
-        </button>
+        <div className="flex gap-3">
+          {/* FUTURE: You can add the Save button here once the logic is uncommented */}
+          {/* <button 
+            onClick={handleSaveToDatabase}
+            className="flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-all"
+          >
+            <Save className="h-4 w-4" /> Save Draft
+          </button> 
+          */}
+
+          <button
+            onClick={handleDownloadPDF}
+            disabled={isProcessing}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-bold shadow-lg shadow-blue-100 transition-all flex items-center gap-2 disabled:opacity-50"
+          >
+            {isProcessing ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Download className="h-4 w-4" />
+            )}
+            Download Final PDF
+          </button>
+        </div>
       </div>
     </div>
   );
