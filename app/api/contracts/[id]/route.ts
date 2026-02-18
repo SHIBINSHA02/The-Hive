@@ -3,35 +3,9 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 
 import { connectDB } from "@/lib/db";
-import User from "@/db/models/User";
 import Contract from "@/db/models/Contract";
-import ClientProfile from "@/db/models/ClientProfile";
-import ContractProfile from "@/db/models/ContractProfile";
 import Financial from "@/db/models/Finance";
-
-async function authorize(contractId: string, clerkId: string) {
-  await connectDB();
-
-  const user = await User.findOne({ clerkId });
-  if (!user) return null;
-
-  const clientProfile = await ClientProfile.findOne({ user: user._id });
-  const contractorProfile = await ContractProfile.findOne({ user: user._id });
-
-  const conditions: Record<string, unknown>[] = [];
-
-  if (clientProfile) conditions.push({ client: clientProfile._id });
-  if (contractorProfile) conditions.push({ contractor: contractorProfile._id });
-
-  if (!conditions.length) return null;
-
-  return Contract.findOne({
-    _id: contractId,
-    $or: conditions
-  })
-    .populate("client")
-    .populate("contractor");
-}
+import { getContractAndRole } from "@/lib/contractAuth";
 
 export async function GET(
   req: Request,
@@ -43,13 +17,54 @@ export async function GET(
   if (!clerkId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const contract = await authorize(id, clerkId);
-  if (!contract)
+  const result = await getContractAndRole(id, clerkId);
+  if (!result)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  const { contract, role } = result;
+
+  const client = (contract as any).client as { name?: string } | undefined;
+  const contractor = (contract as any).contractor as { name?: string } | undefined;
+
+  const clientName: string | undefined = client?.name;
+  const contractorName: string | undefined = contractor?.name;
+
+  const counterpartyName =
+    role === "client"
+      ? contractorName
+      : role === "contractor"
+        ? clientName
+        : undefined;
+
+  const formattedContract = {
+    _id: (contract as any)._id?.toString?.() ?? (contract as any)._id,
+    contractId: (contract as any).contractId,
+    contractTitle: (contract as any).contractTitle,
+    companyName: (contract as any).companyName,
+    companyLogoUrl: (contract as any).companyLogoUrl,
+    bgImageUrl: (contract as any).bgImageUrl,
+    description: (contract as any).description,
+    summary: (contract as any).summary,
+    startDate: (contract as any).startDate
+      ? new Date((contract as any).startDate).toISOString()
+      : new Date().toISOString(),
+    deadline: (contract as any).deadline
+      ? new Date((contract as any).deadline).toISOString()
+      : new Date().toISOString(),
+    progress: (contract as any).progress ?? 0,
+    contractStatus: (contract as any).contractStatus ?? "pending",
+    clauses: (contract as any).clauses ?? [],
+    keypoints: (contract as any).keypoints ?? [],
+    contractContent: (contract as any).contractContent ?? "",
+    clientName,
+    contractorName,
+    viewerRole: role,
+    counterpartyName,
+  };
 
   const finance = await Financial.findOne({ contract: id });
 
-  return NextResponse.json({ contract, finance });
+  return NextResponse.json({ contract: formattedContract, finance, role });
 }
 
 
@@ -63,10 +78,11 @@ export async function PUT(
   if (!clerkId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const exists = await authorize(id, clerkId);
+  const exists = await getContractAndRole(id, clerkId);
   if (!exists)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  await connectDB();
   const body = await req.json();
   const updated = await Contract.findByIdAndUpdate(id, body, { new: true });
 
@@ -84,10 +100,11 @@ export async function PATCH(
   if (!clerkId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const exists = await authorize(id, clerkId);
+  const exists = await getContractAndRole(id, clerkId);
   if (!exists)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  await connectDB();
   const body = await req.json();
 
   const updated = await Contract.findByIdAndUpdate(

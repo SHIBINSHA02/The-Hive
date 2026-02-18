@@ -13,6 +13,7 @@ import { Bot, Send, X, MessageSquare, Sparkles } from "lucide-react";
 interface ContractDetailsResponse {
   contract: Contract;
   finance: Financial | null;
+  role: "client" | "contractor";
 }
 
 export default function ContractDetailsPage() {
@@ -22,6 +23,8 @@ export default function ContractDetailsPage() {
   const [data, setData] = useState<Contract | null>(null);
   const [finance, setFinance] = useState<Financial | null>(null);
   const [conversationPreview, setConversationPreview] = useState<ConversationType | null>(null);
+
+  const [viewerRole, setViewerRole] = useState<"client" | "contractor" | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -55,6 +58,7 @@ export default function ContractDetailsPage() {
         const json: ContractDetailsResponse = await res.json();
         setData(json.contract);
         setFinance(json.finance ?? null);
+        setViewerRole(json.role);
       } catch (err: any) {
         setError(err.message || "Something went wrong");
       } finally {
@@ -119,6 +123,23 @@ export default function ContractDetailsPage() {
               )}
               <span className="text-lg">{data.companyName}</span>
             </div>
+            {viewerRole && (
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs sm:text-sm">
+                <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 font-medium uppercase tracking-wide">
+                  You are logged in as&nbsp;
+                  <span className="capitalize">{viewerRole}</span>
+                </span>
+                <span className="inline-flex items-center rounded-full bg-black/40 px-3 py-1">
+                  Counterparty:&nbsp;
+                  <span className="font-semibold">
+                    {data.counterpartyName ||
+                      (viewerRole === "client"
+                        ? data.contractorName || "Contractor"
+                        : data.clientName || "Client")}
+                  </span>
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -129,6 +150,21 @@ export default function ContractDetailsPage() {
           <h2 className="font-semibold text-lg">Summary</h2>
           <p className="mt-2 text-gray-700 whitespace-pre-line">{data.summary}</p>
           <div className="mt-4 space-y-2 text-sm">
+            {viewerRole && (
+              <>
+                <p>
+                  <strong>Your Role:</strong>{" "}
+                  <span className="capitalize">{viewerRole}</span>
+                </p>
+                <p>
+                  <strong>Counterparty:</strong>{" "}
+                  {data.counterpartyName ||
+                    (viewerRole === "client"
+                      ? data.contractorName || "Contractor"
+                      : data.clientName || "Client")}
+                </p>
+              </>
+            )}
             <p><strong>Start Date:</strong> {new Date(data.startDate).toDateString()}</p>
             <p><strong>Deadline:</strong> {new Date(data.deadline).toDateString()}</p>
             <p><strong>Status:</strong> <span className="capitalize">{data.contractStatus}</span></p>
