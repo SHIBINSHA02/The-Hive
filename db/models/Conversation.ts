@@ -25,6 +25,18 @@ const MessageSchema = new mongoose.Schema({
   },
 }, { timestamps: true });
 
+const ThreadSchema = new mongoose.Schema({
+  subject: {
+    type: String,
+    required: true,
+    trim: true
+  },
+  messages: {
+    type: [MessageSchema],
+    default: []
+  }
+}, { timestamps: true });
+
 const ConversationSchema = new mongoose.Schema({
   conversationId: {
     type: String,
@@ -33,25 +45,31 @@ const ConversationSchema = new mongoose.Schema({
   },
 
   contractId: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "Contract",
-  required: true
-},
-
-  participants: {
-  client: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: "ClientProfile",
+    ref: "Contract",
     required: true
   },
-  contractor: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "ContractProfile",
-    required: true
-  }
-},
 
+  participants: {
+    client: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ClientProfile",
+      required: true
+    },
+    contractor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "ContractProfile",
+      required: true
+    }
+  },
 
+  /** Structured threads: each has a subject and messages. When present, use these. */
+  threads: {
+    type: [ThreadSchema],
+    default: []
+  },
+
+  /** Legacy flat messages (used when no threads, or for backward compatibility) */
   messages: {
     type: [MessageSchema],
     default: []

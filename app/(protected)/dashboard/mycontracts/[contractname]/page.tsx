@@ -4,9 +4,11 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Contract, Financial } from "@/types/contract";
+import type { ConversationType } from "@/types/conversation";
 
 interface ContractDetailsResponse {
   contract: Contract;
@@ -14,11 +16,12 @@ interface ContractDetailsResponse {
 }
 
 export default function ContractDetailsPage() {
-  const { contractname } = useParams(); // <-- contains contractId
+  const { contractname } = useParams();
   const contractId = decodeURIComponent(contractname as string);
 
   const [data, setData] = useState<Contract | null>(null);
   const [finance, setFinance] = useState<Financial | null>(null);
+  const [conversationPreview, setConversationPreview] = useState<ConversationType | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -48,6 +51,14 @@ export default function ContractDetailsPage() {
 
     fetchContract();
   }, [contractId]);
+
+  useEffect(() => {
+    if (!contractId || !data) return;
+    fetch(`/api/contracts/${contractId}/conversation`, { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((conv) => conv && setConversationPreview(conv))
+      .catch(() => {});
+  }, [contractId, data]);
 
   if (loading)
     return (
@@ -154,6 +165,40 @@ export default function ContractDetailsPage() {
             </ul>
           </div>
         </div>
+      </div>
+
+      {/* Conversation preview */}
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
+        <h2 className="font-semibold text-lg">Conversation</h2>
+        <p className="mt-1 text-sm text-gray-600">
+          Professional communication with your {data.contractStatus === "active" ? "counterparty" : "client/contractor"} for this contract.
+        </p>
+        {conversationPreview && (
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <span className="text-sm text-gray-700">
+              {conversationPreview.threads?.length ?? 0} thread{(conversationPreview.threads?.length ?? 0) !== 1 ? "s" : ""}
+              {conversationPreview.lastMessage && (
+                <> · Last: &ldquo;{conversationPreview.lastMessage.slice(0, 50)}{conversationPreview.lastMessage.length > 50 ? "…" : ""}&rdquo;</>
+              )}
+            </span>
+            <Link
+              href={`/dashboard/mycontracts/${encodeURIComponent(contractId)}/conversation`}
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              View conversation
+            </Link>
+          </div>
+        )}
+        {!conversationPreview && (
+          <div className="mt-3">
+            <Link
+              href={`/dashboard/mycontracts/${encodeURIComponent(contractId)}/conversation`}
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            >
+              Open conversation
+            </Link>
+          </div>
+        )}
       </div>
 
       {/* Finance */}

@@ -15,24 +15,36 @@ const MONGO_URI =
   process.env.MONGODB_URI;
 
 // Optionally provide specific Clerk user IDs to seed contracts for
-// If not provided, will use existing users in the database
+// If not provided, will use all existing users in the database
 const TARGET_CLERK_IDS = process.env.SEED_USER_IDS
   ? process.env.SEED_USER_IDS.split(',')
-  : []; // Empty array means use all existing users
+  : [];
+
+// Set to "true" or "1" to keep existing data (skip clearing collections before seeding)
+const PRESERVE_DATA = process.env.SEED_PRESERVE_DATA === "true" || process.env.SEED_PRESERVE_DATA === "1";
 
 async function seed() {
   try {
     await mongoose.connect(MONGO_URI);
     console.log("🔥 Connected to MongoDB");
 
-    // Don't delete existing users - we want to keep real user accounts
-    await ClientProfile.deleteMany({});
-    await ContractProfile.deleteMany({});
-    await Contract.deleteMany({});
-    await Financial.deleteMany({});
-    await Conversation.deleteMany({});
-    await Notification.deleteMany({});
-    console.log("🧹 Old Data Cleared (preserving existing users)");
+    if (!PRESERVE_DATA) {
+      // Don't delete existing users - we want to keep real user accounts
+      await ClientProfile.deleteMany({});
+      await ContractProfile.deleteMany({});
+      await Contract.deleteMany({});
+      await Financial.deleteMany({});
+      await Conversation.deleteMany({});
+      await Notification.deleteMany({});
+      console.log("🧹 Old Data Cleared (preserving existing users)");
+    } else {
+      console.log("📌 Preserving existing data (SEED_PRESERVE_DATA is set)");
+      const existingCount = await Contract.countDocuments();
+      if (existingCount > 0) {
+        console.log("⏭️  Contracts already exist. Skipping seed to avoid duplicates.");
+        process.exit(0);
+      }
+    }
 
     // ------------------------------
     // 0️⃣ GET OR CREATE USERS
@@ -360,33 +372,42 @@ Signed electronically.
     console.log("💰 Finance Created");
 
     // ------------------------------
-    // 4️⃣ CONVERSATIONS
+    // 4️⃣ CONVERSATIONS (structured with subject per thread, linked to contract)
     // ------------------------------
     for (const contract of contracts) {
-      await Conversation.create({
+      const conversation = await Conversation.create({
         conversationId: `CONVO-${contract.contractId}`,
         contractId: contract._id,
         participants: {
           client: contract.client,
           contractor: contract.contractor
         },
-        messages: [
+        threads: [
           {
-            senderId: contract.client.toString(),
-            senderRole: "client",
-            message: "Hello, can we discuss project details?",
-            isRead: true
-          },
-          {
-            senderId: contract.contractor.toString(),
-            senderRole: "contractor",
-            message: "Sure, let's proceed.",
-            isRead: true
+            subject: "Contract & project details",
+            messages: [
+              {
+                senderId: contract.client.toString(),
+                senderRole: "client",
+                message: "Hello, can we discuss project details?",
+                isRead: true
+              },
+              {
+                senderId: contract.contractor.toString(),
+                senderRole: "contractor",
+                message: "Sure, let's proceed.",
+                isRead: true
+              }
+            ]
           }
         ],
+        messages: [],
         lastMessage: "Sure, let's proceed.",
         status: "active"
       });
+      await (Contract as { findByIdAndUpdate: (id: unknown, update: object, options?: object) => Promise<unknown> }).findByIdAndUpdate(contract._id, {
+        conversationId: conversation.conversationId
+      }, {});
     }
 
     console.log("💬 Conversations Created");
