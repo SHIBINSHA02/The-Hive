@@ -39,24 +39,38 @@ export async function POST(
 
   await connectDB();
 
-  let conversation = await Conversation.findOne({ contractId });
+  type ConvDoc = { threads: { id: (tid: string) => { messages: { push: (m: object) => void } } | null }; lastMessage?: string; save: () => Promise<unknown>; conversationId: string };
+  const findOne = (Conversation as { findOne: (q: object) => Promise<ConvDoc | null> }).findOne.bind(Conversation);
+  let conversation = await findOne({ contractId });
+
   if (!conversation) {
-    const contract = await Contract.findById(contractId).select("client contractor contractId").lean();
+    const contract = await (
+      Contract as { findById: (id: string) => { select: (s: string) => { lean: () => Promise<unknown> } } }
+    ).findById(contractId).select("client contractor contractId").lean();
     if (!contract)
       return NextResponse.json({ error: "Contract not found" }, { status: 404 });
-    const created = await Conversation.create({
-      conversationId: `CONVO-${(contract as { contractId?: string }).contractId ?? contractId}`,
+    const contractDoc = contract as { contractId?: string; client: unknown; contractor: unknown };
+    const createPayload = {
+      conversationId: `CONVO-${contractDoc.contractId ?? contractId}`,
       contractId,
-      participants: { client: (contract as { client: unknown }).client, contractor: (contract as { contractor: unknown }).contractor },
+      participants: { client: contractDoc.client, contractor: contractDoc.contractor },
       threads: [],
       messages: [],
       status: "active",
-    });
-    await Contract.findByIdAndUpdate(contractId, { conversationId: created.conversationId });
-    conversation = created;
+    };
+    const created = await (
+      Conversation as { create: (doc: typeof createPayload) => Promise<ConvDoc | ConvDoc[]> }
+    ).create(createPayload);
+    const doc = Array.isArray(created) ? created[0] ?? null : created;
+    if (!doc)
+      return NextResponse.json({ error: "Failed to create conversation" }, { status: 500 });
+    await (Contract as { findByIdAndUpdate: (id: string, update: object, options?: object) => Promise<unknown> }).findByIdAndUpdate(contractId, { conversationId: doc.conversationId }, {});
+    conversation = doc;
   }
 
-  conversation.threads = conversation.threads || [];
+  if (!conversation.threads) {
+    (conversation as { threads: unknown[] }).threads = [];
+  }
   const thread = conversation.threads.id(threadId);
   if (!thread)
     return NextResponse.json({ error: "Thread not found" }, { status: 404 });
@@ -65,12 +79,15 @@ export async function POST(
     senderId: result.senderProfileId,
     senderRole: result.role,
     message,
+    attachments: [],
     isRead: false,
   });
   conversation.lastMessage = message;
   await conversation.save();
 
-  const updated = await Conversation.findOne({ contractId }).lean();
+  const updated = await (
+    Conversation as { findOne: (q: object) => { lean: () => { exec: () => Promise<unknown> } } }
+  ).findOne({ contractId }).lean().exec();
   const normalized = normalizeConversation(updated as Parameters<typeof normalizeConversation>[0]);
   return NextResponse.json(normalized);
 }

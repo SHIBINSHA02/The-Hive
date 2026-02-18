@@ -77,22 +77,22 @@ export async function generateUserNotifications(userId: mongoose.Types.ObjectId)
   for (const contract of contracts) {
     const contractDeadline = new Date(contract.deadline);
     const contractStartDate = new Date(contract.startDate);
-    const isUserClient = contract.client && 
-      (typeof contract.client === 'object' ? contract.client._id.toString() : contract.client.toString()) === 
+    const isUserClient = contract.client &&
+      (typeof contract.client === 'object' ? (contract.client as any)._id?.toString() : (contract.client as any).toString()) ===
       (clientProfile?._id.toString() || '');
-    
+
     const otherParty = isUserClient ? contract.contractor : contract.client;
-    const otherPartyName = typeof otherParty === 'object' 
-      ? (otherParty?.name || contract.companyName || 'Unknown')
+    const otherPartyName = typeof otherParty === 'object'
+      ? ((otherParty as any)?.name || contract.companyName || 'Unknown')
       : contract.companyName || 'Unknown';
 
     // 1. Contract Agreement Request (pending contracts)
     if (contract.contractStatus === 'pending') {
       const daysUntilDeadline = Math.ceil((contractDeadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      const priority: 'low' | 'medium' | 'high' | 'urgent' = 
+      const priority: 'low' | 'medium' | 'high' | 'urgent' =
         daysUntilDeadline < 0 ? 'urgent' :
-        daysUntilDeadline <= 3 ? 'urgent' :
-        daysUntilDeadline <= 7 ? 'high' : 'medium';
+          daysUntilDeadline <= 3 ? 'urgent' :
+            daysUntilDeadline <= 7 ? 'high' : 'medium';
 
       // Check if notification already exists
       const existingNotification = await Notification.findOne({
@@ -126,11 +126,11 @@ export async function generateUserNotifications(userId: mongoose.Types.ObjectId)
     // 2. Contract Expiring Soon (active contracts approaching deadline)
     if (contract.contractStatus === 'active') {
       const daysUntilDeadline = Math.ceil((contractDeadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-      
+
       if (daysUntilDeadline > 0 && daysUntilDeadline <= 30) {
-        const priority: 'low' | 'medium' | 'high' | 'urgent' = 
+        const priority: 'low' | 'medium' | 'high' | 'urgent' =
           daysUntilDeadline <= 3 ? 'urgent' :
-          daysUntilDeadline <= 7 ? 'high' : 'medium';
+            daysUntilDeadline <= 7 ? 'high' : 'medium';
 
         // Check if notification already exists (within last 7 days)
         const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
@@ -175,12 +175,12 @@ export async function generateUserNotifications(userId: mongoose.Types.ObjectId)
         const daysUntilDue = Math.ceil((milestoneDueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
         if (daysUntilDue <= 30 && daysUntilDue >= -7) {
-          const priority: 'low' | 'medium' | 'high' | 'urgent' = 
+          const priority: 'low' | 'medium' | 'high' | 'urgent' =
             daysUntilDue < 0 ? 'urgent' :
-            daysUntilDue <= 3 ? 'urgent' :
-            daysUntilDue <= 7 ? 'high' : 'medium';
+              daysUntilDue <= 3 ? 'urgent' :
+                daysUntilDue <= 7 ? 'high' : 'medium';
 
-          const status: 'pending' | 'approved' | 'rejected' | 'completed' | 'overdue' = 
+          const status: 'pending' | 'approved' | 'rejected' | 'completed' | 'overdue' =
             daysUntilDue < 0 ? 'overdue' : 'pending';
 
           // Check if notification already exists for this milestone
@@ -251,7 +251,7 @@ export async function generateUserNotifications(userId: mongoose.Types.ObjectId)
     if (contract.contractStatus === 'completed') {
       const completedDate = new Date(contract.deadline);
       const daysSinceCompletion = Math.ceil((now.getTime() - completedDate.getTime()) / (1000 * 60 * 60 * 24));
-      
+
       if (daysSinceCompletion <= 7) {
         const existingNotification = await Notification.findOne({
           user: userId,

@@ -1,19 +1,51 @@
-// db/models/Finance.ts
-import mongoose from "mongoose";
+import mongoose, { Schema, Document, Model } from "mongoose";
 
-const TransactionSchema = new mongoose.Schema({
+export interface ITransaction {
+  transactionId: string;
+  type: "credit" | "debit" | "pending";
+  amount: number;
+  description?: string;
+  paymentMethod: "bank_transfer" | "upi" | "card" | "cash" | "wallet" | "other";
+  status: "pending" | "paid" | "failed" | "refunded";
+  date: Date;
+}
+
+export interface IMilestone {
+  title?: string;
+  amount: number;
+  dueDate?: Date;
+  isPaid: boolean;
+}
+
+export interface IFinancial extends Document {
+  financialId: string;
+  contract: mongoose.Types.ObjectId;
+  client: mongoose.Types.ObjectId;
+  contractor: mongoose.Types.ObjectId;
+  totalAmount: number;
+  paidAmount: number;
+  dueAmount: number;
+  currency: string;
+  milestones: IMilestone[];
+  transactions: ITransaction[];
+  paymentStatus: "not_started" | "in_progress" | "partial" | "completed" | "overdue";
+  lastPaymentDate?: Date;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+const TransactionSchema = new Schema({
   transactionId: { type: String, required: true, unique: true },
 
   type: {
-  type: String,
-  enum: ["credit", "debit", "pending"],
-  required: true
-},
-
+    type: String,
+    enum: ["credit", "debit", "pending"],
+    required: true,
+  },
 
   amount: {
     type: Number,
-    required: true
+    required: true,
   },
 
   description: String,
@@ -21,98 +53,99 @@ const TransactionSchema = new mongoose.Schema({
   paymentMethod: {
     type: String,
     enum: ["bank_transfer", "upi", "card", "cash", "wallet", "other"],
-    default: "other"
+    default: "other",
   },
 
   status: {
     type: String,
     enum: ["pending", "paid", "failed", "refunded"],
-    default: "pending"
+    default: "pending",
   },
 
   date: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
-
-const MilestoneSchema = new mongoose.Schema({
+const MilestoneSchema = new Schema({
   title: String,
   amount: Number,
   dueDate: Date,
   isPaid: {
     type: Boolean,
-    default: false
-  }
+    default: false,
+  },
 });
 
+const FinancialSchema = new Schema<IFinancial>(
+  {
+    financialId: {
+      type: String,
+      required: true,
+      unique: true,
+    },
 
-const FinancialSchema = new mongoose.Schema({
+    contract: {
+      type: Schema.Types.ObjectId,
+      ref: "Contract",
+      required: true,
+    },
 
-  financialId: {
-    type: String,
-    required: true,
-    unique: true
+    client: {
+      type: Schema.Types.ObjectId,
+      ref: "ClientProfile",
+      required: true,
+    },
+
+    contractor: {
+      type: Schema.Types.ObjectId,
+      ref: "ContractProfile",
+      required: true,
+    },
+
+    totalAmount: {
+      type: Number,
+      required: true,
+    },
+
+    paidAmount: {
+      type: Number,
+      default: 0,
+    },
+
+    dueAmount: {
+      type: Number,
+      default: 0,
+    },
+
+    currency: {
+      type: String,
+      default: "INR",
+    },
+
+    milestones: {
+      type: [MilestoneSchema],
+      default: [],
+    },
+
+    transactions: {
+      type: [TransactionSchema],
+      default: [],
+    },
+
+    paymentStatus: {
+      type: String,
+      enum: ["not_started", "in_progress", "partial", "completed", "overdue"],
+      default: "not_started",
+    },
+
+    lastPaymentDate: Date,
   },
+  { timestamps: true }
+);
 
-  contract: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "Contract",
-  required: true
-},
+const Financial: Model<IFinancial> =
+  mongoose.models.Financial || mongoose.model<IFinancial>("Financial", FinancialSchema);
 
-client: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "ClientProfile",
-  required: true
-},
-
-contractor: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "ContractProfile",
-  required: true
-},
-
-
-  totalAmount: {
-    type: Number,
-    required: true
-  },
-
-  paidAmount: {
-    type: Number,
-    default: 0
-  },
-
-  dueAmount: {
-    type: Number,
-    default: 0
-  },
-
-  currency: {
-    type: String,
-    default: "INR"
-  },
-
-  milestones: {
-    type: [MilestoneSchema],
-    default: []
-  },
-
-  transactions: {
-    type: [TransactionSchema],
-    default: []
-  },
-
-  paymentStatus: {
-    type: String,
-    enum: ["not_started", "in_progress", "partial", "completed", "overdue"],
-    default: "not_started"
-  },
-
-  lastPaymentDate: Date,
-
-}, { timestamps: true });
-
-export default mongoose.models.Financial ?? mongoose.model("Financial", FinancialSchema);
+export default Financial;
