@@ -1,152 +1,248 @@
 // app/(protected)/dashboard/page.tsx
 "use client";
-import { Users, DollarSign, Activity, FileText, Clock, AlertCircle } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Users, DollarSign, FileText, AlertCircle, TrendingUp, Briefcase } from "lucide-react";
+import Link from "next/link";
 
 import { EmergencyEmailDialog } from "@/components/dashboard/EmergencyEmailDialog";
-
 import { StatCard } from "@/components/dashboard/StatCard";
 import { RowContractCard } from "@/components/dashboard/RowContractCard";
+import { Contract } from "@/types/contract";
 
-const mockContracts = [
-  {
-    id: 1,
-    companyName: "Apple Inc.",
-    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg",
-    title: "Enterprise Software License",
-    description: "Annual software licensing agreement for enterprise-level solutions including cloud services and support.",
-    startDate: "Jan 15, 2024",
-    deadline: "Dec 31, 2024",
-    progress: 65,
-    backgroundImage: "https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=800&auto=format&fit=crop",
-  },
-  {
-    id: 2,
-    companyName: "Google LLC",
-    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg",
-    title: "Cloud Infrastructure Partnership",
-    description: "Strategic partnership for cloud infrastructure deployment and managed services across multiple regions.",
-    startDate: "Mar 01, 2024",
-    deadline: "Feb 28, 2025",
-    progress: 35,
-    backgroundImage: "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop",
-  },
-  {
-    id: 3,
-    companyName: "Microsoft",
-    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg",
-    title: "Security Compliance Audit",
-    description: "Comprehensive security audit and compliance certification for enterprise systems and data protection.",
-    startDate: "Feb 10, 2024",
-    deadline: "Aug 10, 2024",
-    progress: 85,
-    backgroundImage: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=800&auto=format&fit=crop",
-  },
-  {
-    id: 4,
-    companyName: "Amazon",
-    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_logo.svg",
-    title: "Supply Chain Integration",
-    description: "Integration of supply chain management systems with real-time tracking and analytics capabilities.",
-    startDate: "Apr 05, 2024",
-    deadline: "Oct 05, 2024",
-    progress: 50,
-    backgroundImage: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=800&auto=format&fit=crop",
-  },
-  {
-    id: 5,
-    companyName: "Tesla",
-    companyLogo: "https://upload.wikimedia.org/wikipedia/commons/b/bb/Tesla_T_symbol.svg",
-    title: "Sustainable Energy Contract",
-    description: "Long-term agreement for sustainable energy solutions and electric vehicle fleet management services.",
-    startDate: "May 20, 2024",
-    deadline: "May 19, 2026",
-    progress: 15,
-    backgroundImage: "https://images.unsplash.com/photo-1593941707882-a5bba14938c7?w=800&auto=format&fit=crop",
-  }
-];
+interface ContractorStats {
+  totalClients: number;
+  totalRevenue: number;
+  activeContracts: number;
+  pendingActions: number;
+}
 
+export default function ContractorDashboardPage() {
+  const [contracts, setContracts] = useState<Contract[]>([]);
+  const [stats, setStats] = useState<ContractorStats>({
+    totalClients: 0,
+    totalRevenue: 0,
+    activeContracts: 0,
+    pendingActions: 0,
+  });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-export default function DashboardPage() {
-  const handleSendReminder = () => {
-    // Implement email sending logic here
-    alert(`Reminder email sent to the client!`);
+  useEffect(() => {
+    const fetchContractorData = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch("/api/contracts");
+        if (!res.ok) throw new Error("Failed to fetch contracts");
+
+        const data: Contract[] = await res.json();
+        
+        // Filter to only contractor contracts
+        const contractorContracts = data.filter(
+          (contract) => contract.viewerRole === "contractor"
+        );
+
+        setContracts(contractorContracts);
+
+        // Calculate statistics
+        const uniqueClients = new Set(
+          contractorContracts
+            .map((c) => c.clientName)
+            .filter((name) => name !== undefined)
+        ).size;
+
+        // Fetch financial data for revenue calculation
+        let totalRevenue = 0;
+        const revenuePromises = contractorContracts.map(async (contract) => {
+          try {
+            const financeRes = await fetch(`/api/contracts/${contract._id}`);
+            if (financeRes.ok) {
+              const financeData = await financeRes.json();
+              if (financeData.finance?.paidAmount) {
+                return financeData.finance.paidAmount;
+              }
+            }
+          } catch (err) {
+            // Silently fail for individual finance fetches
+          }
+          return 0;
+        });
+
+        const revenues = await Promise.all(revenuePromises);
+        totalRevenue = revenues.reduce((sum, rev) => sum + rev, 0);
+
+        const activeContracts = contractorContracts.filter(
+          (c) => c.contractStatus === "active"
+        ).length;
+
+        // Calculate pending actions (contracts with upcoming deadlines or pending status)
+        const now = new Date();
+        const pendingActions = contractorContracts.filter((contract) => {
+          const deadline = new Date(contract.deadline);
+          const daysUntilDeadline = Math.ceil(
+            (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+          );
+          return (
+            contract.contractStatus === "pending" ||
+            (daysUntilDeadline <= 7 && daysUntilDeadline >= 0)
+          );
+        }).length;
+
+        setStats({
+          totalClients: uniqueClients,
+          totalRevenue,
+          activeContracts,
+          pendingActions,
+        });
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Something went wrong";
+        setError(message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchContractorData();
+  }, []);
+
+  // Get recent contractor contracts (limit to 5)
+  const recentContracts = contracts
+    .filter((c) => c.viewerRole === "contractor")
+    .slice(0, 5);
+
+  // Format currency
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(amount);
   };
-  const items = mockContracts
+
+  if (loading) {
+    return (
+      <div className="bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-y-scroll h-[95vh]">
+          <div className="flex justify-center items-center h-64">
+            <p className="text-lg text-blue-700">Loading contractor dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-background">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-y-scroll h-[95vh]">
+          <div className="flex justify-center items-center h-64">
+            <p className="text-lg text-red-600 font-semibold">Error: {error}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="bg-background ">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-y-scroll h-[95vh] ">
+    <div className="bg-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 overflow-y-scroll h-[95vh]">
         {/* Header */}
         <header className="mb-8">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div>
               <h1 className="text-2xl sm:text-3xl font-bold text-primary">
-                Contract Dashboard
+                Contractor Dashboard
               </h1>
               <p className="text-muted-foreground mt-1">
-                AI-powered contract generation and analysis
+                Manage your contracts, track revenue, and monitor client relationships
               </p>
             </div>
             <EmergencyEmailDialog />
           </div>
         </header>
+
+        {/* Statistics Cards */}
         <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           <StatCard
             title="Total Clients"
-            value="1,234"
+            value={stats.totalClients.toString()}
             icon={Users}
-            trend={{ value: 12, isPositive: true }}
+            trend={{ value: 0, isPositive: true }}
           />
           <StatCard
             title="Total Revenue"
-            value="$12,345"
+            value={formatCurrency(stats.totalRevenue)}
             icon={DollarSign}
-            trend={{ value: 8, isPositive: true }}
+            trend={{ value: 0, isPositive: true }}
           />
           <StatCard
             title="Active Contracts"
-            value="573"
+            value={stats.activeContracts.toString()}
             icon={FileText}
-            trend={{ value: 5, isPositive: true }}
+            trend={{ value: 0, isPositive: true }}
           />
           <StatCard
             title="Pending Actions"
-            value="24"
+            value={stats.pendingActions.toString()}
             icon={AlertCircle}
-            trend={{ value: 3, isPositive: false }}
+            trend={{ value: 0, isPositive: false }}
           />
         </section>
 
+        {/* Recent Contracts Section */}
         <section className="space-y-8">
-          <div>
-            <h1 className="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">
-              Recent Activities
-            </h1>
-            <p className="mt-2 text-lg text-blue-500">
-              Streamline your business agreements with powerful contract tracking and management tools.
-            </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-bold tracking-tight text-gray-900 sm:text-2xl">
+                My Contracts
+              </h2>
+              <p className="mt-2 text-lg text-blue-500">
+                Overview of your active and recent contract engagements
+              </p>
+            </div>
+            <Link
+              href="/dashboard/mycontracts"
+              className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+            >
+              <Briefcase className="h-4 w-4" />
+              View All Contracts
+            </Link>
           </div>
-          {
-            items.map((item) => (
-              <RowContractCard
-                key={item.id}
-                companyName={item.companyName}
-                companyLogo={item.companyLogo}
-                title={item.title}
-                description={item.description}
-                startDate={item.startDate}
-                deadline={item.deadline}
-                progress={item.progress}
-              />
 
+          {recentContracts.length === 0 ? (
+            <div className="bg-white p-8 rounded-xl border border-gray-200 shadow-md text-center">
+              <p className="text-gray-600 text-lg">
+                No contracts found. Start by creating your first contract!
+              </p>
+              <Link
+                href="/dashboard/mycontracts/create-contract"
+                className="mt-4 inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+              >
+                Create Contract
+              </Link>
+            </div>
+          ) : (
+            recentContracts.map((contract) => (
+              <Link
+                key={contract._id}
+                href={`/dashboard/mycontracts/${contract._id}`}
+                className="block"
+              >
+                <RowContractCard
+                  companyName={contract.companyName}
+                  companyLogo={contract.companyLogoUrl || ""}
+                  title={contract.contractTitle}
+                  description={contract.description || contract.summary || ""}
+                  startDate={new Date(contract.startDate).toLocaleDateString()}
+                  deadline={new Date(contract.deadline).toLocaleDateString()}
+                  progress={contract.progress || 0}
+                />
+              </Link>
             ))
-          }
-               
-          
-         
+          )}
         </section>
-        
-         
-    </div>
+      </div>
     </div>
   );
 }
