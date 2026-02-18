@@ -1,5 +1,6 @@
 // db/seed.ts
 import mongoose from "mongoose";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import User from "./models/User.js";
 import ClientProfile from "./models/ClientProfile.js";
 import ContractProfile from "./models/ContractProfile.js";
@@ -8,11 +9,14 @@ import Financial from "./models/Finance.js";
 import Conversation from "./models/Conversation.js";
 import Notification from "./models/Notification.js";
 
-import 'dotenv/config';
+import "dotenv/config";
 
+const MONGO_URI = process.env.MONGODB_URI;
 
-const MONGO_URI =
-  process.env.MONGODB_URI;
+// Initialize Gemini embedding model (for semantic contract search / insights)
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
+// If "text-embedding-004" is not available in your region, switch to "embedding-001"
+const embedModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
 
 // Optionally provide specific Clerk user IDs to seed contracts for
 // If not provided, will use all existing users in the database
@@ -250,6 +254,18 @@ Signed electronically.
         deadline = new Date(now - oneDay * (i - 12)); // Recently completed (1-3 days ago)
       }
 
+      // Build rich text for semantic embedding
+      const textToEmbed = `
+Title: ${base.title}
+Company: ${base.company}
+Summary: ${summary}
+Content: ${content}
+      `.trim();
+
+      console.log(`🧠 Vectorizing contract: ${base.title}...`);
+      const embedResult = await embedModel.embedContent(textToEmbed);
+      const embeddingVector = embedResult.embedding.values;
+
       const contract = await Contract.create({
         contractId: `CON-${1000 + i}`,
         contractTitle: base.title,
@@ -278,6 +294,8 @@ Signed electronically.
 
         summary,
         contractContent: content,
+        // Store the embedding vector on the contract for later search/AI use
+        embeddings: embeddingVector,
         contractStatus
       });
 

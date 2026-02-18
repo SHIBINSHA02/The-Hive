@@ -12,6 +12,7 @@
   "dependencies": {
     "@auth/mongodb-adapter": "^3.11.1",
     "@clerk/nextjs": "^6.36.5",
+    "@google/generative-ai": "^0.24.1",
     "axios": "^1.13.2",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
