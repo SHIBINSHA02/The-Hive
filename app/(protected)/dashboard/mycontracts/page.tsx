@@ -186,6 +186,8 @@ finally {
                   deadline={new Date(contract.deadline).toDateString()}
                   progress={contract.progress || 0}
                   backgroundImage={contract.bgImageUrl || ""}
+                  viewerRole={contract.viewerRole}
+                  counterpartyName={contract.counterpartyName}
                 />
               </Link>
             </div>

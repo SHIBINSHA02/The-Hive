@@ -10,6 +10,8 @@ interface ContractCardProps {
   deadline: string;
   progress: number;
   backgroundImage: string;
+  viewerRole?: "client" | "contractor";
+  counterpartyName?: string;
 }
 
 const ContractCard = ({
@@ -21,6 +23,8 @@ const ContractCard = ({
   deadline,
   progress,
   backgroundImage,
+  viewerRole,
+  counterpartyName,
 }: ContractCardProps) => {
   const getProgressColor = (progress: number) => {
     if (progress >= 75) return "bg-blue-600";
@@ -57,6 +61,25 @@ const ContractCard = ({
     <p className="text-[10px] sm:text-xs font-medium uppercase tracking-wide text-gray-500">
       {companyName}
     </p>
+
+    {viewerRole && (
+      <div className="mt-2 flex flex-wrap items-center gap-2 text-[10px] sm:text-xs">
+        <span
+          className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium ${
+            viewerRole === "client"
+              ? "bg-blue-50 text-blue-700"
+              : "bg-gray-100 text-gray-700"
+          }`}
+        >
+          You: <span className="ml-1 capitalize">{viewerRole}</span>
+        </span>
+        {counterpartyName && (
+          <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-700">
+            With: <span className="ml-1 truncate max-w-[150px]">{counterpartyName}</span>
+          </span>
+        )}
+      </div>
+    )}
 
     <h3 className="mt-1 text-base sm:text-lg font-semibold text-gray-900 line-clamp-1">
       {title}

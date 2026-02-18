@@ -19,6 +19,14 @@ export interface Contract {
   clauses?: string[];
   keypoints?: string[];
   contractContent: string;
+
+  // Populated by API in some views
+  clientName?: string;
+  contractorName?: string;
+
+  // Derived for the logged-in viewer (list/detail views)
+  viewerRole?: "client" | "contractor";
+  counterpartyName?: string;
 }
 
 export interface FinanceMilestone {

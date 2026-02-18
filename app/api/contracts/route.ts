@@ -24,6 +24,8 @@ export async function GET() {
 
     const clientProfile = await ClientProfile.findOne({ user: user._id });
     const contractorProfile = await ContractProfile.findOne({ user: user._id });
+    const clientProfileId = clientProfile?._id?.toString();
+    const contractorProfileId = contractorProfile?._id?.toString();
 
     const conditions: Record<string, unknown>[] = [];
 
@@ -42,23 +44,58 @@ export async function GET() {
       .lean();
 
     // Transform contracts to match the frontend Contract interface
-    const formattedContracts = contracts.map((contract) => ({
-      _id: contract._id.toString(),
-      contractId: contract.contractId,
-      contractTitle: contract.contractTitle,
-      companyName: contract.companyName,
-      companyLogoUrl: contract.companyLogoUrl,
-      bgImageUrl: contract.bgImageUrl,
-      description: contract.description,
-      summary: contract.summary,
-      startDate: contract.startDate ? new Date(contract.startDate).toISOString() : new Date().toISOString(),
-      deadline: contract.deadline ? new Date(contract.deadline).toISOString() : new Date().toISOString(),
-      progress: contract.progress || 0,
-      contractStatus: contract.contractStatus || "pending",
-      clauses: contract.clauses || [],
-      keypoints: contract.keypoints || [],
-      contractContent: contract.contractContent || "",
-    }));
+    const formattedContracts = contracts.map((contract: any) => {
+      const clientId =
+        contract?.client?._id?.toString?.() ??
+        contract?.client?.toString?.() ??
+        (contract?.client ? String(contract.client) : "");
+      const contractorId =
+        contract?.contractor?._id?.toString?.() ??
+        contract?.contractor?.toString?.() ??
+        (contract?.contractor ? String(contract.contractor) : "");
+
+      const viewerRole: "client" | "contractor" | undefined =
+        clientProfileId && clientId && clientId === clientProfileId
+          ? "client"
+          : contractorProfileId && contractorId && contractorId === contractorProfileId
+            ? "contractor"
+            : undefined;
+
+      const clientName: string | undefined = contract?.client?.name;
+      const contractorName: string | undefined = contract?.contractor?.name;
+      const counterpartyName =
+        viewerRole === "client"
+          ? contractorName
+          : viewerRole === "contractor"
+            ? clientName
+            : undefined;
+
+      return {
+        _id: contract._id.toString(),
+        contractId: contract.contractId,
+        contractTitle: contract.contractTitle,
+        companyName: contract.companyName,
+        companyLogoUrl: contract.companyLogoUrl,
+        bgImageUrl: contract.bgImageUrl,
+        description: contract.description,
+        summary: contract.summary,
+        startDate: contract.startDate
+          ? new Date(contract.startDate).toISOString()
+          : new Date().toISOString(),
+        deadline: contract.deadline
+          ? new Date(contract.deadline).toISOString()
+          : new Date().toISOString(),
+        progress: contract.progress || 0,
+        contractStatus: contract.contractStatus || "pending",
+        clauses: contract.clauses || [],
+        keypoints: contract.keypoints || [],
+        contractContent: contract.contractContent || "",
+        clientName,
+        contractorName,
+        viewerRole,
+        counterpartyName,
+      };
+    });
 
     return NextResponse.json(formattedContracts);
   } catch (err: unknown) {
