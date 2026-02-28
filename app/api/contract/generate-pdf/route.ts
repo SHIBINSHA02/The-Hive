@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { isValidContractType, getContractTemplate } from "@/lib/contract-templates/registry";
+import { getContractLogic } from "@/lib/contract-templates/logic-registry";
 
 /**
  * /api/contract/generate-pdf/route.ts
@@ -12,16 +12,13 @@ export async function POST(req: NextRequest) {
   try {
     const { contractType, formData, selectedClauses } = await req.json();
 
-    // 1. Validation Logic
-    if (!isValidContractType(contractType)) {
-      return NextResponse.json({ error: "Invalid contract type" }, { status: 400 });
-    }
+    // 1. Get Pure Logic (Safe for Server)
+    // This avoids the "Client Component" error by using logic-registry
+    const templateLogic = getContractLogic(contractType);
 
-    const template = getContractTemplate(contractType);
-
-    // 2. Strict Legal Validation (isDraft: false)
-    // This ensures we aren't generating a PDF with [MISSING DATA] tags.
-    const validation = template.validatePlaceholders(formData);
+    // 2. Strict Legal Validation
+    const validation = templateLogic.validate(formData);
+    
     if (!validation.isValid) {
       return NextResponse.json({ 
         error: "Cannot generate PDF. Required fields are missing.",
@@ -30,7 +27,7 @@ export async function POST(req: NextRequest) {
     }
 
     // 3. Assemble the Final Legal String
-    const finalLegalText = template.generateContract({
+    const finalLegalText = templateLogic.generate({
       placeholderValues: formData,
       selectedOptionalClauses: selectedClauses,
       isDraft: false, // NO BRACKETS in the final PDF
@@ -45,6 +42,10 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error("PDF Prep Error:", error.message);
-    return NextResponse.json({ error: "Failed to assemble contract" }, { status: 500 });
+    
+    return NextResponse.json(
+      { error: error.message || "Failed to assemble contract" }, 
+      { status: 500 }
+    );
   }
 }

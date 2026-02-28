@@ -54,7 +54,7 @@ export function createGeminiClient(apiKey: string): AIClient {
 
   // Configure the model
   const model = genAI.getGenerativeModel({
-    model: "gemini-1.5-pro", // Best model for professional writing
+    model: "gemini-2.5-flash", // Best model for professional writing
 
     generationConfig: {
       /**

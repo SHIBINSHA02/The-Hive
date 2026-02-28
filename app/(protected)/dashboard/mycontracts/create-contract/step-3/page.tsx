@@ -32,7 +32,7 @@ export default function StepThreePage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-gray-900">
-          Step 2: {stepConfig.title}
+          Step 3: {stepConfig.title}
         </h1>
         <p className="text-gray-600 mt-1 text-sm">{stepConfig.description}</p>
       </div>
