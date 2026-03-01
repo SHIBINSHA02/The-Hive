@@ -1,87 +1,132 @@
-<!-- README.md -->
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+<div align="center">
+  <img src="public/noWhiteBG.svg" alt="The Hive Logo" width="200" height="200" />
+  <h1>The Hive</h1>
+  <p><strong>A Modern Next.js Full-Stack Application for Contract Lifecycle Management</strong></p>
+</div>
 
-## Getting Started
+---
 
-First, run the development server:
+## 📋 Project Overview
+
+**The Hive** is a sophisticated, full-stack application built with Next.js, designed to streamline and automate the management of business contracts. From agreement requests to final execution and ongoing monitoring, The Hive provides an intuitive and efficient way to handle the entire contract lifecycle.
+
+---
+
+## ✨ Key Features
+
+- **🚀 Lifecycle Management**: Comprehensive tracking of contract states from draft to completion.
+- **🔔 Intelligent Notifications**: Automated alerts for expiring contracts, pending approvals, and upcoming or overdue payments.
+- **🔐 Secure Authentication**: Robust user authentication and authorization powered by [Clerk](https://clerk.dev/) and [NextAuth.js](https://next-auth.js.org/).
+- **🤖 AI-Powered Insights**: Leveraging [Google Generative AI](https://ai.google.dev/) to provide intelligent analysis and contract summaries.
+- **📧 Seamless Email Integration**: Automated email notifications to keep all stakeholders informed.
+- **🎨 Modern & Responsive UI**: A sleek, user-friendly interface built with [Tailwind CSS](https://tailwindcss.com/) and [Lucide React](https://lucide.dev/) icons.
+
+---
+
+## 🛠️ Technology Stack
+
+| Category | Technologies |
+| :--- | :--- |
+| **Frontend** | React 19, Next.js 16 (App Router), Tailwind CSS, Lucide React, React Icons |
+| **Backend** | Next.js API Routes, Node.js |
+| **Database** | MongoDB, Mongoose ODM |
+| **Auth** | Clerk, NextAuth.js |
+| **AI** | Google Generative AI (@google/generative-ai) |
+| **Services** | Nodemailer (Email), Svix (Webhooks) |
+| **Dev Tools** | TypeScript, ESLint, TSX |
+
+---
+
+## 🚀 Getting Started
+
+Follow these steps to get the project up and running locally.
+
+### 1. Prerequisites
+
+- **Node.js**: v18 or later
+- **npm** or **yarn**
+- **MongoDB**: A running instance (local or Atlas)
+
+### 2. Installation
+
+Clone the repository and install dependencies:
+
+```bash
+git clone https://github.com/SHIBINSHA02/The-Hive.git
+cd The-Hive
+npm install
+```
+
+### 3. Environment Configuration
+
+Create a `.env` or `.env.local` file in the root directory and add the following variables:
+
+```env
+# Database
+MONGODB_URI=your_mongodb_connection_string
+
+# Authentication (Clerk & NextAuth)
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=...
+CLERK_SECRET_KEY=...
+NEXTAUTH_SECRET=your_secret_key
+NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up
+
+# AI & Other Services
+GEMINI_API_KEY=your_google_ai_key
+CRON_SECRET=your_cron_job_secret
+
+# Email (SMTP)
+SMTP_EMAIL=your-email@gmail.com
+SMTP_PASSWORD=your-app-password
+```
+
+### 4. Database Seeding (Optional)
+
+To populate your database with mock contracts for testing:
+
+```bash
+npm run seed
+```
+
+### 5. Running the Development Server
+
+Start the Next.js development server:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser to view the application.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 📂 Project Structure
 
-## Learn More
+```text
+The-Hive/
+├── app/                # Next.js App Router (Pages & API Routes)
+├── components/         # Reusable React components
+├── db/                 # Database models and connection logic
+├── lib/                # Shared utility functions and services
+├── public/             # Static assets (images, icons)
+├── types/              # TypeScript type definitions
+└── ...
+```
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 📖 Documentation
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+For more detailed information, please refer to the following documents:
 
-## Deploy on Vercel
+- [Architecture & Routes Documentation](ARCHITECTURE.md)
+- [Notification System Flow](NOTIFICATION_SYSTEM_FLOW.md)
+- [Database Seeding Guide](SEEDING.md)
+- [Notification Testing](TEST_NOTIFICATIONS.md)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+---
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 📄 License
 
-## Notification System
-
-The application includes a dynamic notification system that generates notifications based on contract data.
-
-### Setup
-
-1. **Seed the database** with mock contracts:
-   ```bash
-   npm run seed
-   # or
-   ts-node db/seed.ts
-   ```
-
-2. **Generate initial notifications**:
-   ```bash
-   # Manually trigger notification generation
-   curl -X GET http://localhost:3000/api/notifications/generate
-   ```
-
-### Daily Cron Job
-
-The system includes a daily cron job that automatically generates notifications for all users. 
-
-**For Vercel deployment:**
-- The `vercel.json` file is configured to run the cron job daily at midnight (0 0 * * *)
-- Ensure `CRON_SECRET` is set in your environment variables for security
-
-**For other platforms:**
-- Set up a cron job to call `POST /api/notifications/generate` daily
-- Use a service like EasyCron, Cron-job.org, or your server's cron scheduler
-- Example cron schedule: `0 0 * * *` (daily at midnight)
-
-### Notification Types
-
-The system generates the following notification types:
-
-1. **Contract Agreement Requests** - For pending contracts requiring approval
-2. **Contract Expiring Soon** - For active contracts approaching their deadline (within 30 days)
-3. **Payment Due Soon** - For upcoming payment milestones (within 30 days)
-4. **Payment Overdue** - For missed payment deadlines
-5. **Contract Completed** - For recently completed contracts
-
-### API Endpoints
-
-- `GET /api/notifications` - Fetch all notifications for the current user
-- `PATCH /api/notifications` - Mark a notification as read
-- `POST /api/notifications/mark-all-read` - Mark all notifications as read
-- `GET /api/notifications/generate` - Manually trigger notification generation (for testing)
-- `POST /api/notifications/generate` - Generate notifications (for cron jobs)
+This project is private and intended for specific use. Please contact the repository owner for licensing information.
