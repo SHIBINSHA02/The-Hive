@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useContract } from "../_context/ContractContext";
 import { FormField } from "@/components/contract/FormField";
 
-export default function StepThreePage() {
+export default function StepFourPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const type = searchParams.get("type");
@@ -17,25 +17,25 @@ export default function StepThreePage() {
   useEffect(() => {
     if (!isInitialized || !template) return;
 
-    // Check if STEP 2 (index 1) is complete
-    const prevStepConfig = template.templateConfig.steps[1];
+    // Check if STEP 3 (index 2) is complete
+    const prevStepConfig = template.templateConfig.steps[2];
     const prevMissing = prevStepConfig.fields.filter((key: string) => {
       const isRequired = template.contractPlaceholders[key].required;
       const value = formData[key];
       return isRequired && (!value || value.trim() === "");
     });
 
-    // If Step 2 is missing required fields, bounce them back to Step 2
+    // If Step 3 is missing required fields, bounce them back to Step 3
     if (prevMissing.length > 0) {
-      router.replace(`./step-2?type=${type}`);
+      router.replace(`./step-3?type=${type}`);
     }
   }, [isInitialized, formData, template, router, type]);
   // -----------------------
 
   if (!type || !template) return null;
 
-  // Configuration for Step 3 (Index 2)
-  const stepConfig = template.templateConfig.steps[2];
+  // Configuration for Step 4 (Index 3)
+  const stepConfig = template.templateConfig.steps[3];
 
   const missingRequiredFields = stepConfig.fields.filter((key) => {
     const isRequired = template.contractPlaceholders[key].required;
@@ -49,7 +49,7 @@ export default function StepThreePage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold text-gray-900">
-          Step 3: {stepConfig.title}
+          Step 4: {stepConfig.title}
         </h1>
         <p className="text-gray-600 mt-1 text-sm">{stepConfig.description}</p>
       </div>
@@ -62,7 +62,7 @@ export default function StepThreePage() {
 
       <div className="flex justify-between items-center pt-6 border-t border-gray-100">
         <button
-          onClick={() => router.push(`./step-2?type=${type}`)}
+          onClick={() => router.push(`./step-3?type=${type}`)}
           className="px-6 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
         >
           Previous
@@ -70,7 +70,7 @@ export default function StepThreePage() {
 
         <div className="flex flex-col items-end">
           <button
-            onClick={() => router.push(`./step-4?type=${type}`)}
+            onClick={() => router.push(`./step-5?type=${type}`)}
             disabled={!isStepComplete}
             className={`px-8 py-2 rounded-md shadow-sm font-medium transition-all ${
               isStepComplete

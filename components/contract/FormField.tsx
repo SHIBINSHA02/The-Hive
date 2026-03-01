@@ -1,0 +1,134 @@
+"use client";
+
+/**
+ * FormField.tsx
+ * -------------
+ * The "Smart" input component.
+ * It handles the rendering of labels, required markers, and the AI Refine button.
+ */
+
+import { useState } from "react";
+import { useContract } from "@/app/(protected)/dashboard/mycontracts/create-contract/_context/ContractContext";
+import { Loader2, Sparkles, CheckCircle2 } from "lucide-react";
+
+type FormFieldProps = {
+  fieldKey: string;
+};
+
+export function FormField({ fieldKey }: FormFieldProps) {
+  const { template, formData, updateField, contractType } = useContract();
+  
+  // 1. Get configuration from the dynamic template registry
+  const config = template.contractPlaceholders[fieldKey];
+  const aiPermission = template.placeholderAIPermissions[fieldKey];
+  const value = formData[fieldKey] ?? "";
+
+  // 2. States for AI interaction
+  const [isRefining, setIsRefining] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+
+  /**
+   * AI REFINEMENT HANDLER
+   * Sends the current text to the backend to be polished into legal language.
+   */
+  const handleRefine = async () => {
+    if (!value.trim()) return;
+    
+    setIsRefining(true);
+    setShowSuccess(false);
+
+    try {
+      const response = await fetch("/api/contract/refine-field", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contractType, // CRITICAL: Tell API which template logic to use
+          fieldKey,
+          fieldValue: value,
+        }),
+      });
+
+      const data = await response.json();
+      
+      if (data.refinedValue) {
+        updateField(fieldKey, data.refinedValue);
+        // Show success checkmark briefly
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 2000);
+      }
+    } catch (error) {
+      console.error("AI Refinement failed:", error);
+    } finally {
+      setIsRefining(false);
+    }
+  };
+
+  const inputBaseStyle = "w-full rounded-md border border-gray-300 shadow-sm p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all disabled:bg-gray-50 disabled:text-gray-500";
+  
+  return (
+    <div className="space-y-1.5 animate-in fade-in duration-300">
+      <div className="flex justify-between items-center">
+        <label className="text-sm font-semibold text-gray-700">
+          {config.label}
+          {config.required && <span className="text-red-500 ml-1">*</span>}
+        </label>
+
+        {/* AI BUTTON LOGIC */}
+        {aiPermission?.allowAI && value.trim().length > 5 && (
+          <button
+            onClick={handleRefine}
+            disabled={isRefining}
+            className={`text-xs flex items-center gap-1.5 font-bold transition-all ${
+              showSuccess ? "text-green-600" : "text-purple-600 hover:text-purple-800"
+            }`}
+            type="button"
+          >
+            {isRefining ? (
+              <>
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Refining...
+              </>
+            ) : showSuccess ? (
+              <>
+                <CheckCircle2 className="h-3.5 w-3.5" />
+                Refined!
+              </>
+            ) : (
+              <>
+                <Sparkles className="h-3.5 w-3.5" />
+                Refine with AI
+              </>
+            )}
+          </button>
+        )}
+      </div>
+
+      <div className="relative group">
+        {config.type === "text" ? (
+          <textarea
+            value={value}
+            onChange={(e) => updateField(fieldKey, e.target.value)}
+            rows={4}
+            className={inputBaseStyle}
+            placeholder={config.placeholder}
+            disabled={isRefining}
+          />
+        ) : (
+          <input
+            type={config.type === "date" ? "date" : "text"}
+            value={value}
+            onChange={(e) => updateField(fieldKey, e.target.value)}
+            className={inputBaseStyle}
+            placeholder={config.placeholder}
+            disabled={isRefining}
+          />
+        )}
+        
+        {/* Subtle loading overlay for the input itself */}
+        {isRefining && (
+          <div className="absolute inset-0 bg-white/40 flex items-center justify-center rounded-md cursor-wait" />
+        )}
+      </div>
+    </div>
+  );
+}

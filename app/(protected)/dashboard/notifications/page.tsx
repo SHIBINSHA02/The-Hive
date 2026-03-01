@@ -7,11 +7,11 @@ import NotificationHeader from './_components/NotificationHeader';
 import NotificationStats from './_components/NotificationStats';
 import NotificationFilters from './_components/NotificationFilters';
 import NotificationList from './_components/NotificationList';
-
+import { fetchAllNotifications } from './notificationService';
 
 
 export default function NotificationsPage() {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>(fetchAllNotifications());
   const [activeFilter, setActiveFilter] = useState<NotificationType | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
