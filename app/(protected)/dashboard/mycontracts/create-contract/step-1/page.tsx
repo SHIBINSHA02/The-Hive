@@ -1,79 +1,68 @@
 "use client";
 
-import { useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useContract } from "../_context/ContractContext";
+import { FormField } from "@/components/contract/FormField";
 
-export default function StepOne() {
+export default function StepOnePage() {
   const router = useRouter();
-  const { user, isLoaded } = useUser();
-  const { data, updateData } = useContract();
+  const searchParams = useSearchParams();
+  const type = searchParams.get("type");
+  
+  const { template, formData } = useContract();
+  
+  if (!type || !template) return null;
 
-  const contractorName =
-    `${user?.firstName ?? ""} ${user?.lastName ?? ""}`.trim();
+  const stepConfig = template.templateConfig.steps[0];
 
-  // ✅ FIX: update ONLY if value changed
-  useEffect(() => {
-    if (
-      isLoaded &&
-      contractorName &&
-      data.contractorName !== contractorName
-    ) {
-      updateData({ contractorName });
-    }
-  }, [isLoaded, contractorName, data.contractorName, updateData]);
+  /**
+   * SEQUENTIAL GATE LOGIC
+   * 1. Get all fields for this step
+   * 2. Filter only those marked 'required' in the template
+   * 3. Check if any are empty in formData
+   */
+  const missingRequiredFields = stepConfig.fields.filter((key) => {
+    const isRequired = template.contractPlaceholders[key].required;
+    const value = formData[key];
+    return isRequired && (!value || value.trim() === "");
+  });
 
-  const input =
-    "mt-1 w-full rounded-md border border-gray-300 shadow-sm p-3";
+  const isStepComplete = missingRequiredFields.length === 0;
 
   return (
-    <div className="max-w-3xl mx-auto p-6 space-y-6">
-      <h1 className="text-xl font-semibold">Step 1: Basic Details</h1>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-xl font-semibold text-gray-900">
+          Step 1: {stepConfig.title}
+        </h1>
+        <p className="text-gray-600 mt-1 text-sm">{stepConfig.description}</p>
+      </div>
 
-      <input
-        value={contractorName}
-        disabled
-        className={`${input} bg-gray-100`}
-      />
+      <div className="space-y-5">
+        {stepConfig.fields.map((key) => (
+          <FormField key={key} fieldKey={key} />
+        ))}
+      </div>
 
-      <textarea
-        value={data.contractorAddress}
-        onChange={(e) =>
-          updateData({ contractorAddress: e.target.value })
-        }
-        placeholder="Contractor address"
-        rows={3}
-        className={input}
-      />
-
-      <input
-        value={data.clientName}
-        onChange={(e) =>
-          updateData({ clientName: e.target.value })
-        }
-        placeholder="Client full name"
-        className={input}
-      />
-
-      <textarea
-        value={data.clientAddress}
-        onChange={(e) =>
-          updateData({ clientAddress: e.target.value })
-        }
-        placeholder="Client address"
-        rows={3}
-        className={input}
-      />
-
-      <button
-        onClick={() =>
-          router.push("/dashboard/mycontracts/create-contract/step-2")
-        }
-        className="bg-blue-600 text-white px-6 py-2 rounded-md shadow-sm"
-      >
-        Next
-      </button>
+      <div className="flex flex-col items-end pt-6 border-t border-gray-100">
+        <button
+          onClick={() => router.push(`./step-2?type=${type}`)}
+          disabled={!isStepComplete}
+          className={`px-8 py-2 rounded-md shadow-sm font-medium transition-all ${
+            isStepComplete
+              ? "bg-blue-600 hover:bg-blue-700 text-white cursor-pointer"
+              : "bg-gray-200 text-gray-400 cursor-not-allowed"
+          }`}
+        >
+          Next
+        </button>
+        
+        {!isStepComplete && (
+          <p className="text-xs text-red-500 mt-2">
+            Please fill in all required fields to continue.
+          </p>
+        )}
+      </div>
     </div>
   );
 }
