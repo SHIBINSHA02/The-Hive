@@ -18,11 +18,14 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 // If "text-embedding-004" is not available in your region, switch to "embedding-001"
 const embedModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
 
-// Optionally provide specific Clerk user IDs to seed contracts for
-// If not provided, will use all existing users in the database
-const TARGET_CLERK_IDS = process.env.SEED_USER_IDS
-  ? process.env.SEED_USER_IDS.split(',')
-  : [];
+// Specific users to seed contracts for (only these users will be used)
+const TARGET_CLERK_IDS = [
+  "user_37kiUIRDJeKeynbdqqHtSnNqiZ7",  // Niranjan
+  "user_37Iu9HWbBEFsu29EpYo4k2mU7Q3",  // S Shibinsha
+  "user_39qqrvxp5qSKzY4WYUd39e4gsdg",  // Hari Shankar j
+  "user_39FHsCsyf0shVkgpaV0dQ6Hnt1e",  // Adithya SD
+  "user_37q8N4u2oLf8WFYzokpSfooygoO",  // shibin sha2
+];
 
 // Set to "true" or "1" to keep existing data (skip clearing collections before seeding)
 const PRESERVE_DATA = process.env.SEED_PRESERVE_DATA === "true" || process.env.SEED_PRESERVE_DATA === "1";
@@ -51,38 +54,31 @@ async function seed() {
     }
 
     // ------------------------------
-    // 0️⃣ GET OR CREATE USERS
+    // 0️⃣ GET SPECIFIC USERS ONLY
     // ------------------------------
-    let users = [];
+    const users = [];
+    const userNames: Record<string, string> = {
+      "user_37kiUIRDJeKeynbdqqHtSnNqiZ7": "Niranjan",
+      "user_37Iu9HWbBEFsu29EpYo4k2mU7Q3": "S Shibinsha",
+      "user_39qqrvxp5qSKzY4WYUd39e4gsdg": "Hari Shankar j",
+      "user_39FHsCsyf0shVkgpaV0dQ6Hnt1e": "Adithya SD",
+      "user_37q8N4u2oLf8WFYzokpSfooygoO": "shibin sha2",
+    };
 
-    if (TARGET_CLERK_IDS.length > 0) {
-      // Use specified Clerk IDs
-      for (const clerkId of TARGET_CLERK_IDS) {
-        let user = await User.findOne({ clerkId });
-        if (!user) {
-          user = await User.create({
-            clerkId,
-            email: `${clerkId}@example.com`,
-            name: `User ${clerkId.slice(-8)}`
-          });
-        }
-        users.push(user);
+    // Only use the specified users
+    for (const clerkId of TARGET_CLERK_IDS) {
+      const user = await User.findOne({ clerkId });
+      if (!user) {
+        console.warn(`⚠️  User with clerkId ${clerkId} not found. Skipping...`);
+        continue;
       }
-    } else {
-      // Use all existing users in the database
-      users = await User.find({});
-      if (users.length === 0) {
-        console.log("⚠️  No users found. Creating sample users...");
-        // Create a few sample users if none exist
-        for (let i = 0; i < 3; i++) {
-          const user = await User.create({
-            clerkId: `sample_user_${i + 1}`,
-            email: `sample${i + 1}@example.com`,
-            name: `Sample User ${i + 1}`
-          });
-          users.push(user);
-        }
-      }
+      users.push(user);
+      console.log(`✅ Found user: ${user.name || userNames[clerkId]} (${clerkId})`);
+    }
+
+    if (users.length === 0) {
+      console.error("❌ No users found! Please ensure the specified users exist in the database.");
+      process.exit(1);
     }
 
     console.log(`👥 Using ${users.length} user(s) for seeding`);
@@ -94,14 +90,16 @@ async function seed() {
     const contractorProfiles = [];
 
     for (const user of users) {
+      const userName = user.name || userNames[user.clerkId] || `User ${user._id.toString().slice(-4)}`;
+      
       const client = await ClientProfile.create({
         user: user._id,
-        name: `Client Profile ${user._id.toString().slice(-4)}`
+        name: `${userName} (Client)`
       });
 
       const contractor = await ContractProfile.create({
         user: user._id,
-        name: `Contractor Profile ${user._id.toString().slice(-4)}`
+        name: `${userName} (Contractor)`
       });
 
       clientProfiles.push(client);
@@ -113,8 +111,6 @@ async function seed() {
     // ------------------------------
     // 2️⃣ CONTRACTS (REALISTIC DATA)
     // ------------------------------
-    const contracts = [];
-
     const REAL_CONTRACTS = [
       {
         title: "Enterprise Software License Agreement",
@@ -162,44 +158,50 @@ async function seed() {
     const now = Date.now();
     const oneDay = 1000 * 60 * 60 * 24;
 
-    // Distribute contracts across users - each user gets multiple contracts
-    const contractsPerUser = Math.max(5, Math.ceil(15 / users.length));
+    // Create contracts between different pairs of users
+    // Each user will have contracts with other users (ensuring variety)
+    const contracts = [];
+    let contractIndex = 0;
 
-    for (let i = 0; i < contractsPerUser * users.length; i++) {
-      const base = REAL_CONTRACTS[i % REAL_CONTRACTS.length];
+    // Create contracts: each user pairs with other users
+    for (let i = 0; i < users.length; i++) {
+      const user1 = users[i];
+      const client1 = clientProfiles.find(p => p.user.toString() === user1._id.toString());
+      const contractor1 = contractorProfiles.find(p => p.user.toString() === user1._id.toString());
 
-      // Assign contracts to users in round-robin fashion
-      const userIndex = i % users.length;
-      const user = users[userIndex];
-
-      // Find profiles for this user
-      const client = clientProfiles.find(p => p.user.toString() === user._id.toString());
-      const contractor = contractorProfiles.find(p => p.user.toString() === user._id.toString());
-
-      if (!client || !contractor) {
-        console.warn(`⚠️  Skipping contract ${i} - profiles not found for user ${user._id}`);
+      if (!client1 || !contractor1) {
+        console.warn(`⚠️  Skipping user ${user1._id} - profiles not found`);
         continue;
       }
 
-      // For variety, sometimes this user is the client, sometimes the contractor
-      // Alternate between users for client/contractor roles
-      const otherUserIndex = (userIndex + 1) % users.length;
-      const otherUser = users[otherUserIndex];
-      const otherClient = clientProfiles.find(p => p.user.toString() === otherUser._id.toString());
-      const otherContractor = contractorProfiles.find(p => p.user.toString() === otherUser._id.toString());
+      // Create contracts with other users
+      for (let j = 0; j < users.length; j++) {
+        if (i === j) continue; // Skip self
 
-      // Decide roles: user is client, other user is contractor (or vice versa)
-      const isUserClient = i % 2 === 0;
-      const contractClient = isUserClient ? client : (otherClient || client);
-      const contractContractor = isUserClient ? (otherContractor || contractor) : contractor;
+        const user2 = users[j];
+        const client2 = clientProfiles.find(p => p.user.toString() === user2._id.toString());
+        const contractor2 = contractorProfiles.find(p => p.user.toString() === user2._id.toString());
 
-      const summary = `
+        if (!client2 || !contractor2) {
+          console.warn(`⚠️  Skipping user ${user2._id} - profiles not found`);
+          continue;
+        }
+
+        // Alternate roles: sometimes user1 is client, sometimes contractor
+        const isUser1Client = (i + j) % 2 === 0;
+        const contractClient = isUser1Client ? client1 : client2;
+        const contractContractor = isUser1Client ? contractor2 : contractor1;
+
+        // Use different contract templates
+        const base = REAL_CONTRACTS[contractIndex % REAL_CONTRACTS.length];
+
+        const summary = `
 This contract establishes an official agreement between ${base.company} and the contractor
 for execution of "${base.title}". The agreement defines responsibilities, milestones,
 financial commitments, and delivery expectations.
   `.trim();
 
-      const content = `
+        const content = `
 # ${base.title}
 
 **Company:** ${base.company}  
@@ -222,84 +224,83 @@ Both parties agree to mutual professionalism, confidentiality, and compliance wi
 Signed electronically.
   `.trim();
 
-      // Create contracts with different scenarios to trigger notifications:
-      // 0-4: Pending contracts (will trigger request notifications)
-      // 5-9: Active contracts expiring soon (will trigger expiration alerts)
-      // 10-12: Active contracts with normal deadlines
-      // 13-14: Completed contracts (will trigger update notifications)
+        // Create contracts with different scenarios to trigger notifications:
+        // Distribute statuses: pending, active, completed
+        let contractStatus: "pending" | "active" | "completed";
+        let deadline: Date;
+        let startDate: Date;
 
-      let contractStatus: "pending" | "active" | "completed";
-      let deadline: Date;
-      let startDate: Date;
+        const statusIndex = contractIndex % 15;
+        if (statusIndex < 5) {
+          // Pending contracts - some urgent (due soon), some normal
+          contractStatus = "pending";
+          startDate = new Date(now - oneDay * (statusIndex + 1));
+          deadline = new Date(now + oneDay * (statusIndex < 2 ? 2 : 10)); // First 2 are urgent (2 days), rest are 10 days
+        } else if (statusIndex < 10) {
+          // Active contracts expiring soon (5-25 days)
+          contractStatus = "active";
+          startDate = new Date(now - oneDay * 60);
+          deadline = new Date(now + oneDay * (5 + (statusIndex - 5) * 5)); // 5, 10, 15, 20, 25 days
+        } else if (statusIndex < 13) {
+          // Active contracts with normal deadlines
+          contractStatus = "active";
+          startDate = new Date(now - oneDay * 30);
+          deadline = new Date(now + oneDay * (60 + statusIndex * 10));
+        } else {
+          // Completed contracts
+          contractStatus = "completed";
+          startDate = new Date(now - oneDay * 90);
+          deadline = new Date(now - oneDay * (statusIndex - 12)); // Recently completed (1-3 days ago)
+        }
 
-      if (i < 5) {
-        // Pending contracts - some urgent (due soon), some normal
-        contractStatus = "pending";
-        startDate = new Date(now - oneDay * (i + 1));
-        deadline = new Date(now + oneDay * (i < 2 ? 2 : 10)); // First 2 are urgent (2 days), rest are 10 days
-      } else if (i < 10) {
-        // Active contracts expiring soon (5-25 days)
-        contractStatus = "active";
-        startDate = new Date(now - oneDay * 60);
-        deadline = new Date(now + oneDay * (5 + (i - 5) * 5)); // 5, 10, 15, 20, 25 days
-      } else if (i < 13) {
-        // Active contracts with normal deadlines
-        contractStatus = "active";
-        startDate = new Date(now - oneDay * 30);
-        deadline = new Date(now + oneDay * (60 + i * 10));
-      } else {
-        // Completed contracts
-        contractStatus = "completed";
-        startDate = new Date(now - oneDay * 90);
-        deadline = new Date(now - oneDay * (i - 12)); // Recently completed (1-3 days ago)
-      }
-
-      // Build rich text for semantic embedding
-      const textToEmbed = `
+        // Build rich text for semantic embedding
+        const textToEmbed = `
 Title: ${base.title}
 Company: ${base.company}
 Summary: ${summary}
 Content: ${content}
-      `.trim();
+        `.trim();
 
-      console.log(`🧠 Vectorizing contract: ${base.title}...`);
-      const embedResult = await embedModel.embedContent(textToEmbed);
-      const embeddingVector = embedResult.embedding.values;
+        console.log(`🧠 Vectorizing contract ${contractIndex + 1}: ${base.title} (${contractClient.name} ↔ ${contractContractor.name})...`);
+        const embedResult = await embedModel.embedContent(textToEmbed);
+        const embeddingVector = embedResult.embedding.values;
 
-      const contract = await Contract.create({
-        contractId: `CON-${1000 + i}`,
-        contractTitle: base.title,
-        companyName: base.company,
-        companyLogoUrl: base.logo,
-        bgImageUrl: base.bg,
-        description: base.description,
+        const contract = await Contract.create({
+          contractId: `CON-${1000 + contractIndex}`,
+          contractTitle: base.title,
+          companyName: base.company,
+          companyLogoUrl: base.logo,
+          bgImageUrl: base.bg,
+          description: base.description,
 
-        startDate,
-        deadline,
-        progress: contractStatus === "completed" ? 100 : Math.floor(Math.random() * 80) + 10,
+          startDate,
+          deadline,
+          progress: contractStatus === "completed" ? 100 : Math.floor(Math.random() * 80) + 10,
 
-        client: contractClient._id,
-        contractor: contractContractor._id,
+          client: contractClient._id,
+          contractor: contractContractor._id,
 
-        clauses: [
-          "Confidentiality must be maintained",
-          "Quality standards are mandatory"
-        ],
+          clauses: [
+            "Confidentiality must be maintained",
+            "Quality standards are mandatory"
+          ],
 
-        keypoints: [
-          "Milestone based payment",
-          "Legally binding agreement",
-          "Requires compliance & quality"
-        ],
+          keypoints: [
+            "Milestone based payment",
+            "Legally binding agreement",
+            "Requires compliance & quality"
+          ],
 
-        summary,
-        contractContent: content,
-        // Store the embedding vector on the contract for later search/AI use
-        embeddings: embeddingVector,
-        contractStatus
-      });
+          summary,
+          contractContent: content,
+          // Store the embedding vector on the contract for later search/AI use
+          embeddings: embeddingVector,
+          contractStatus
+        });
 
-      contracts.push(contract);
+        contracts.push(contract);
+        contractIndex++;
+      }
     }
 
     console.log("📄 Contracts Created with Realistic Content");
