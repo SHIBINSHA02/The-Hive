@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useContract } from "../_context/ContractContext";
 import { FormField } from "@/components/contract/FormField";
@@ -9,28 +10,39 @@ export default function StepFivePage() {
   const searchParams = useSearchParams();
   const type = searchParams.get("type");
   
-  const { template, formData, selectedClauses, toggleClause } = useContract();
+  // ADDED: isInitialized for the Guard
+  const { template, formData, selectedClauses, toggleClause, isInitialized } = useContract();
+
+  // --- URL GUARD LOGIC ---
+  useEffect(() => {
+    if (!isInitialized || !template) return;
+
+    // Check if STEP 4 (index 3) is complete
+    const prevStepConfig = template.templateConfig.steps[3];
+    const prevMissing = prevStepConfig.fields.filter((key: string) => {
+      const isRequired = template.contractPlaceholders[key].required;
+      const value = formData[key];
+      return isRequired && (!value || value.trim() === "");
+    });
+
+    // If Step 4 is missing required fields, bounce them back to Step 4
+    if (prevMissing.length > 0) {
+      router.replace(`./step-4?type=${type}`);
+    }
+  }, [isInitialized, formData, template, router, type]);
+  // -----------------------
   
   if (!type || !template) return null;
 
-  // Access Step 5 configuration (Index 4)
   const stepConfig = template.templateConfig.steps[4];
   const optionalClauseIds = Object.keys(template.optionalClauses);
 
-  /**
-   * DYNAMIC FIELD DETECTOR
-   * Scans legal text for placeholders in optional clauses.
-   */
   const getFieldsForClause = (clauseId: string) => {
     const clauseText = template.optionalClauses[clauseId];
     const matches = Array.from(clauseText.matchAll(/\{\{([^}]+)\}\}/g));
     return matches.map(match => match[1]);
   };
 
-  /**
-   * GATE LOGIC
-   * We only allow the user to proceed if required fields are filled.
-   */
   const isStepComplete = stepConfig.fields.every((key) => {
     const isRequired = template.contractPlaceholders[key]?.required;
     const value = formData[key];
@@ -40,7 +52,6 @@ export default function StepFivePage() {
   return (
     <div className="flex flex-col min-h-full">
       <div className="flex-1 space-y-8 pb-10">
-        {/* 1. Header */}
         <div>
           <h1 className="text-xl font-semibold text-gray-900">
             Step 5: {stepConfig.title}
@@ -48,7 +59,6 @@ export default function StepFivePage() {
           <p className="text-gray-600 mt-1 text-sm">{stepConfig.description}</p>
         </div>
 
-        {/* 2. Standard Signatory Fields */}
         <div className="space-y-5">
           <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider">
             Signatory Details
@@ -62,7 +72,6 @@ export default function StepFivePage() {
 
         <hr className="border-gray-100" />
 
-        {/* 3. Optional Clauses */}
         <div className="space-y-4">
           <h2 className="text-xs font-bold text-gray-400 uppercase tracking-wider text-blue-600">
             Optional Clauses
@@ -88,7 +97,6 @@ export default function StepFivePage() {
                     </span>
                   </label>
 
-                  {/* Dynamic Fields injected here */}
                   {isSelected && extraFields.length > 0 && (
                     <div className="ml-8 p-4 border-l-2 border-blue-200 bg-gray-50 space-y-4">
                       {extraFields.map(fieldKey => (
@@ -103,9 +111,6 @@ export default function StepFivePage() {
         </div>
       </div>
 
-      {/* ======================================================
-          THE NAVIGATION FOOTER (THE MISSING BUTTON)
-          ====================================================== */}
       <div className="flex justify-between items-center pt-6 border-t border-gray-100 mt-auto">
         <button
           onClick={() => router.push(`./step-4?type=${type}`)}

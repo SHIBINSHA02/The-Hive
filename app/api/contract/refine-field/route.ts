@@ -1,49 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createGeminiClient } from "@/lib/contract-templates/service-agreement/geminiClient";
-import { aiFillPlaceholders } from "@/lib/contract-templates/service-agreement/aiFillPlaceholders";
-import { isValidContractType } from "@/lib/contract-templates/registry";
-import { PlaceholderKey } from "@/lib/contract-templates/service-agreement/placeholders";
+import { getContractLogic } from "@/lib/contract-templates/logic-registry";
+import { createGeminiClient } from "@/lib/contract-templates/service-agreement/geminiClient"; 
 
 export async function POST(req: NextRequest) {
   try {
-    // 1. Extract data
+    // 1. Extract data dynamically
     const body = await req.json();
     const { contractType, fieldKey, fieldValue } = body as {
       contractType: string;
-      fieldKey: PlaceholderKey;
+      fieldKey: string; 
       fieldValue: string;
     };
 
-    // Console Log for debugging
-    console.log(`[AI Refine] Processing request for field: ${fieldKey}`);
+    console.log(`[AI Refine] Processing request for field: ${fieldKey} on ${contractType}`);
 
-    // 2. Validation
     if (!contractType || !fieldKey || !fieldValue) {
       return NextResponse.json({ error: "Missing required parameters" }, { status: 400 });
     }
 
-    if (!isValidContractType(contractType)) {
+    // 2. Fetch the correct logic module for this contract type
+    let templateLogic;
+    try {
+      templateLogic = getContractLogic(contractType);
+    } catch (e) {
       return NextResponse.json({ error: "Invalid contract type" }, { status: 400 });
     }
 
-    // 3. Environment Variable Check (Crucial for avoiding 500 errors)
+    // 3. Environment Variable Check
     const apiKey = process.env.GEMINI_API_KEY;
     if (!apiKey) {
       console.error("❌ [AI Refine] Critical Error: GEMINI_API_KEY is missing from .env file.");
       return NextResponse.json({ error: "Server configuration error: Missing API Key" }, { status: 500 });
     }
 
-    // 4. Initialize Client
+    // Initialize Client (Assuming you keep the client logic centralized)
     const geminiClient = createGeminiClient(apiKey);
 
-    // 5. Execute Refinement Logic
-    // REMOVED 'model' property here because aiFillPlaceholders signature does not accept it.
-    const refinedResult = await aiFillPlaceholders(geminiClient, {
+    // 4. Execute the dynamic AI logic mapped from the registry
+    const refinedResult = await templateLogic.aiFill(geminiClient, {
       userValues: { [fieldKey]: fieldValue },
       keysToRefine: [fieldKey],
     });
 
-    // 6. Extract result safely
     const refinedValue = refinedResult[fieldKey];
 
     if (!refinedValue) {
@@ -53,7 +51,7 @@ export async function POST(req: NextRequest) {
       }, { status: 422 });
     }
 
-    // 7. Success
+    // 5. Success
     return NextResponse.json({ refinedValue });
 
   } catch (error: any) {

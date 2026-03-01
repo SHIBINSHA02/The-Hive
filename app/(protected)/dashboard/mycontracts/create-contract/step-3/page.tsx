@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useContract } from "../_context/ContractContext";
 import { FormField } from "@/components/contract/FormField";
@@ -9,17 +10,33 @@ export default function StepThreePage() {
   const searchParams = useSearchParams();
   const type = searchParams.get("type");
   
-  const { template, formData } = useContract();
-  
+  // ADDED: isInitialized to ensure we don't check before localStorage loads
+  const { template, formData, isInitialized } = useContract();
+
+  // --- URL GUARD LOGIC ---
+  useEffect(() => {
+    if (!isInitialized || !template) return;
+
+    // Check if STEP 2 (index 1) is complete
+    const prevStepConfig = template.templateConfig.steps[1];
+    const prevMissing = prevStepConfig.fields.filter((key: string) => {
+      const isRequired = template.contractPlaceholders[key].required;
+      const value = formData[key];
+      return isRequired && (!value || value.trim() === "");
+    });
+
+    // If Step 2 is missing required fields, bounce them back to Step 2
+    if (prevMissing.length > 0) {
+      router.replace(`./step-2?type=${type}`);
+    }
+  }, [isInitialized, formData, template, router, type]);
+  // -----------------------
+
   if (!type || !template) return null;
 
-  // 1. Get configuration for Step 2 (Index 1)
+  // Configuration for Step 3 (Index 2)
   const stepConfig = template.templateConfig.steps[2];
 
-  /**
-   * SEQUENTIAL GATE LOGIC
-   * We only disable 'Next'. 'Previous' always remains active.
-   */
   const missingRequiredFields = stepConfig.fields.filter((key) => {
     const isRequired = template.contractPlaceholders[key].required;
     const value = formData[key];
@@ -44,7 +61,6 @@ export default function StepThreePage() {
       </div>
 
       <div className="flex justify-between items-center pt-6 border-t border-gray-100">
-        {/* PREVIOUS: Always enabled */}
         <button
           onClick={() => router.push(`./step-2?type=${type}`)}
           className="px-6 py-2 rounded-md border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
@@ -52,7 +68,6 @@ export default function StepThreePage() {
           Previous
         </button>
 
-        {/* NEXT: Gated by logic */}
         <div className="flex flex-col items-end">
           <button
             onClick={() => router.push(`./step-4?type=${type}`)}
