@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   try {
     // 2. Authenticate (✅ FIX 2: Added 'await')
     const { userId } = await auth();
-    
+
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -26,13 +26,13 @@ export async function POST(req: NextRequest) {
 
     // 5. Generate the "Clean" Contract Content
     const templateLogic = getContractLogic(contractType);
-    
+
     // Validate first
     const validation = templateLogic.validate(formData);
     if (!validation.isValid) {
-      return NextResponse.json({ 
-        error: "Missing required fields", 
-        missing: validation.missingRequired 
+      return NextResponse.json({
+        error: "Missing required fields",
+        missing: validation.missingRequired
       }, { status: 400 });
     }
 
@@ -46,49 +46,49 @@ export async function POST(req: NextRequest) {
      * 6. Resolve Relationships
      * For now, we generate IDs. Later, replace this with a real ClientProfile lookup.
      */
-    const clientId = new mongoose.Types.ObjectId(); 
-    const contractorId = new mongoose.Types.ObjectId(); 
+    const clientId = new mongoose.Types.ObjectId();
+    const contractorId = new mongoose.Types.ObjectId();
 
     // 7. Create the Contract Document
     // We map your Form Data to the exact Schema fields you shared
     const newContract = await Contract.create({
       contractId: uuidv4(), // Unique readable ID
-      
+
       // Basic Info
       contractTitle: formData.AGREEMENT_TITLE,
-      description: formData.SERVICE_DESCRIPTION?.slice(0, 150) + "...", // Short preview
+      description: formData.SERVICE_DESCRIPTION ? formData.SERVICE_DESCRIPTION.slice(0, 150) + "..." : "",
       summary: `Agreement between ${formData.PARTY_A_NAME} and ${formData.PARTY_B_NAME}`,
-      
+
       startDate: new Date(formData.START_DATE),
       deadline: new Date(formData.END_DATE),
-      
+
       companyName: formData.PARTY_B_NAME, // "Other Company" name
-      companyLogoUrl: "", 
+      companyLogoUrl: "",
       bgImageUrl: "/images/contract-bg-default.jpg",
 
       // Relationships
       client: clientId,
       contractor: contractorId,
-      
+
       // The Core Content
-      contractContent: finalContent, 
+      contractContent: finalContent,
       contractType: contractType,
       contractStatus: "pending",
       progress: 0,
-      
+
       // Metadata
-      clauses: Object.values(selectedClauses || {}),
+      clauses: Object.values(selectedClauses || {}) as string[],
       keypoints: [
         `Service Location: ${formData.SERVICE_LOCATION}`,
         `Payment: ${formData.PAYMENT_AMOUNT} ${formData.PAYMENT_CURRENCY}`,
         `Notice Method: ${formData.NOTICE_METHOD}`
-      ]
+      ] as string[]
     });
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       contractId: newContract._id,
-      message: "Contract saved successfully" 
+      message: "Contract saved successfully"
     });
 
   } catch (error: any) {
