@@ -37,24 +37,34 @@ const ContractCard = ({
 
   {/* Background Image */}
   <div className="relative h-28 sm:h-32 overflow-hidden">
-    <img
-      src={backgroundImage}
-      alt={title}
-      className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-    />
+    {/* Stricter check: Must exist AND must have length */}
+    {backgroundImage && backgroundImage.trim() !== "" ? (
+      <img
+        src={backgroundImage}
+        alt={title}
+        className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+      />
+    ) : (
+      <div className="h-full w-full bg-slate-200" /> // Fallback background color
+    )}
     <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
   </div>
 
   {/* Company Logo */}
       <div className="absolute top-25 left-4 z-40 bg-white">
-  <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-card shadow-lg ring-4 ring-card">
-    <img
-      src={companyLogo}
-      alt={companyName}
-      className="h-10 w-10 rounded-lg object-contain"
-    />
+    <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-card shadow-lg ring-4 ring-card">
+      {/* Stricter check: Must exist AND must have length */}
+      {companyLogo && companyLogo.trim() !== "" ? (
+        <img
+          src={companyLogo}
+          alt={companyName || "Company"}
+          className="h-10 w-10 rounded-lg object-contain"
+        />
+      ) : (
+        <span className="text-gray-400 text-xs">No Logo</span>
+      )}
+    </div>
   </div>
-</div>
 
   {/* Content */}
   <div className="px-4 pb-4 pt-10 sm:pt-12">

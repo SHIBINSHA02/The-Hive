@@ -18,7 +18,6 @@ export async function GET() {
 
     const user = await User.findOne({ clerkId });
     if (!user) {
-      // User doesn't exist - return empty array instead of error
       return NextResponse.json([], { status: 200 });
     }
 
@@ -27,15 +26,16 @@ export async function GET() {
     const clientProfileId = clientProfile?._id?.toString();
     const contractorProfileId = contractorProfile?._id?.toString();
 
+    // ---------- FIX IS HERE ----------
     const conditions: Record<string, unknown>[] = [];
 
+    // 1. Fetch contracts you own (drafts)
+    conditions.push({ ownerId: clerkId }); 
+
+    // 2. Fetch contracts tied to your profiles (if they exist)
     if (clientProfile) conditions.push({ client: clientProfile._id });
     if (contractorProfile) conditions.push({ contractor: contractorProfile._id });
-
-    // If user has no profiles, return empty array (they need to run seed script)
-    if (!conditions.length) {
-      return NextResponse.json([], { status: 200 });
-    }
+    // ----------------------------------
 
     const contracts = await Contract.find({ $or: conditions })
       .populate("client")
@@ -43,7 +43,6 @@ export async function GET() {
       .sort({ createdAt: -1 })
       .lean();
 
-    // Transform contracts to match the frontend Contract interface
     const formattedContracts = contracts.map((contract: any) => {
       const clientId =
         contract?.client?._id?.toString?.() ??
@@ -54,12 +53,16 @@ export async function GET() {
         contract?.contractor?.toString?.() ??
         (contract?.contractor ? String(contract.contractor) : "");
 
-      const viewerRole: "client" | "contractor" | undefined =
-        clientProfileId && clientId && clientId === clientProfileId
-          ? "client"
-          : contractorProfileId && contractorId && contractorId === contractorProfileId
-            ? "contractor"
-            : undefined;
+      // If you are the owner, you are viewing your own draft.
+      // Otherwise, we check if you are the client or contractor.
+      const viewerRole =
+        contract.ownerId === clerkId
+          ? "owner"
+          : clientProfileId && clientId && clientId === clientProfileId
+            ? "client"
+            : contractorProfileId && contractorId && contractorId === contractorProfileId
+              ? "contractor"
+              : undefined;
 
       const clientName: string | undefined = contract?.client?.name;
       const contractorName: string | undefined = contract?.contractor?.name;
@@ -92,7 +95,7 @@ export async function GET() {
         contractContent: contract.contractContent || "",
         clientName,
         contractorName,
-        viewerRole,
+        viewerRole, // Will now output "owner", "client", or "contractor"
         counterpartyName,
       };
     });
@@ -101,7 +104,6 @@ export async function GET() {
   } catch (err: unknown) {
     console.error("GET Contracts Error", err);
     const errorMessage = err instanceof Error ? err.message : "Unknown error";
-    console.error("Error details:", errorMessage);
     return NextResponse.json(
       { 
         error: "Failed to fetch contracts",
