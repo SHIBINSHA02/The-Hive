@@ -16,32 +16,70 @@ export async function getContractAndRole(contractId: string, clerkId: string) {
   const clientProfile = await ClientProfile.findOne({ user: user._id });
   const contractorProfile = await ContractProfile.findOne({ user: user._id });
 
-  const conditions: Record<string, unknown>[] = [];
+  // 1. Add ownerId to the search conditions
+  const conditions: Record<string, unknown>[] = [{ ownerId: clerkId }];
+  
   if (clientProfile) conditions.push({ client: clientProfile._id });
   if (contractorProfile) conditions.push({ contractor: contractorProfile._id });
-  if (!conditions.length) return null;
 
   const filter = { _id: contractId, $or: conditions };
-  type ContractLean = { client: { _id: { toString: () => string } }; contractor: { _id: { toString: () => string } } };
+
+  // 2. Update type to handle nulls from dummy IDs and the new ownerId
+  type ContractLean = {
+    ownerId?: string;
+    client?: { _id: { toString: () => string } } | null;
+    contractor?: { _id: { toString: () => string } } | null;
+  };
+
   const contract = await (
-    Contract as { findOne: (q: object) => { populate: (p: string) => { populate: (p: string) => { lean: () => Promise<ContractLean | null> } } } }
+    Contract as unknown as {
+      findOne: (q: object) => {
+        populate: (p: string) => {
+          populate: (p: string) => {
+            lean: () => Promise<ContractLean | null>;
+          };
+        };
+      };
+    }
   ).findOne(filter).populate("client").populate("contractor").lean();
 
   if (!contract) return null;
 
+  // 3. Safely check roles using optional chaining (?.)
   const isClient =
     clientProfile &&
+    contract.client &&
     contract.client._id?.toString() === clientProfile._id.toString();
-  const role = isClient ? ("client" as const) : ("contractor" as const);
-  const senderProfileId = isClient
-    ? contract.client._id.toString()
-    : contract.contractor._id.toString();
+
+  const isContractor =
+    contractorProfile &&
+    contract.contractor &&
+    contract.contractor._id?.toString() === contractorProfile._id.toString();
+
+  const isOwner = contract.ownerId === clerkId;
+
+  // 4. Assign the correct role and sender ID
+  let role: "client" | "contractor" | "owner";
+  let senderProfileId = "";
+
+  if (isClient) {
+    role = "client";
+    senderProfileId = contract.client?._id.toString() || "";
+  } else if (isContractor) {
+    role = "contractor";
+    senderProfileId = contract.contractor?._id.toString() || "";
+  } else if (isOwner) {
+    role = "owner";
+    senderProfileId = clerkId; // Fallback to clerkId for drafts
+  } else {
+    return null;
+  }
 
   return {
     contract,
     role,
     senderProfileId,
-    clientProfileId: contract.client._id.toString(),
-    contractorProfileId: contract.contractor._id.toString(),
+    clientProfileId: contract.client?._id?.toString() || "",
+    contractorProfileId: contract.contractor?._id?.toString() || "",
   };
 }

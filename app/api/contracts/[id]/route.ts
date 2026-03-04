@@ -1,4 +1,3 @@
-// app/api/contracts/[id]/route.ts
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 
@@ -11,7 +10,7 @@ export async function GET(
   req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id } = await context.params; // ⬅️ FIX
+  const { id } = await context.params;
 
   const { userId: clerkId } = await auth();
   if (!clerkId)
@@ -21,6 +20,7 @@ export async function GET(
   if (!result)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  // result now includes 'owner' in the role union
   const { contract, role } = result;
 
   const client = (contract as any).client as { name?: string } | undefined;
@@ -29,12 +29,13 @@ export async function GET(
   const clientName: string | undefined = client?.name;
   const contractorName: string | undefined = contractor?.name;
 
+  // Updated logic for counterpartyName to handle 'owner'
   const counterpartyName =
     role === "client"
       ? contractorName
       : role === "contractor"
-        ? clientName
-        : undefined;
+      ? clientName
+      : contractorName || clientName || "Negotiation Pending"; // Fallback for owner
 
   const formattedContract = {
     _id: (contract as any)._id?.toString?.() ?? (contract as any)._id,
@@ -67,7 +68,6 @@ export async function GET(
   return NextResponse.json({ contract: formattedContract, finance, role });
 }
 
-
 export async function PUT(
   req: Request,
   context: { params: Promise<{ id: string }> }
@@ -78,17 +78,21 @@ export async function PUT(
   if (!clerkId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+  // Safety check: Ensures the user has permission (owner, client, or contractor)
   const exists = await getContractAndRole(id, clerkId);
   if (!exists)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await connectDB();
   const body = await req.json();
+  
+  // Prevent changing the ownerId via API for security
+  delete body.ownerId;
+
   const updated = await Contract.findByIdAndUpdate(id, body, { new: true });
 
   return NextResponse.json(updated);
 }
-
 
 export async function PATCH(
   req: Request,
@@ -106,6 +110,9 @@ export async function PATCH(
 
   await connectDB();
   const body = await req.json();
+  
+  // Security: Ensure ownerId can't be patched
+  delete body.ownerId;
 
   const updated = await Contract.findByIdAndUpdate(
     id,
