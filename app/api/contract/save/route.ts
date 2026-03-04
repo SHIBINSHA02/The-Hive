@@ -52,6 +52,7 @@ export async function POST(req: NextRequest) {
     // 7. Create the Contract Document
     // We map your Form Data to the exact Schema fields you shared
     const newContract = await Contract.create({
+      ownerId: userId,
       contractId: uuidv4(), // Unique readable ID
 
       // Basic Info
