@@ -14,6 +14,15 @@ if (!GEMINI_API_KEY) {
   embeddingsEnabled = true;
 }
 
+// --- NEW: Interface for Version History Objects ---
+// This defines the shape of a single edit snapshot.
+export interface IVersionSnapshot {
+  updatedBy: string;
+  updatedAt: Date;
+  contentSnapshot: string;
+  action: "proposed_edit" | "reverted" | "accepted";
+}
+
 export interface IContract extends Document {
   ownerId: string;
   contractId: string;
@@ -33,10 +42,20 @@ export interface IContract extends Document {
   keypoints: string[];
   contractType?: string;
   contractContent?: string;
-  contractStatus: "active" | "pending" | "completed";
-  embeddings: number[]; // Store the 768-dim vector here
+  
+  // --- UPDATED: Expanded Status Enum ---
+  // Replaced the simple 3 statuses with a strict 6-step state machine
+  contractStatus: "draft" | "sent_for_review" | "in_negotiation" | "locked" | "active" | "completed";
+  
+  embeddings: number[];
   createdAt: Date;
   updatedAt: Date;
+
+  // --- NEW: Phase 2 Negotiation Fields ---
+  partyB_Email?: string;         // The email of the person invited to negotiate
+  partyB_ClerkId?: string;       // The authenticated Clerk ID of Party B (once they log in)
+  versionHistory: IVersionSnapshot[]; // Array holding previous versions of the contract text
+  currentTurn: "owner" | "partyB";    // Tracks whose turn it is to edit to prevent collisions
 }
 
 const ContractSchema = new Schema<IContract>(
@@ -59,15 +78,44 @@ const ContractSchema = new Schema<IContract>(
     keypoints: { type: [String], default: [] },
     contractType: { type: String },
     contractContent: { type: String },
+    
+    // --- UPDATED: State Machine Implementation ---
+    // The default is now "draft". It moves through these steps sequentially.
     contractStatus: {
       type: String,
-      enum: ["active", "pending", "completed"],
-      default: "pending",
+      enum: ["draft", "sent_for_review", "in_negotiation", "locked", "active", "completed"],
+      default: "draft",
     },
+    
     embeddings: {
       type: [Number],
       default: [],
     },
+
+    // --- NEW: Negotiation Data Storage ---
+    
+    // Captures the target email before Party B even creates an account.
+    partyB_Email: { type: String, trim: true },
+    
+    // Acts as the security key. Party B can only access the document if their Clerk ID matches this.
+    partyB_ClerkId: { type: String },
+    
+    // The ledger of changes. Prevents Party B from deleting data without Party A noticing.
+    versionHistory: [
+      {
+        updatedBy: { type: String }, 
+        updatedAt: { type: Date, default: Date.now }, 
+        contentSnapshot: { type: String }, 
+        action: { type: String, enum: ["proposed_edit", "reverted", "accepted"] } 
+      }
+    ],
+
+    // The traffic light system. Only the person whose turn it is can see the "Edit" buttons.
+    currentTurn: {
+      type: String,
+      enum: ["owner", "partyB"],
+      default: "owner"
+    }
   },
   { timestamps: true }
 );
@@ -87,7 +135,6 @@ const getEmbedText = (doc: any) => {
 
 /**
  * PRE-SAVE HOOK (For .save() and .create())
- * In Mongoose 8, async hooks do not take a 'next' parameter.
  */
 ContractSchema.pre("save", async function () {
   const needsUpdate =
@@ -116,7 +163,6 @@ ContractSchema.pre("save", async function () {
 
 /**
  * PRE-UPDATE HOOK (For findOneAndUpdate)
- * Handles updates where the document is not in memory.
  */
 ContractSchema.pre("findOneAndUpdate", async function () {
   const update = this.getUpdate() as any;
@@ -127,8 +173,6 @@ ContractSchema.pre("findOneAndUpdate", async function () {
   if (textChanged && embeddingsEnabled && genAI) {
     try {
       const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
-      // Note: This only works well if the update object contains enough info
-      // for a useful embedding.
       const result = await model.embedContent(getEmbedText(update));
       this.setUpdate({ ...update, embeddings: result.embedding.values });
     } catch (err) {
