@@ -4,92 +4,76 @@ import React from 'react';
 import { FileText, AlertCircle, MessageSquare, Brain, FileCheck, Shield } from 'lucide-react';
 
 export default function Services() {
-  // Define custom CSS for the blue hover effect using the provided hex color
-  // This ensures the shadow and "live" border animation use the exact blue color.
-  const blueHex = '#2c6df5';
+  const services = [
+    {
+      icon: <FileText className="h-8 w-8 text-blue-500 group-hover:text-blue-600 transition-colors" />,
+      title: 'Contract Generation',
+      description: 'Generate professional agreements using deep learning, tailored to your specific needs instantly.',
+    },
+    {
+      icon: <Brain className="h-8 w-8 text-indigo-500 group-hover:text-indigo-600 transition-colors" />,
+      title: 'Agreement Analysis',
+      description: 'Analyze terms and policies with AI-driven insights to ensure compliance and clarity.',
+    },
+    {
+      icon: <MessageSquare className="h-8 w-8 text-cyan-500 group-hover:text-cyan-600 transition-colors" />,
+      title: 'Conversational AI',
+      description: 'Engage in context-aware discussions about agreements using natural language and vector embeddings.',
+    },
+    {
+      icon: <AlertCircle className="h-8 w-8 text-amber-500 group-hover:text-amber-600 transition-colors" />,
+      title: 'Deadline Alerts',
+      description: 'Stay on track with automated email and message notifications for critical contract deadlines.',
+    },
+    {
+      icon: <FileCheck className="h-8 w-8 text-emerald-500 group-hover:text-emerald-600 transition-colors" />,
+      title: 'Contract Management',
+      description: 'Track status, versions, and modifications efficiently in one intelligent system.',
+    },
+    {
+      icon: <Shield className="h-8 w-8 text-purple-500 group-hover:text-purple-600 transition-colors" />,
+      title: 'Compliance Monitoring',
+      description: 'Automated checks ensure all agreements meet the latest regulatory requirements.',
+    },
+  ];
 
   return (
-    <>
-      <style>{`
-        .feature-card-hover {
-          transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-          border: 1px solid #e5e7eb; /* Default light border */
-        }
-        
-        .feature-card-hover:hover {
-          /* Custom blue shadow (0.25 opacity) + blue border effect on hover */
-          box-shadow: 0 15px 30px -10px ${blueHex}40, 0 0 0 4px ${blueHex}aa;
-          transform: translateY(-5px);
-          border-color: ${blueHex}; /* Optional: Make the primary border blue too */
-        }
-      `}</style>
+    <section id="services" className="py-24 bg-white relative">
+      <div className="absolute top-0 inset-x-0 h-px bg-slate-200" />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="text-center mb-16 max-w-3xl mx-auto">
+          <span className="text-blue-600 font-medium tracking-wider uppercase text-sm mb-4 block">
+            End-to-End Solutions
+          </span>
+          <h2 className="text-4xl md:text-5xl font-semibold text-slate-900 mb-6">
+            Comprehensive control over your agreements
+          </h2>
+          <p className="text-lg text-slate-600">
+            From creation to completion, our AI-powered suite provides everything needed for flawless contract lifecycle management.
+          </p>
+        </div>
 
-      {/* Changed background to solid white */}
-      <section id="services" className="bg-gradient-to-r from-[#EFF6FF] to-[#BFDBFF]">
-        <div className='py-20 bg-white lg:rounded-t-4xl rounded-t-2xl'>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 rounded-t-4xl">
-          <div className="text-center mb-16">
-            {/* Reverted text color to dark for better contrast on white background */}
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">Our Services</h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto  lg:p-0 px-3">
-              Comprehensive AI-powered solutions for all your contract management needs
-            </p>
-          </div>
-
-          {/* Feature Highlights */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              {
-                // Icons remain blue-600
-                icon: <FileText className="h-10 w-10 text-blue-600" />,
-                title: 'Contract Generation',
-                description: 'Generate professional contractor agreements in PDF format using our deep learning-powered platform, tailored to your specific needs with AI precision.',
-              },
-              {
-                icon: <Brain className="h-10 w-10 text-blue-600" />,
-                title: 'Agreement Analysis',
-                description: 'Analyze terms, conditions, and policies with AI-driven insights using advanced deep learning algorithms to ensure clarity and compliance.',
-              },
-              {
-                icon: <MessageSquare className="h-10 w-10 text-blue-600" />,
-                title: 'Conversational AI',
-                description: 'Engage in context-aware discussions about agreements with vector embeddings. Ask questions and get instant answers about your contracts.',
-              },
-              {
-                icon: <AlertCircle className="h-10 w-10 text-blue-600" />,
-                title: 'Deadline Alerts',
-                description: 'Stay on track with automated email and message notifications for contract deadlines. Never miss an important date again.',
-              },
-              {
-                icon: <FileCheck className="h-10 w-10 text-blue-600" />,
-                title: 'Contract Management',
-                description: 'Manage multiple contracts efficiently with our intelligent system. Track status, versions, and modifications in one centralized platform.',
-              },
-              {
-                icon: <Shield className="h-10 w-10 text-blue-600" />,
-                title: 'Compliance Monitoring',
-                description: 'Ensure all agreements meet regulatory requirements with automated compliance checks and real-time policy updates.',
-              },
-            ].map((feature, index) => (
-              <div
-                key={index}
-                // Applied the custom hover class and removed default shadow classes
-                className="text-center p-8 rounded-xl bg-white shadow-md feature-card-hover"
-              >
-                <div className="mb-6 flex justify-center">
-                  {/* Icon container remains light blue */}
-                  <div className="p-4 bg-blue-50 rounded-full">
-                    {feature.icon}
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold text-gray-900 mb-4">{feature.title}</h3>
-                <p className="text-gray-600 leading-relaxed">{feature.description}</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+          {services.map((feature, index) => (
+            <div
+              key={index}
+              className="group relative bg-slate-50 rounded-3xl p-8 border border-slate-100 hover:border-slate-200 transition-all duration-300 hover:shadow-xl hover:shadow-slate-200/50 hover:-translate-y-1 overflow-hidden"
+            >
+              {/* Hover background */}
+              <div className="absolute inset-0 bg-transparent group-hover:bg-blue-50/50 transition-colors duration-500 -z-10" />
+              
+              <div className="mb-6 inline-flex p-4 rounded-2xl bg-white shadow-sm border border-slate-200/60 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-300">
+                {feature.icon}
               </div>
-            ))}
-          </div>
+              <h3 className="text-xl font-medium text-slate-900 mb-3">{feature.title}</h3>
+              <p className="text-slate-600 leading-relaxed text-sm sm:text-base">
+                {feature.description}
+              </p>
+            </div>
+          ))}
         </div>
-        </div>
-      </section>
-    </>
+      </div>
+    </section>
   );
 }

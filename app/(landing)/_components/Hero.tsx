@@ -1,8 +1,9 @@
 // app/(landing)/_components/Hero.tsx
 "use client"
 import React from 'react';
-import { FileText, Brain } from 'lucide-react';
+import { FileText, Brain, Sparkles, ArrowRight } from 'lucide-react';
 import { SignedIn, SignedOut, SignInButton } from "@clerk/nextjs";
+import Link from 'next/link';
 
 export default function Hero() {
   const [isVisible, setIsVisible] = React.useState(false);
@@ -12,180 +13,108 @@ export default function Hero() {
   }, []);
 
   return (
-    <section className="bg-gradient-to-br from-blue-50 via-blue-50 to-blue-300 min-h-screen flex items-center overflow-hidden pt-16 sm:pt-0  lg:rounded-4xl rounded-2xl lg:m-4 sm:m-10 pb-7  ">
-      <div className="w-full px-4 sm:px-6 lg:px-12 xl:px-20">
-        <div className="max-w-[1600px] mx-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 xl:gap-20 items-center">
-            {/* Visual Element */}
-            <div
-              className={`relative flex justify-center lg:justify-start transition-all duration-1000 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 -translate-x-20'
-                }`}
-            >
-              <div className="relative bg-white rounded-2xl shadow-2xl p-6 sm:p-10 lg:p-12 w-full max-w-xs sm:max-w-lg transform hover:scale-105 transition-transform duration-300">
-                <div
-                  className="absolute top-0 left-0 w-full h-3"
-                  style={{ backgroundColor: '#2c6df5', borderTopLeftRadius: '1rem', borderTopRightRadius: '1rem' }}
-                ></div>
-                <div className="flex justify-center mb-6 mt-2 sm:mt-0">
-                  <FileText
-                    className="h-12 w-12 sm:h-16 sm:w-16 lg:h-20 lg:w-20 animate-pulse"
-                    style={{ color: '#2c6df5' }}
-                  />
-                </div>
-                <div className="text-center">
-                  <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
-                    AI-Powered Contract
-                  </h3>
-                  <p className="text-sm sm:text-base lg:text-lg text-gray-600 mt-4">
-                    Dynamic, legally sound agreements generated instantly.
-                  </p>
-                </div>
-                <div className="mt-8 space-y-3">
-                  <div className="flex items-center justify-center space-x-3">
-                    <div
-                      className="rounded-full w-3 h-3 animate-bounce"
-                      style={{ backgroundColor: '#2c6df5' }}
-                    ></div>
-                    <span className="text-sm lg:text-base text-gray-500">Smart Clause Suggestions</span>
-                  </div>
-                  <div className="flex items-center justify-center space-x-3">
-                    <div
-                      className="rounded-full w-3 h-3 animate-bounce delay-100"
-                      style={{ backgroundColor: '#2c6df5' }}
-                    ></div>
-                    <span className="text-sm lg:text-base text-gray-500">Real-Time Analysis</span>
-                  </div>
-                </div>
-                <div
-                  className="absolute -bottom-4 -right-4 sm:-bottom-6 sm:-right-6 rounded-full p-3 sm:p-4 shadow-lg animate-spin-slow"
-                  style={{ backgroundColor: '#cce0ff' }}
-                >
-                  <Brain className="h-6 w-6 sm:h-8 sm:w-8" style={{ color: '#2c6df5' }} />
-                </div>
-              </div>
+    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden pt-20 pb-16">
+      {/* Background Glows */}
+      <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full blur-[100px] -z-10 mix-blend-multiply animate-pulse" />
+      <div className="absolute bottom-1/4 right-1/4 w-120 h-120 bg-indigo-400/20 rounded-full blur-[120px] -z-10 mix-blend-multiply delay-1000 animate-pulse" />
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-160 h-160 bg-cyan-300/20 rounded-full blur-[120px] -z-10 mix-blend-multiply delay-500 animate-[pulse_4s_cubic-bezier(0.4,0,0.6,1)_infinite]" />
+
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl relative z-10">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-8 items-center">
+          
+          {/* Text Content */}
+          <div className={`flex flex-col text-center lg:text-left transition-all duration-1000 delay-300 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-12'}`}>
+            <div className="inline-flex items-center justify-center lg:justify-start space-x-2 mb-6">
+              <span className="px-4 py-1.5 rounded-full bg-blue-100/80 text-blue-800 text-sm font-medium tracking-wide border border-blue-200 backdrop-blur-md flex items-center shadow-sm">
+                <Sparkles className="w-4 h-4 mr-2 text-blue-600" />
+                Next-Gen Contract Intelligence
+              </span>
             </div>
+            
+            <h1 className="text-5xl sm:text-6xl lg:text-7xl font-semibold text-slate-900 leading-[1.1] tracking-tight mb-6">
+              Empower Your Agreements with <br className="hidden sm:block" />
+              <span className="text-blue-600">
+                The Hive
+              </span>
+            </h1>
+            
+            <p className="text-lg sm:text-xl text-slate-600 mb-10 max-w-2xl mx-auto lg:mx-0 leading-relaxed font-light">
+              Streamline contractor agreements with AI-driven contract generation, analysis, and management powered by advanced deep learning models.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 sm:gap-6">
+              <SignedOut>
+                <SignInButton mode="modal">
+                  <button className="group relative px-8 py-4 bg-slate-900 text-white rounded-2xl font-medium text-lg overflow-hidden shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 w-full sm:w-auto">
+                    <div className="absolute inset-0 bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <span className="relative flex items-center justify-center">
+                      Get Started <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </span>
+                  </button>
+                </SignInButton>
+              </SignedOut>
 
-            {/* Text Content */}
-            <div
-              className={`text-center lg:text-left transition-all duration-1000 delay-300 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-20'
-                }`}
-            >
-              <h1
-                className={`text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-bold text-gray-900 leading-tight transition-all duration-700 delay-500 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-                  }`}
-              >
-                Empower Your Agreements with <br /> <span style={{ color: '#2c6df5' }}>The Hive</span>
-              </h1>
-              <p
-                className={`mt-6 lg:mt-8 text-lg sm:text-xl lg:text-2xl text-gray-600 leading-relaxed transition-all duration-700 delay-700 ${isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-                  }`}
-              >
-                Streamline contractor agreements with AI-driven contract generation, analysis, and management powered by deep learning.
-              </p>
-              {/* CTA Buttons */}
-                <div
-                  className={`mt-8 lg:mt-12 flex flex-col sm:flex-row gap-4 sm:gap-5 justify-center lg:justify-start transition-all duration-700 delay-1000 ${
-                    isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10'
-                  }`}
-                >
+              <SignedIn>
+                <Link href="/dashboard" className="group relative px-8 py-4 bg-slate-900 text-white rounded-2xl font-medium text-lg overflow-hidden shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 w-full sm:w-auto flex justify-center items-center">
+                  <div className="absolute inset-0 bg-blue-600 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  <span className="relative flex items-center justify-center">
+                    Dashboard <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                </Link>
+              </SignedIn>
 
-                  {/* When user is NOT logged in */}
-                  <SignedOut>
-                    <SignInButton mode="modal">
-                      <button
-                        className="text-white px-6 sm:px-10 py-4 text-base sm:text-lg rounded-xl font-semibold hover:scale-105 flex items-center justify-center space-x-3 shadow-lg"
-                        style={{ backgroundColor: '#1154B9FF' }}
-                      >
-                        <span>Get Started</span>
-                        <svg
-                          className="h-6 w-6"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                          strokeWidth="2"
-                        >
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                        </svg>
-                      </button>
-                    </SignInButton>
-                  </SignedOut>
-
-                  {/* When user IS logged in */}
-                  <SignedIn>
-                    <a
-                      href="/dashboard"
-                      className="text-white px-6 sm:px-10 py-4 text-base sm:text-lg rounded-xl font-semibold hover:scale-105 flex items-center justify-center space-x-3 shadow-lg"
-                      style={{ backgroundColor: '#1154B9FF' }}
-                    >
-                      <span>Dashboard</span>
-                      <svg
-                        className="h-6 w-6"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                        strokeWidth="2"
-                      >
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                      </svg>
-                    </a>
-                  </SignedIn>
-
-                  {/* Request Demo button stays same */}
-                  <a
-                    href="#demo"
-                    className="border-2 text-base sm:text-lg rounded-xl font-semibold px-6 sm:px-10 py-4 shadow-md hover:scale-105"
-                    style={{ borderColor: '#1154B9FF', color: '#1154B9FF', backgroundColor: '#ebf2ff' }}
-                  >
-                    Request a Demo
-                  </a>
-                </div>
-
+              <a href="#demo" className="px-8 py-4 bg-white text-slate-700 border border-slate-200 rounded-2xl font-medium text-lg hover:bg-slate-50 hover:border-slate-300 hover:text-slate-900 shadow-sm hover:shadow transition-all duration-300 w-full sm:w-auto text-center">
+                Watch Demo
+              </a>
+            </div>
+            
+            {/* Social Proof / Stats */}
+            <div className={`mt-12 pt-8 border-t border-slate-200 flex items-center justify-center lg:justify-start gap-8 transition-all duration-1000 delay-700 ${isVisible ? 'opacity-100' : 'opacity-0'}`}>
+               <div className="flex flex-col">
+                 <span className="text-3xl font-semibold text-slate-900">99%</span>
+                 <span className="text-sm font-medium text-slate-500 uppercase tracking-wider mt-1">Accuracy</span>
+               </div>
+               <div className="w-px h-12 bg-slate-200" />
+               <div className="flex flex-col">
+                 <span className="text-3xl font-semibold text-slate-900">10x</span>
+                 <span className="text-sm font-medium text-slate-500 uppercase tracking-wider mt-1">Faster</span>
+               </div>
             </div>
           </div>
+
+          {/* Visual Element */}
+          <div className={`relative flex justify-center items-center transition-all duration-1000 delay-500 ${isVisible ? 'opacity-100 translate-x-0' : 'opacity-0 translate-x-12'}`}>
+            <div className="relative w-full max-w-md aspect-square rounded-[2.5rem] bg-white/40 backdrop-blur-2xl border border-white/60 shadow-[0_8px_32px_0_rgba(31,38,135,0.07)] p-8 flex flex-col items-center justify-center z-10 overflow-hidden group hover:shadow-[0_8px_32px_0_rgba(31,38,135,0.15)] transition-all duration-500">
+               <div className="absolute inset-0 bg-white/40 -z-10" />
+               
+               {/* Decorative background element inside card */}
+               <div className="absolute -top-24 -right-24 w-56 h-56 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-all duration-500" />
+               <div className="absolute -bottom-24 -left-24 w-56 h-56 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-all duration-500" />
+
+               <div className="w-24 h-24 mb-6 rounded-3xl bg-blue-600 flex items-center justify-center shadow-xl shadow-blue-500/30 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
+                 <Brain className="w-12 h-12 text-white" />
+               </div>
+               
+               <h3 className="text-3xl font-medium text-slate-900 mb-3 tracking-tight">Contract AI</h3>
+               <p className="text-center text-slate-500 px-4">Analyzing clauses and generating compliance reports...</p>
+               
+               {/* Progress bar mock */}
+               <div className="w-full h-2.5 bg-slate-200/80 rounded-full mt-8 overflow-hidden shadow-inner">
+                 <div className="h-full bg-blue-500 rounded-full w-2/3 animate-[pulse_2s_ease-in-out_infinite]" />
+               </div>
+
+               {/* Floating elements */}
+               <div className="absolute top-12 left-6 p-4 bg-white/90 backdrop-blur-md rounded-2xl shadow-xl border border-white/60 animate-[bounce_3s_infinite]">
+                 <FileText className="w-6 h-6 text-blue-600" />
+               </div>
+            </div>
+
+            {/* Behind card glow */}
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-blue-500/15 blur-[80px] -z-10 rounded-full animate-pulse" />
+          </div>
+
         </div>
       </div>
-
-      {/* Custom CSS for Animations */}
-      <style jsx>{`
-        .animate-spin-slow {
-          animation: spin 8s linear infinite;
-        }
-        .animate-bounce {
-          animation: bounce 1s infinite;
-        }
-        .delay-100 {
-          animation-delay: 0.1s;
-        }
-        .delay-300 {
-          transition-delay: 300ms;
-        }
-        .delay-500 {
-          transition-delay: 500ms;
-        }
-        .delay-700 {
-          transition-delay: 700ms;
-        }
-        .delay-1000 {
-          transition-delay: 1000ms;
-        }
-        @keyframes spin {
-          from {
-            transform: rotate(0deg);
-          }
-          to {
-            transform: rotate(360deg);
-          }
-        }
-        @keyframes bounce {
-          0%,
-          100% {
-            transform: translateY(0);
-          }
-          50% {
-            transform: translateY(-5px);
-          }
-        }
-      `}</style>
     </section>
   );
 }
