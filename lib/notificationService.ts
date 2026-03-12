@@ -86,8 +86,8 @@ export async function generateUserNotifications(userId: mongoose.Types.ObjectId)
       ? ((otherParty as any)?.name || contract.companyName || 'Unknown')
       : contract.companyName || 'Unknown';
 
-    // 1. Contract Agreement Request (pending contracts)
-    if (contract.contractStatus === 'pending') {
+    // 1. Contract Agreement Request (pending contracts / negotiations)
+    if (contract.contractStatus === 'sent_for_review' || contract.contractStatus === 'in_negotiation') {
       const daysUntilDeadline = Math.ceil((contractDeadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       const priority: 'low' | 'medium' | 'high' | 'urgent' =
         daysUntilDeadline < 0 ? 'urgent' :

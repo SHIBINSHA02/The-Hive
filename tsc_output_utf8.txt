@@ -1,3 +1,0 @@
-﻿app/(protected)/dashboard/mycontracts/create-contract/preview/page.tsx(63,38): error TS2307: Cannot find module 'html2pdf.js' or its corresponding type declarations.
-components/dashboard/ContractCard.tsx(75,38): error TS2307: Cannot find module 'html2pdf.js' or its corresponding type declarations.
-lib/notificationService.ts(90,9): error TS2367: This comparison appears to be unintentional because the types '"active" | "completed" | "draft" | "sent_for_review" | "in_negotiation" | "locked"' and '"pending"' have no overlap.
