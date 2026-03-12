@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getContractLogic } from "@/lib/contract-templates/logic-registry";
-import { createGeminiClient } from "@/lib/contract-templates/service-agreement/geminiClient"; 
+import { createCustomAIClient } from "@/lib/contract-templates/service-agreement/customAiClient"; 
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,18 +26,12 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid contract type" }, { status: 400 });
     }
 
-    // 3. Environment Variable Check
-    const apiKey = process.env.GEMINI_API_KEY;
-    if (!apiKey) {
-      console.error("❌ [AI Refine] Critical Error: GEMINI_API_KEY is missing from .env file.");
-      return NextResponse.json({ error: "Server configuration error: Missing API Key" }, { status: 500 });
-    }
-
-    // Initialize Client (Assuming you keep the client logic centralized)
-    const geminiClient = createGeminiClient(apiKey);
+    // 3. (Optional) Check API Key if your deployed model requires it, else omit
+    // Initialize Client (Uses custom deployed model)
+    const customAIClient = createCustomAIClient();
 
     // 4. Execute the dynamic AI logic mapped from the registry
-    const refinedResult = await templateLogic.aiFill(geminiClient, {
+    const refinedResult = await templateLogic.aiFill(customAIClient, {
       userValues: { [fieldKey]: fieldValue },
       keysToRefine: [fieldKey],
     });
