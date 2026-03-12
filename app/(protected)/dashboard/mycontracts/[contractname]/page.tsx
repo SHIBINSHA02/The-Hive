@@ -8,12 +8,12 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Contract, Financial } from "@/types/contract";
 import type { ConversationType } from "@/types/conversation";
-import { Bot, Send, X, MessageSquare, Sparkles } from "lucide-react";
+import { Bot, Send, X, MessageSquare, Sparkles, Mail, Loader2 } from "lucide-react"; // <-- Added Mail and Loader2 icons
 
 interface ContractDetailsResponse {
   contract: Contract;
   finance: Financial | null;
-  role: "client" | "contractor";
+  role: "client" | "contractor" | "owner"; // Added owner just in case
 }
 
 export default function ContractDetailsPage() {
@@ -24,10 +24,19 @@ export default function ContractDetailsPage() {
   const [finance, setFinance] = useState<Financial | null>(null);
   const [conversationPreview, setConversationPreview] = useState<ConversationType | null>(null);
 
-  const [viewerRole, setViewerRole] = useState<"client" | "contractor" | null>(null);
+  const [viewerRole, setViewerRole] = useState<"client" | "contractor" | "owner" | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // ==========================================
+  // PHASE 2: NEGOTIATION MODULE STATES
+  // ==========================================
+  // These states control the "Send for Review" modal and data submission.
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [isSendingInvite, setIsSendingInvite] = useState(false);
+  const [inviteError, setInviteError] = useState("");
 
   // --- AI CHAT STATES ---
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -103,44 +112,83 @@ export default function ContractDetailsPage() {
     }
   };
 
+  // ==========================================
+  // PHASE 2: INVITE SUBMISSION LOGIC
+  // ==========================================
+  /**
+   * Handles sending the counterparty's email to the backend.
+   * This flips the contract status from "draft" to "sent_for_review".
+   */
+  const handleSendInvite = async () => {
+    if (!inviteEmail.includes("@")) {
+      setInviteError("Please enter a valid email address.");
+      return;
+    }
+
+    setIsSendingInvite(true);
+    setInviteError("");
+
+    try {
+      // We will build this API route next!
+      const res = await fetch(`/api/contracts/${contractId}/invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: inviteEmail }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to send invite");
+      }
+
+      // Success! Update local state to reflect the new status
+      setData(prev => prev ? { ...prev, contractStatus: "sent_for_review" } as Contract : null);
+      setIsInviteModalOpen(false);
+      setInviteEmail("");
+      
+    } catch (err: any) {
+      setInviteError(err.message);
+    } finally {
+      setIsSendingInvite(false);
+    }
+  };
+
   if (loading) return <div className="p-6 text-lg font-semibold">Loading contract…</div>;
   if (error) return <div className="p-6 text-red-600 font-semibold">Error: {error}</div>;
   if (!data) return <div className="p-6">No contract found</div>;
 
+  // Determine if we should show the "Send for Review" button.
+  // We only show it if the contract is still in the initial drafting phase.
+  const canSendForReview = data.contractStatus === "draft" || data.contractStatus === "pending";
+
   return (
     <div className="w-full lg:px-6 px-0 lg:py-6 py-0 space-y-6 relative">
       {/* Header */}
-      <div className="relative w-full h-56 rounded-2xl overflow-hidden shadow">
+      <div className="relative w-full h-56 rounded-2xl overflow-hidden shadow flex flex-col justify-end">
         {data.bgImageUrl && (
           <Image src={data.bgImageUrl} alt="Background" fill className="object-cover" />
         )}
-        <div className="absolute inset-0 bg-black/40 flex items-end p-6 text-white">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6 flex items-end justify-between text-white">
           <div>
             <h1 className="text-3xl font-bold">{data.contractTitle}</h1>
             <div className="flex items-center gap-3 mt-2">
               {data.companyLogoUrl && (
-                <Image src={data.companyLogoUrl} alt={data.companyName} width={38} height={38} className="rounded" />
+                <Image src={data.companyLogoUrl} alt={data.companyName} width={38} height={38} className="rounded bg-white p-0.5" />
               )}
               <span className="text-lg">{data.companyName}</span>
             </div>
-            {viewerRole && (
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs sm:text-sm">
-                <span className="inline-flex items-center rounded-full bg-white/10 px-3 py-1 font-medium uppercase tracking-wide">
-                  You are logged in as&nbsp;
-                  <span className="capitalize">{viewerRole}</span>
-                </span>
-                <span className="inline-flex items-center rounded-full bg-black/40 px-3 py-1">
-                  Counterparty:&nbsp;
-                  <span className="font-semibold">
-                    {data.counterpartyName ||
-                      (viewerRole === "client"
-                        ? data.contractorName || "Contractor"
-                        : data.clientName || "Client")}
-                  </span>
-                </span>
-              </div>
-            )}
           </div>
+
+          {/* NEW: Send for Review Button placed securely in the header */}
+          {canSendForReview && (
+            <button
+              onClick={() => setIsInviteModalOpen(true)}
+              className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
+            >
+              <Mail className="w-5 h-5" />
+              Send for Review
+            </button>
+          )}
         </div>
       </div>
 
@@ -150,24 +198,14 @@ export default function ContractDetailsPage() {
           <h2 className="font-semibold text-lg">Summary</h2>
           <p className="mt-2 text-gray-700 whitespace-pre-line">{data.summary}</p>
           <div className="mt-4 space-y-2 text-sm">
-            {viewerRole && (
-              <>
-                <p>
-                  <strong>Your Role:</strong>{" "}
-                  <span className="capitalize">{viewerRole}</span>
-                </p>
-                <p>
-                  <strong>Counterparty:</strong>{" "}
-                  {data.counterpartyName ||
-                    (viewerRole === "client"
-                      ? data.contractorName || "Contractor"
-                      : data.clientName || "Client")}
-                </p>
-              </>
-            )}
             <p><strong>Start Date:</strong> {new Date(data.startDate).toDateString()}</p>
             <p><strong>Deadline:</strong> {new Date(data.deadline).toDateString()}</p>
-            <p><strong>Status:</strong> <span className="capitalize">{data.contractStatus}</span></p>
+            <p>
+              <strong>Status: </strong> 
+              <span className="capitalize px-2 py-0.5 bg-gray-100 rounded text-gray-800 font-medium">
+                {data.contractStatus.replace(/_/g, " ")}
+              </span>
+            </p>
             <p><strong>Contract ID:</strong> {data.contractId}</p>
           </div>
         </div>
@@ -189,7 +227,7 @@ export default function ContractDetailsPage() {
         </div>
       </div>
 
-      {/* Communication Section (Combined AI & Human) */}
+      {/* Communication Section */}
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
         <h2 className="font-semibold text-lg">Communication</h2>
         <p className="mt-1 text-sm text-gray-600">
@@ -212,72 +250,7 @@ export default function ContractDetailsPage() {
             <MessageSquare size={16} />
             {conversationPreview ? "View Human Conversation" : "Open Conversation"}
           </Link>
-
-          {conversationPreview?.lastMessage && (
-            <span className="text-xs text-gray-500 w-full mt-1 italic">
-              Last message: "{conversationPreview.lastMessage.slice(0, 40)}..."
-            </span>
-          )}
         </div>
-      </div>
-
-      {/* Finance Section */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
-        <h2 className="font-semibold text-lg">Finance</h2>
-        {finance ? (
-          <div className="mt-4 space-y-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div>
-                <p className="text-sm text-gray-600">Total Amount</p>
-                <p className="font-semibold text-lg">
-                  {new Intl.NumberFormat("en-IN", { style: "currency", currency: finance.currency || "INR" }).format(finance.totalAmount)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Paid Amount</p>
-                <p className="font-semibold text-lg text-blue-600">
-                  {new Intl.NumberFormat("en-IN", { style: "currency", currency: finance.currency || "INR" }).format(finance.paidAmount)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Due Amount</p>
-                <p className="font-semibold text-lg text-blue-600">
-                  {new Intl.NumberFormat("en-IN", { style: "currency", currency: finance.currency || "INR" }).format(finance.dueAmount)}
-                </p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-600">Payment Status</p>
-                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${finance.paymentStatus === "completed" ? "bg-blue-100 text-blue-800" : "bg-blue-700 text-white"
-                  }`}>
-                  {finance.paymentStatus?.replace(/_/g, " ") ?? "N/A"}
-                </span>
-              </div>
-            </div>
-
-            {finance.milestones && finance.milestones.length > 0 && (
-              <div className="mt-6">
-                <h3 className="font-semibold mb-3">Milestones</h3>
-                <ul className="space-y-3">
-                  {finance.milestones.map((m, idx) => (
-                    <li key={idx} className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-lg border border-gray-100 bg-gray-50">
-                      <div>
-                        <p className="font-medium">{m.title || `Milestone ${idx + 1}`}</p>
-                        <p className="text-sm text-gray-600">
-                          Due: {new Date(m.dueDate).toLocaleDateString()} · {new Intl.NumberFormat("en-IN", { style: "currency", currency: finance.currency || "INR" }).format(m.amount)}
-                        </p>
-                      </div>
-                      <span className={`px-2.5 py-1 rounded-full text-xs font-medium ${m.isPaid ? "bg-blue-100 text-blue-800" : "bg-blue-700 text-white"}`}>
-                        {m.isPaid ? "Paid" : "Unpaid"}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </div>
-        ) : (
-          <p className="mt-4 text-gray-600">No financial data available.</p>
-        )}
       </div>
 
       {/* Clauses Section */}
@@ -294,11 +267,74 @@ export default function ContractDetailsPage() {
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
         <h2 className="font-semibold text-lg">Contract Document</h2>
         <div className="prose max-w-none mt-3">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{data.contractContent}</ReactMarkdown>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{data.contractContent || ""}</ReactMarkdown>
         </div>
       </div>
 
-      {/* --- AI CHAT SIDEBAR --- */}
+      {/* ========================================== */}
+      {/* PHASE 2: SEND FOR REVIEW MODAL             */}
+      {/* ========================================== */}
+      {isInviteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
+            {/* Modal Header */}
+            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+              <h3 className="text-lg font-bold text-gray-900">Invite to Negotiate</h3>
+              <button 
+                onClick={() => setIsInviteModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            {/* Modal Body */}
+            <div className="p-6">
+              <p className="text-sm text-gray-600 mb-4">
+                Enter the email address of the counterparty. They will receive a secure link to review and suggest edits to this document.
+              </p>
+              
+              <div className="space-y-1">
+                <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                  Counterparty Email
+                </label>
+                <input
+                  type="email"
+                  placeholder="e.g., legal@company.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
+                  autoFocus
+                />
+              </div>
+              
+              {inviteError && (
+                <p className="mt-2 text-sm text-red-600 font-medium">{inviteError}</p>
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-100">
+              <button
+                onClick={() => setIsInviteModalOpen(false)}
+                className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-200 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSendInvite}
+                disabled={isSendingInvite || !inviteEmail}
+                className="px-6 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
+              >
+                {isSendingInvite ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+                Send Request
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* --- AI CHAT SIDEBAR (Existing Code) --- */}
       {isChatOpen && (
         <div className="fixed inset-y-0 right-0 w-full sm:w-96 bg-white shadow-2xl z-50 flex flex-col border-l border-gray-200 animate-in slide-in-from-right duration-300">
           <div className="p-4 border-b flex items-center justify-between bg-gray-50">
