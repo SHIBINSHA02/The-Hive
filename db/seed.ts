@@ -1,6 +1,6 @@
 // db/seed.ts
+import "dotenv/config";
 import mongoose from "mongoose";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import User from "./models/User.js";
 import ClientProfile from "./models/ClientProfile.js";
 import ContractProfile from "./models/ContractProfile.js";
@@ -8,15 +8,10 @@ import Contract from "./models/Contract.js";
 import Financial from "./models/Finance.js";
 import Conversation from "./models/Conversation.js";
 import Notification from "./models/Notification.js";
-
-import "dotenv/config";
+import { getContractLogic } from "../lib/contract-templates/logic-registry.js";
+import crypto from "crypto";
 
 const MONGO_URI = process.env.MONGODB_URI;
-
-// Initialize Gemini embedding model (for semantic contract search / insights)
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-// If "text-embedding-004" is not available in your region, switch to "embedding-001"
-const embedModel = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
 
 // Specific users to seed contracts for (only these users will be used)
 const TARGET_CLERK_IDS = [
@@ -195,45 +190,16 @@ async function seed() {
         // Use different contract templates
         const base = REAL_CONTRACTS[contractIndex % REAL_CONTRACTS.length];
 
-        const summary = `
-This contract establishes an official agreement between ${base.company} and the contractor
-for execution of "${base.title}". The agreement defines responsibilities, milestones,
-financial commitments, and delivery expectations.
-  `.trim();
-
-        const content = `
-# ${base.title}
-
-**Company:** ${base.company}  
-**Client Profile:** ${contractClient.name}  
-**Contractor Profile:** ${contractContractor.name}  
-**Start Date:** ${new Date().toDateString()}  
-
----
-
-## Scope
-The contractor agrees to successfully execute the contract deliverables while maintaining quality
-and ensuring timely communication.
-
-## Financial Terms
-The payment structure is milestone-based with clear auditing and review checkpoints.
-
-## Responsibilities
-Both parties agree to mutual professionalism, confidentiality, and compliance with legal standards.
-
-Signed electronically.
-  `.trim();
-
         // Create contracts with different scenarios to trigger notifications:
-        // Distribute statuses: pending, active, completed
-        let contractStatus: "pending" | "active" | "completed";
+        // Distribute statuses: draft, active, completed
+        let contractStatus: "draft" | "sent_for_review" | "in_negotiation" | "locked" | "active" | "completed";
         let deadline: Date;
         let startDate: Date;
 
         const statusIndex = contractIndex % 15;
         if (statusIndex < 5) {
-          // Pending contracts - some urgent (due soon), some normal
-          contractStatus = "pending";
+          // Draft contracts - some urgent (due soon), some normal
+          contractStatus = "draft";
           startDate = new Date(now - oneDay * (statusIndex + 1));
           deadline = new Date(now + oneDay * (statusIndex < 2 ? 2 : 10)); // First 2 are urgent (2 days), rest are 10 days
         } else if (statusIndex < 10) {
@@ -253,20 +219,63 @@ Signed electronically.
           deadline = new Date(now - oneDay * (statusIndex - 12)); // Recently completed (1-3 days ago)
         }
 
-        // Build rich text for semantic embedding
-        const textToEmbed = `
-Title: ${base.title}
-Company: ${base.company}
-Summary: ${summary}
-Content: ${content}
-        `.trim();
+        // Use realistic values for exact template generation
+        const formData = {
+          AGREEMENT_TITLE: base.title,
+          PARTY_A_NAME: contractClient.name,
+          PARTY_B_NAME: contractContractor.name,
+          START_DATE: startDate.toISOString().split('T')[0],
+          END_DATE: deadline.toISOString().split('T')[0],
+          SERVICE_DESCRIPTION: base.description,
+          SERVICE_LOCATION: "Remote",
+          PAYMENT_AMOUNT: "5000",
+          PAYMENT_CURRENCY: "USD",
+          NOTICE_METHOD: "Email",
+          EFFECTIVE_DATE: startDate.toISOString().split('T')[0],
+          PARTY_A_TYPE: "Individual",
+          PARTY_A_ADDRESS: "123 Client St, City",
+          PARTY_A_EMAIL: "client@example.com",
+          PARTY_B_TYPE: "Company",
+          PARTY_B_ADDRESS: "456 Contractor Ave, City",
+          PARTY_B_EMAIL: "contractor@example.com",
+          DELIVERABLES: "Standard project deliverables",
+          PAYMENT_SCHEDULE: "Upon Completion",
+          PAYMENT_METHOD: "Bank Transfer",
+          CONFIDENTIALITY_TERM: "3 Years",
+          IP_OWNERSHIP_MODEL: "Client Owned",
+          LIABILITY_CAP: "Contract Value",
+          GOVERNING_LAW_STATE: "California",
+          GOVERNING_LAW_COUNTRY: "USA",
+          DISPUTE_RESOLUTION_METHOD: "Arbitration",
+          NOTICE_ADDRESS_PARTY_A: "123 Client St, City",
+          NOTICE_ADDRESS_PARTY_B: "456 Contractor Ave, City",
+          PARTY_A_SIGNATORY_NAME: contractClient.name,
+          PARTY_A_SIGNATORY_TITLE: "Owner",
+          PARTY_B_SIGNATORY_NAME: contractContractor.name,
+          PARTY_B_SIGNATORY_TITLE: "Representative"
+        };
+        
+        // Use generator from the logic registry
+        const templateLogic = getContractLogic("service-agreement");
+        const finalContent = templateLogic.generate({
+          placeholderValues: formData,
+          selectedOptionalClauses: [],
+          isDraft: false
+        });
 
-        console.log(`🧠 Vectorizing contract ${contractIndex + 1}: ${base.title} (${contractClient.name} ↔ ${contractContractor.name})...`);
-        const embedResult = await embedModel.embedContent(textToEmbed);
-        const embeddingVector = embedResult.embedding.values;
+        const summary = `Agreement between ${contractClient.name} and ${contractContractor.name}`;
+        const content = finalContent;
+
+        console.log(`🧠 Creating static embedding for contract ${contractIndex + 1}: ${base.title} (${contractClient.name} ↔ ${contractContractor.name})...`);
+        
+        // Mock 768-dimensional embedding array (default size for many embedding models like Gemini)
+        // Since the user requested no Gemini dependency, we provide an empty/zeroed array 
+        // to satisfy the Mongoose schema requirement without making external API calls
+        const embeddingVector = Array(768).fill(0.01);
 
         const contract = await Contract.create({
-          contractId: `CON-${1000 + contractIndex}`,
+          ownerId: user1.clerkId,
+          contractId: crypto.randomUUID(),
           contractTitle: base.title,
           companyName: base.company,
           companyLogoUrl: base.logo,
@@ -279,16 +288,15 @@ Content: ${content}
 
           client: contractClient._id,
           contractor: contractContractor._id,
+          
+          contractType: "service-agreement",
 
-          clauses: [
-            "Confidentiality must be maintained",
-            "Quality standards are mandatory"
-          ],
+          clauses: [],
 
           keypoints: [
-            "Milestone based payment",
-            "Legally binding agreement",
-            "Requires compliance & quality"
+            `Service Location: ${formData.SERVICE_LOCATION}`,
+            `Payment: ${formData.PAYMENT_AMOUNT} ${formData.PAYMENT_CURRENCY}`,
+            `Notice Method: ${formData.NOTICE_METHOD}`
           ],
 
           summary,
