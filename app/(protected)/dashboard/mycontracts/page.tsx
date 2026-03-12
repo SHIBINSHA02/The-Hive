@@ -1,4 +1,3 @@
-// app/(protected)/dashboard/mycontracts/page.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -32,12 +31,11 @@ export default function ContractPage() {
 
         const data = await res.json();
         setContracts(data);
-      }catch (err: unknown) {
-  const message =
-    err instanceof Error ? err.message : "Something went wrong";
-  setError(message);
-}
-finally {
+      } catch (err: unknown) {
+        const message =
+          err instanceof Error ? err.message : "Something went wrong";
+        setError(message);
+      } finally {
         setLoading(false);
       }
     };
@@ -178,6 +176,7 @@ finally {
                 className="block"
               >
                 <ContractCard
+                  id={contract._id} // ⬅️ ADDED ID HERE
                   companyName={contract.companyName}
                   companyLogo={contract.companyLogoUrl || ""}
                   title={contract.contractTitle}
@@ -217,8 +216,6 @@ finally {
           </div>
         )}
       </div>
-
-    
     </div>
   );
 }

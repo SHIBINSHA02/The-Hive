@@ -15,6 +15,7 @@ if (!GEMINI_API_KEY) {
 }
 
 export interface IContract extends Document {
+  ownerId: string;
   contractId: string;
   contractTitle: string;
   companyName: string;
@@ -40,6 +41,7 @@ export interface IContract extends Document {
 
 const ContractSchema = new Schema<IContract>(
   {
+    ownerId: { type: String, required: true },
     contractId: { type: String, required: true, unique: true },
     contractTitle: { type: String, required: true },
     companyName: { type: String, required: true },

@@ -113,13 +113,13 @@ export default function Sidebar({ isOpen, onClose, onOpen }: SidebarProps) {
               </Link>
             </li>
             <li className="text-gray-600 hover:text-black hover:bg-gray-200 p-2 rounded-lg transition">
-              <Link href="/dashboard/lifecycle" onClick={onClose}>
-                Lifecycle
+              <Link href="/dashboard/requests" onClick={onClose}>
+                Contract Requests
               </Link>
             </li>
             <li className="text-gray-600 hover:text-black hover:bg-gray-200 p-2 rounded-lg transition">
-              <Link href="/dashboard/requests" onClick={onClose}>
-                Contract Requests
+              <Link href="/dashboard/lifecycle" onClick={onClose}>
+                Lifecycle
               </Link>
             </li>
             <li className="text-gray-600 hover:text-black hover:bg-gray-200 p-2 rounded-lg transition">
