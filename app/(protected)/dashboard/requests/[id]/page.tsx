@@ -1,26 +1,52 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Loader2 } from "lucide-react";
 import { Contract } from "@/types/contract";
-import { mockContracts } from "../_components/mockContracts";
 
 export default function RequestContractDetailsPage() {
   const { id } = useParams();
   const contractId = decodeURIComponent(id as string);
 
-  // ✅ IMPORTANT: lookup by contractId (NOT _id)
-  const data: Contract | undefined = mockContracts.find(
-    (c) => c.contractId === contractId
-  );
+  const [data, setData] = useState<Contract | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!data) {
+  useEffect(() => {
+    async function fetchContract() {
+      try {
+        const res = await fetch(`/api/contracts/${contractId}`);
+        if (!res.ok) throw new Error("Contract not found or access denied");
+        
+        const json = await res.json();
+        // The API returns { contract, finance, role }
+        setData(json.contract);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    }
+    
+    fetchContract();
+  }, [contractId]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-12">
+        <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error || !data) {
     return (
       <div className="p-6 text-red-600 font-semibold">
-        No contract found
+        {error || "No contract found"}
       </div>
     );
   }

@@ -30,45 +30,43 @@ export async function GET(
   await connectDB();
 
   type ConvLean = { threads?: unknown[]; messages?: unknown[]; conversationId?: string; toObject?: () => object };
-  let conversation: ConvLean | null = null;
+  const contract = await (
+    Contract as { findById: (id: string) => { select: (s: string) => { lean: () => { exec: () => Promise<any> } } } }
+  ).findById(contractId).select("client contractor contractId").lean().exec();
+  if (!contract)
+    return NextResponse.json({ error: "Contract not found" }, { status: 404 });
 
-  // Mongoose Model union types break findOne/create inference
-  const existing = await (
-    Conversation as { findOne: (q: object) => { lean: () => { exec: () => Promise<ConvLean | null> } } }
-  ).findOne({ contractId }).lean().exec();
-  conversation = existing;
+  const createPayload = {
+    conversationId: `CONVO-${contract.contractId ?? contractId}`,
+    contractId,
+    participants: { client: contract.client, contractor: contract.contractor },
+    status: "active",
+  };
 
-  if (!conversation) {
-    const contract = await (
-      Contract as { findById: (id: string) => { select: (s: string) => { lean: () => { exec: () => Promise<unknown> } } } }
-    ).findById(contractId).select("client contractor contractId").lean().exec();
-    if (!contract)
-      return NextResponse.json({ error: "Contract not found" }, { status: 404 });
+  // Atomic Find or Create (Upsert)
+  const conversation = await Conversation.findOneAndUpdate(
+    { contractId },
+    { 
+      $setOnInsert: {
+        ...createPayload,
+        threads: [{ subject: "General", messages: [] }],
+        messages: [],
+      }
+    },
+    { upsert: true, new: true, lean: true }
+  );
 
-    const contractDoc = contract as { contractId?: string; client: unknown; contractor: unknown };
-    const createPayload = {
-      conversationId: `CONVO-${contractDoc.contractId ?? contractId}`,
-      contractId,
-      participants: { client: contractDoc.client, contractor: contractDoc.contractor },
-      threads: [{ subject: "General", messages: [] }],
-      messages: [],
-      status: "active",
-    };
-    const created = await (
-      Conversation as { create: (doc: typeof createPayload) => Promise<{ conversationId: string; toObject?: () => object } | { conversationId: string; toObject?: () => object }[]> }
-    ).create(createPayload);
-    const doc = Array.isArray(created) ? created[0] ?? null : created;
-    if (!doc)
-      return NextResponse.json({ error: "Failed to create conversation" }, { status: 500 });
+  if (!conversation)
+    return NextResponse.json({ error: "Failed to load/create conversation" }, { status: 500 });
 
+  // Update contract if it doesn't have conversationId yet
+  if (!(contract as any).conversationId) {
     await Contract.updateOne(
       { _id: contractId },
-      { $set: { conversationId: (doc as { conversationId: string }).conversationId } }
+      { $set: { conversationId: conversation.conversationId } }
     );
-    conversation = typeof (doc as { toObject?: () => object }).toObject === "function"
-      ? (doc as { toObject: () => object }).toObject()
-      : (doc as object);
   }
+
 
   const normalized = normalizeConversation(conversation as { threads?: unknown[]; messages?: unknown[] });
   return NextResponse.json(normalized);

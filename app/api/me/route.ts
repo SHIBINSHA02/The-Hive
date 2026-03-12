@@ -2,6 +2,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { connectDB } from "@/lib/db";
 import User from "@/db/models/User";
+import ClientProfile from "@/db/models/ClientProfile";
+import ContractProfile from "@/db/models/ContractProfile";
 
 import { currentUser } from "@clerk/nextjs/server";
 
@@ -30,6 +32,14 @@ const user = await User.findOneAndUpdate(
   { new: true, upsert: true }
 );
 
+  const [clientProfile, contractorProfile] = await Promise.all([
+    ClientProfile.findOne({ user: user._id }).lean(),
+    ContractProfile.findOne({ user: user._id }).lean(),
+  ]);
 
-  return Response.json(user);
+  return Response.json({
+    user,
+    clientProfile,
+    contractorProfile
+  });
 }

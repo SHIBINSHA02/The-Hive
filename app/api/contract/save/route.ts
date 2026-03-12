@@ -74,7 +74,7 @@ export async function POST(req: NextRequest) {
       // The Core Content
       contractContent: finalContent,
       contractType: contractType,
-      contractStatus: "pending",
+      contractStatus: "draft",
       progress: 0,
 
       // Metadata

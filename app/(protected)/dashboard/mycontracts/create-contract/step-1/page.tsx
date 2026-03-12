@@ -9,7 +9,7 @@ export default function StepOnePage() {
   const searchParams = useSearchParams();
   const type = searchParams.get("type");
   
-  const { template, formData } = useContract();
+  const { template, formData, creatorRole, setCreatorRole, userProfile } = useContract();
   
   if (!type || !template) return null;
 
@@ -36,6 +36,40 @@ export default function StepOnePage() {
           Step 1: {stepConfig.title}
         </h1>
         <p className="text-gray-600 mt-1 text-sm">{stepConfig.description}</p>
+      </div>
+
+      {/* Role Selection */}
+      <div className="p-4 bg-blue-50/50 rounded-lg border border-blue-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-sm font-semibold text-blue-900">Creating as</h3>
+          <p className="text-xs text-blue-700">Select your role to auto-fill details.</p>
+        </div>
+        <div className="flex gap-2">
+          {userProfile?.clientProfile && (
+            <button
+              onClick={() => setCreatorRole('client')}
+              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all border ${
+                creatorRole === 'client'
+                  ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                  : "bg-white text-blue-600 border-blue-200 hover:border-blue-400"
+              }`}
+            >
+              Client (Party A)
+            </button>
+          )}
+          {userProfile?.contractorProfile && (
+            <button
+              onClick={() => setCreatorRole('contractor')}
+              className={`px-4 py-1.5 rounded-md text-xs font-bold transition-all border ${
+                creatorRole === 'contractor'
+                  ? "bg-blue-600 text-white border-blue-600 shadow-sm"
+                  : "bg-white text-blue-600 border-blue-200 hover:border-blue-400"
+              }`}
+            >
+              Contractor (Party B)
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="space-y-5">

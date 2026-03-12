@@ -22,7 +22,10 @@ type ContractContextType = {
   selectedClauses: string[];
   toggleClause: (clauseId: string) => void;
   resetForm: () => void;
-  isInitialized: boolean; // Added to help UI know when data is restored
+  isInitialized: boolean; 
+  userProfile: any;
+  creatorRole: 'client' | 'contractor' | null;
+  setCreatorRole: (role: 'client' | 'contractor' | null) => void;
 };
 
 // ============================================
@@ -57,34 +60,83 @@ export function ContractProvider({
   const [formData, setFormData] = useState<Partial<PlaceholderValueMap>>({});
   const [selectedClauses, setSelectedClauses] = useState<string[]>([]);
   const [isInitialized, setIsInitialized] = useState(false);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [creatorRole, setCreatorRole] = useState<'client' | 'contractor' | null>(null);
 
   // --- PERSISTENCE LOGIC START ---
 
   // 1. Load data from LocalStorage on mount
   useEffect(() => {
-    const storageKey = `contract_draft_${contractType}`;
-    const savedData = localStorage.getItem(storageKey);
-    const savedClauses = localStorage.getItem(`${storageKey}_clauses`);
+    async function loadData() {
+      const storageKey = `contract_draft_${contractType}`;
+      const savedData = localStorage.getItem(storageKey);
+      const savedClauses = localStorage.getItem(`${storageKey}_clauses`);
 
-    if (savedData) {
-      try {
-        setFormData(JSON.parse(savedData));
-      } catch (e) {
-        console.error("Failed to restore form data", e);
+      let initialFormData: Partial<PlaceholderValueMap> = {};
+
+      if (savedData) {
+        try {
+          initialFormData = JSON.parse(savedData);
+        } catch (e) {
+          console.error("Failed to restore form data", e);
+        }
       }
+
+      if (savedClauses) {
+        try {
+          setSelectedClauses(JSON.parse(savedClauses));
+        } catch (e) {
+          console.error("Failed to restore clauses", e);
+        }
+      }
+
+      // Fetch user profile for auto-fill
+      try {
+        const res = await fetch("/api/me");
+        if (res.ok) {
+          const profileData = await res.json();
+          setUserProfile(profileData);
+          
+          // Determine initial creator role based on available profiles
+          if (profileData.contractorProfile) {
+            setCreatorRole('contractor');
+          } else if (profileData.clientProfile) {
+            setCreatorRole('client');
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch user profile for auto-fill", err);
+      }
+
+      setFormData(initialFormData);
+      setIsInitialized(true);
     }
 
-    if (savedClauses) {
-      try {
-        setSelectedClauses(JSON.parse(savedClauses));
-      } catch (e) {
-        console.error("Failed to restore clauses", e);
-      }
-    }
-
-    // Signals that we are done loading and can now start saving changes
-    setIsInitialized(true);
+    loadData();
   }, [contractType]);
+
+  // Handle Role Auto-fill when creatorRole changes
+  useEffect(() => {
+    if (!isInitialized || !userProfile || !creatorRole) return;
+
+    setFormData(prev => {
+      const next = { ...prev };
+      if (creatorRole === 'contractor' && userProfile.contractorProfile) {
+        next.PARTY_B_NAME = userProfile.contractorProfile.name || next.PARTY_B_NAME;
+        next.PARTY_B_EMAIL = userProfile.user.email || next.PARTY_B_EMAIL;
+        next.PARTY_B_SIGNATORY_NAME = userProfile.contractorProfile.name || next.PARTY_B_SIGNATORY_NAME;
+        
+        // Clear Party A if it was auto-filled previously? 
+        // User said: "other parties should be manually entered as usual"
+        // So we leave them alone.
+      } else if (creatorRole === 'client' && userProfile.clientProfile) {
+        next.PARTY_A_NAME = userProfile.clientProfile.name || next.PARTY_A_NAME;
+        next.PARTY_A_EMAIL = userProfile.user.email || next.PARTY_A_EMAIL;
+        next.PARTY_A_SIGNATORY_NAME = userProfile.clientProfile.name || next.PARTY_A_SIGNATORY_NAME;
+      }
+      return next;
+    });
+  }, [creatorRole, isInitialized, userProfile]);
 
   // 2. Save data to LocalStorage whenever it changes
   useEffect(() => {
@@ -133,7 +185,10 @@ export function ContractProvider({
     selectedClauses,
     toggleClause,
     resetForm,
-    isInitialized
+    isInitialized,
+    userProfile,
+    creatorRole,
+    setCreatorRole
   };
 
   return (

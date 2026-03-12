@@ -16,7 +16,7 @@ type FormFieldProps = {
 };
 
 export function FormField({ fieldKey }: FormFieldProps) {
-  const { template, formData, updateField, contractType } = useContract();
+  const { template, formData, updateField, contractType, userProfile, creatorRole } = useContract();
   
   // 1. Get configuration from the dynamic template registry
   const config = template.contractPlaceholders[fieldKey];
@@ -26,6 +26,20 @@ export function FormField({ fieldKey }: FormFieldProps) {
   // 2. States for AI interaction
   const [isRefining, setIsRefining] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // 3. Determine if this field should be read-only (Auto-assigned)
+  const isPartyAField = ["PARTY_A_NAME", "PARTY_A_EMAIL", "PARTY_A_SIGNATORY_NAME"].includes(fieldKey);
+  const isPartyBField = ["PARTY_B_NAME", "PARTY_B_EMAIL", "PARTY_B_SIGNATORY_NAME"].includes(fieldKey);
+  
+  // Refined Lock Logic: Only lock the party that was auto-filled based on selected creatorRole
+  let isLocked = false;
+  if (creatorRole === 'contractor' && userProfile?.contractorProfile) {
+    isLocked = isPartyBField;
+  } else if (creatorRole === 'client' && userProfile?.clientProfile) {
+    isLocked = isPartyAField;
+  }
+
+  const isDisabled = isRefining || isLocked;
 
   /**
    * AI REFINEMENT HANDLER
@@ -101,6 +115,12 @@ export function FormField({ fieldKey }: FormFieldProps) {
             )}
           </button>
         )}
+        
+        {isLocked && (
+          <span className="text-[10px] items-center px-1.5 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium border border-blue-100 uppercase tracking-tight">
+            Auto-assigned
+          </span>
+        )}
       </div>
 
       <div className="relative group">
@@ -111,7 +131,7 @@ export function FormField({ fieldKey }: FormFieldProps) {
             rows={4}
             className={inputBaseStyle}
             placeholder={config.placeholder}
-            disabled={isRefining}
+            disabled={isDisabled}
           />
         ) : (
           <input
@@ -120,8 +140,13 @@ export function FormField({ fieldKey }: FormFieldProps) {
             onChange={(e) => updateField(fieldKey, e.target.value)}
             className={inputBaseStyle}
             placeholder={config.placeholder}
-            disabled={isRefining}
+            disabled={isDisabled}
           />
+        )}
+        {isLocked && (
+           <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+             <CheckCircle2 className="h-4 w-4 text-blue-500" />
+           </div>
         )}
         
         {/* Subtle loading overlay for the input itself */}
