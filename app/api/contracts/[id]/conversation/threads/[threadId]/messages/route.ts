@@ -82,6 +82,25 @@ export async function POST(
     isRead: false,
   });
   conversation.lastMessage = message;
+
+  // Double check participants to prevent validation error on save
+  if (conversation.participants) {
+    if (!conversation.participants.client || conversation.participants.client === "") {
+      conversation.participants.client = 
+        contract.client?._id?.toString() || 
+        contract.client?.toString() || 
+        contract.ownerId || 
+        "missing_client";
+    }
+    if (!conversation.participants.contractor || conversation.participants.contractor === "") {
+      conversation.participants.contractor = 
+        contract.contractor?._id?.toString() || 
+        contract.contractor?.toString() || 
+        contract.ownerId || 
+        "missing_contractor";
+    }
+  }
+
   await conversation.save();
 
   const updated = await (

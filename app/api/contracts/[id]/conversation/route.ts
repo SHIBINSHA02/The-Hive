@@ -35,8 +35,8 @@ export async function GET(
       conversationId: `CONVO-${canonicalId}`,
       contractId: canonicalId,
       participants: { 
-        client: contract.client?._id?.toString() || contract.client?.toString() || "", 
-        contractor: contract.contractor?._id?.toString() || contract.contractor?.toString() || "" 
+        client: contract.client?._id?.toString() || contract.client?.toString() || contract.ownerId || "missing_client", 
+        contractor: contract.contractor?._id?.toString() || contract.contractor?.toString() || contract.ownerId || "missing_contractor" 
       },
       status: "active",
     };
