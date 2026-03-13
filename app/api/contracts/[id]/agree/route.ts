@@ -55,6 +55,7 @@ export async function POST(
     // Check if both have agreed
     if (contractDoc.ownerAgreed && contractDoc.partyBAgreed) {
       contractDoc.contractStatus = "locked";
+      contractDoc.ownerSigned = true; // Creator's agreement counts as signature
     }
 
     await contractDoc.save();

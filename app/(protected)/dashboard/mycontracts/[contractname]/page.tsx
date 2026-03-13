@@ -269,7 +269,7 @@ export default function ContractDetailsPage() {
 
             {data.contractStatus === "locked" && (
               <>
-                {(viewerRole === "owner" && !data.ownerSigned) || (viewerRole !== "owner" && !data.partyBSigned) ? (
+                {viewerRole !== "owner" && !data.partyBSigned ? (
                   <button
                     onClick={handleSign}
                     disabled={isSigning}
@@ -281,7 +281,7 @@ export default function ContractDetailsPage() {
                 ) : (
                   <div className="bg-white/20 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2">
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Awaiting Other Signature
+                    {viewerRole === "owner" ? "Awaiting Counterparty Signature" : "Contract Signed, Activating..."}
                   </div>
                 )}
               </>
