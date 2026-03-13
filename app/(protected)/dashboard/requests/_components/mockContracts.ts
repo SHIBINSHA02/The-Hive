@@ -61,6 +61,10 @@ All shared materials and business data must remain confidential.
 ## 5. Termination
 Either party may terminate this agreement with prior written notice.
     `,
+    ownerSigned: false,
+    partyBSigned: false,
+    ownerAgreed: false,
+    partyBAgreed: false,
   },
 
   {
@@ -116,5 +120,9 @@ A monthly fee of **$1,200** will be paid at the beginning of each month.
 ## 4. Termination
 Either party may terminate the agreement with a 30-day written notice.
     `,
+    ownerSigned: false,
+    partyBSigned: false,
+    ownerAgreed: false,
+    partyBAgreed: false,
   },
 ];
