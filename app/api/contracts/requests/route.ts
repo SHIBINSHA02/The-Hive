@@ -44,9 +44,10 @@ export async function GET() {
 
     // 4. FETCH OUTBOX (Sent Requests)
     // Find contracts where this user is the owner AND they have sent it out for review.
+    // Exclude 'draft' so that cancelling (moving back to draft) removes it from this view.
     const sentRequests = await Contract.find({
       ownerId: clerkId,
-      contractStatus: { $in: ["draft", "sent_for_review", "in_negotiation"] }
+      contractStatus: { $in: ["sent_for_review", "in_negotiation"] }
     }).sort({ updatedAt: -1 });
 
     // 5. Return both arrays to the frontend

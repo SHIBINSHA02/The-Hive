@@ -106,18 +106,18 @@ export async function getContractAndRole(contractId: string, clerkId: string) {
   let role: "client" | "contractor" | "owner" | "partyB";
   let senderProfileId = "";
 
-  if (isClient) {
-    role = "client";
-    senderProfileId = contract.client?._id.toString() || "";
-  } else if (isContractor) {
-    role = "contractor";
-    senderProfileId = contract.contractor?._id.toString() || "";
-  } else if (isOwner) {
+  if (isOwner) {
     role = "owner";
     senderProfileId = clerkId; // Fallback to clerkId for drafts
   } else if (isPartyB) {
     role = "partyB";
     senderProfileId = clerkId; // Fallback for invited guest
+  } else if (isClient) {
+    role = "client";
+    senderProfileId = contract.client?._id.toString() || "";
+  } else if (isContractor) {
+    role = "contractor";
+    senderProfileId = contract.contractor?._id.toString() || "";
   } else {
     return null;
   }

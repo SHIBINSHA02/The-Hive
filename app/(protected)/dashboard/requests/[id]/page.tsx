@@ -30,6 +30,7 @@ export default function RequestContractDetailsPage() {
 
   const [isAgreeing, setIsAgreeing] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
   // --- AI CHAT STATES ---
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -144,6 +145,45 @@ export default function RequestContractDetailsPage() {
     }
   };
 
+  const handleCancel = async () => {
+    try {
+      setIsCancelling(true);
+      const res = await fetch(`/api/contracts/${contractId}/cancel`, { method: "POST" });
+      if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || "Failed to cancel request");
+      }
+      const result = await res.json();
+      setData(prev => prev ? { 
+        ...prev, 
+        contractStatus: result.status,
+        ownerAgreed: result.ownerAgreed,
+        partyBAgreed: result.partyBAgreed,
+      } as Contract : null);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsCancelling(false);
+    }
+  };
+
+  const handleSendForReview = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/contracts/${contractId}`, { 
+          method: "PATCH",
+          body: JSON.stringify({ contractStatus: "sent_for_review" })
+      });
+      if (!res.ok) throw new Error("Failed to send for review");
+      const updated = await res.json();
+      setData(updated as Contract);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (loading) return (
     <div className="flex items-center justify-center p-12">
       <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
@@ -172,21 +212,66 @@ export default function RequestContractDetailsPage() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3">
-            {(data.contractStatus === "in_negotiation" || data.contractStatus === "sent_for_review") && (
+            {(data.contractStatus === "in_negotiation" || data.contractStatus === "sent_for_review" || data.contractStatus === "draft") && (
               <div className="flex items-center gap-2">
+                {viewerRole === "owner" && data.contractStatus === "draft" && (
+                    <button
+                        onClick={handleSendForReview}
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
+                    >
+                        <Send className="w-5 h-5" />
+                        Send for Review
+                    </button>
+                )}
+
                 {((viewerRole === "owner" && !data.ownerAgreed) || (viewerRole !== "owner" && !data.partyBAgreed)) ? (
-                  <button
-                    onClick={handleAgree}
-                    disabled={isAgreeing}
-                    className="bg-amber-600 hover:bg-amber-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
-                  >
-                    {isAgreeing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-                    Agree to Content
-                  </button>
+                  <div className="flex items-center gap-3">
+                    {data.contractStatus !== "draft" && (
+                        <button
+                            onClick={handleAgree}
+                            disabled={isAgreeing}
+                            className="bg-amber-600 hover:bg-amber-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
+                        >
+                            {isAgreeing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                            Agree to Content
+                        </button>
+                    )}
+                    
+                    {viewerRole === "owner" && (
+                        <button
+                            onClick={handleCancel}
+                            disabled={isCancelling}
+                            className="bg-red-600/20 hover:bg-red-600/40 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold border border-red-500/50 flex items-center gap-2 transition-all"
+                        >
+                            {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
+                            {data.contractStatus === "draft" ? "Discard Draft" : "Cancel Request"}
+                        </button>
+                    )}
+                  </div>
                 ) : (
-                  <div className="bg-white/20 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Waiting for Owner
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white/20 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        {viewerRole === "owner" ? (data.partyBAgreed ? "Waiting for locking" : "Waiting for Counterparty") : (data.ownerAgreed ? "Waiting for locking" : "Waiting for Owner")}
+                    </div>
+                    <button
+                        onClick={handleCancel}
+                        disabled={isCancelling}
+                        className="bg-red-600/20 hover:bg-red-600/40 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold border border-red-500/50 flex items-center gap-2 transition-all"
+                    >
+                        {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
+                        Rescind Agreement
+                    </button>
+                    {viewerRole === "owner" && (
+                        <button
+                            onClick={handleCancel}
+                            disabled={isCancelling}
+                            className="bg-red-600/20 hover:bg-red-600/40 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold border border-red-500/50 flex items-center gap-2 transition-all"
+                        >
+                            {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
+                            Cancel Request
+                        </button>
+                    )}
                   </div>
                 )}
               </div>
@@ -195,18 +280,40 @@ export default function RequestContractDetailsPage() {
             {data.contractStatus === "locked" && (
               <>
                 {viewerRole !== "owner" && !data.partyBSigned ? (
-                  <button
-                    onClick={handleSign}
-                    disabled={isSigning}
-                    className="bg-green-600 hover:bg-green-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
-                  >
-                    {isSigning ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-                    Sign Contract
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleSign}
+                        disabled={isSigning}
+                        className="bg-green-600 hover:bg-green-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
+                    >
+                        {isSigning ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                        Sign Contract
+                    </button>
+                    <button
+                        onClick={handleCancel}
+                        disabled={isCancelling}
+                        className="bg-red-600/20 hover:bg-red-600/40 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold border border-red-500/50 flex items-center gap-2 transition-all"
+                    >
+                        {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
+                        Unlock & Negotiate
+                    </button>
+                  </div>
                 ) : (
-                  <div className="bg-white/20 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    {viewerRole === "owner" ? "Awaiting Counterparty Signature" : "Contract Signed, Activating..."}
+                  <div className="flex items-center gap-3">
+                     <div className="bg-white/20 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        {viewerRole === "owner" ? "Awaiting Counterparty Signature" : "Contract Signed, Activating..."}
+                    </div>
+                    {viewerRole === "owner" && (
+                        <button
+                            onClick={handleCancel}
+                            disabled={isCancelling}
+                            className="bg-red-600/20 hover:bg-red-600/40 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold border border-red-500/50 flex items-center gap-2 transition-all"
+                        >
+                            {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
+                            Unlock & Negotiate
+                        </button>
+                    )}
                   </div>
                 )}
               </>

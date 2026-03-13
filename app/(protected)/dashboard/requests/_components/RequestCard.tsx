@@ -2,22 +2,41 @@
 'use client';
 
 import React from 'react';
-import { Calendar, Clock, Eye } from 'lucide-react';
+import { Calendar, Clock, Eye, X, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { Contract } from '@/types/contract';
 
 interface RequestCardProps {
   contract: Contract;
+  isOutbox?: boolean;
+  onActionComplete?: () => void;
 }
 
-const RequestCard: React.FC<RequestCardProps> = ({ contract }) => {
+const RequestCard: React.FC<RequestCardProps> = ({ contract, isOutbox, onActionComplete }) => {
   const router = useRouter();
+  const [isCancelling, setIsCancelling] = React.useState(false);
 
   const getProgressColor = (progress: number) => {
     if (progress >= 75) return 'bg-blue-600';
     if (progress >= 50) return 'bg-blue-500';
     return 'bg-blue-400';
+  };
+
+  const handleCancel = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!confirm("Are you sure you want to cancel this request?")) return;
+    
+    try {
+      setIsCancelling(true);
+      const res = await fetch(`/api/contracts/${contract.contractId}/cancel`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to cancel request");
+      onActionComplete?.();
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsCancelling(false);
+    }
   };
 
   return (
@@ -45,7 +64,7 @@ const RequestCard: React.FC<RequestCardProps> = ({ contract }) => {
           </span>
 
           <span className="text-xs capitalize text-gray-600">
-            {contract.contractStatus}
+            {contract.contractStatus.replace(/_/g, " ")}
           </span>
         </div>
 
@@ -86,16 +105,29 @@ const RequestCard: React.FC<RequestCardProps> = ({ contract }) => {
           </div>
         </div>
 
-        {/* VIEW BUTTON */}
-        <button
-          onClick={() =>
-            router.push(`/dashboard/requests/${contract.contractId}`)
-          }
-          className="mt-6 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all"
-        >
-          <Eye className="w-4 h-4" />
-          View Contract
-        </button>
+        {/* ACTIONS */}
+        <div className="mt-6 flex gap-2">
+            <button
+            onClick={() =>
+                router.push(`/dashboard/requests/${contract.contractId}`)
+            }
+            className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all"
+            >
+            <Eye className="w-4 h-4" />
+            View
+            </button>
+
+            {isOutbox && ["draft", "sent_for_review", "in_negotiation"].includes(contract.contractStatus) && (
+                <button
+                    onClick={handleCancel}
+                    disabled={isCancelling}
+                    className="px-3 py-2 rounded-lg text-sm font-semibold text-red-600 bg-red-50 hover:bg-red-100 transition-all disabled:opacity-50"
+                    title={contract.contractStatus === "draft" ? "Discard Draft" : "Cancel Request"}
+                >
+                    {isCancelling ? <Loader2 className="w-4 h-4 animate-spin" /> : <X className="w-4 h-4" />}
+                </button>
+            )}
+        </div>
       </div>
     </div>
   );

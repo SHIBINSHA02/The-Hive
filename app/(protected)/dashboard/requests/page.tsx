@@ -16,25 +16,25 @@ export default function RequestsPage() {
   const [activeTab, setActiveTab] = useState<"inbox" | "outbox">("inbox");
 
   // --- DATA FETCHING ---
-  useEffect(() => {
-    const fetchRequests = async () => {
-      try {
-        setLoading(true);
-        // Calls the new GET route we built for the Inbox/Outbox
-        const res = await fetch("/api/contracts/requests");
-        
-        if (!res.ok) throw new Error("Failed to fetch requests");
-        
-        const data = await res.json();
-        setReceivedRequests(data.received);
-        setSentRequests(data.sent);
-      } catch (err: any) {
-        setError(err.message || "An error occurred while fetching requests.");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchRequests = async () => {
+    try {
+      setLoading(true);
+      // Calls the new GET route we built for the Inbox/Outbox
+      const res = await fetch("/api/contracts/requests");
+      
+      if (!res.ok) throw new Error("Failed to fetch requests");
+      
+      const data = await res.json();
+      setReceivedRequests(data.received);
+      setSentRequests(data.sent);
+    } catch (err: any) {
+      setError(err.message || "An error occurred while fetching requests.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchRequests();
   }, []);
 
@@ -110,6 +110,8 @@ export default function RequestsPage() {
             <RequestCard
               key={contract.contractId || (contract as any)._id}
               contract={contract}
+              isOutbox={activeTab === "outbox"}
+              onActionComplete={fetchRequests}
             />
           ))}
         </div>
