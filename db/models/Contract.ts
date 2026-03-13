@@ -56,6 +56,14 @@ export interface IContract extends Document {
   partyB_ClerkId?: string;       // The authenticated Clerk ID of Party B (once they log in)
   versionHistory: IVersionSnapshot[]; // Array holding previous versions of the contract text
   currentTurn: "owner" | "partyB";    // Tracks whose turn it is to edit to prevent collisions
+
+  // --- NEW: Phase 3 Signature Fields ---
+  ownerSigned: boolean;
+  partyBSigned: boolean;
+
+  // --- NEW: Mutual Agreement Fields ---
+  ownerAgreed: boolean;
+  partyBAgreed: boolean;
 }
 
 const ContractSchema = new Schema<IContract>(
@@ -115,7 +123,15 @@ const ContractSchema = new Schema<IContract>(
       type: String,
       enum: ["owner", "partyB"],
       default: "owner"
-    }
+    },
+
+    // --- NEW: Signature Tracking ---
+    ownerSigned: { type: Boolean, default: false },
+    partyBSigned: { type: Boolean, default: false },
+
+    // --- NEW: Mutual Agreement Tracking ---
+    ownerAgreed: { type: Boolean, default: false },
+    partyBAgreed: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

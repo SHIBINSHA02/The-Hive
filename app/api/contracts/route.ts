@@ -37,7 +37,10 @@ export async function GET() {
     if (contractorProfile) conditions.push({ contractor: contractorProfile._id });
     // ----------------------------------
 
-    const contracts = await Contract.find({ $or: conditions })
+    const contracts = await Contract.find({ 
+      $or: conditions,
+      contractStatus: { $in: ["locked", "active", "completed"] }
+    })
       .populate("client")
       .populate("contractor")
       .sort({ createdAt: -1 })

@@ -20,6 +20,11 @@ export interface Contract {
   keypoints?: string[];
   contractContent: string;
 
+  ownerSigned: boolean;
+  partyBSigned: boolean;
+  ownerAgreed: boolean;
+  partyBAgreed: boolean;
+
   // Populated by API in some views
   clientName?: string;
   contractorName?: string;

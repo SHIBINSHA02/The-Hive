@@ -1,0 +1,8 @@
+--- DB DIAGNOSTIC ---
+CONTRACT DATA:
+  _id:            69b3134401a760649570b992
+  contractId:     bfde7cc1-1c9e-436f-868d-df58c9978cc6
+  ownerId:        user_37Iu9HWbBEFsu29EpYo4k2mU7Q3
+  partyB_Email:   |shibinshasafeer@gmail.com|
+  partyB_ClerkId: undefined
+  status:         sent_for_review

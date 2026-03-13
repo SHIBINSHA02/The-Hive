@@ -20,6 +20,11 @@ export async function GET(
   if (!result)
     return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  // Safety: If this is Party B and we haven't linked their Clerk ID yet, do it now
+  if (result.role === "partyB" && !result.contract.partyB_ClerkId) {
+    await Contract.findOneAndUpdate({ contractId: id }, { $set: { partyB_ClerkId: clerkId } });
+  }
+
   // result now includes 'owner' in the role union
   const { contract, role } = result;
 
@@ -57,13 +62,17 @@ export async function GET(
     clauses: (contract as any).clauses ?? [],
     keypoints: (contract as any).keypoints ?? [],
     contractContent: (contract as any).contractContent ?? "",
+    ownerSigned: (contract as any).ownerSigned ?? false,
+    partyBSigned: (contract as any).partyBSigned ?? false,
+    ownerAgreed: (contract as any).ownerAgreed ?? false,
+    partyBAgreed: (contract as any).partyBAgreed ?? false,
     clientName,
     contractorName,
     viewerRole: role,
     counterpartyName,
   };
 
-  const finance = await Financial.findOne({ contract: id });
+  const finance = await Financial.findOne({ contract: contract._id });
 
   return NextResponse.json({ contract: formattedContract, finance, role });
 }
@@ -86,10 +95,16 @@ export async function PUT(
   await connectDB();
   const body = await req.json();
   
-  // Prevent changing the ownerId via API for security
+  // Security: Ensure ownerId can't be updated
   delete body.ownerId;
 
-  const updated = await Contract.findByIdAndUpdate(id, body, { new: true });
+  // If content is modified, reset agreements
+  if (body.contractContent) {
+    body.ownerAgreed = false;
+    body.partyBAgreed = false;
+  }
+
+  const updated = await Contract.findOneAndUpdate({ contractId: id }, body, { new: true });
 
   return NextResponse.json(updated);
 }
@@ -114,8 +129,14 @@ export async function PATCH(
   // Security: Ensure ownerId can't be patched
   delete body.ownerId;
 
-  const updated = await Contract.findByIdAndUpdate(
-    id,
+  // If content is modified, reset agreements
+  if (body.contractContent) {
+    body.ownerAgreed = false;
+    body.partyBAgreed = false;
+  }
+
+  const updated = await Contract.findOneAndUpdate(
+    { contractId: id },
     { $set: body },
     { new: true }
   );

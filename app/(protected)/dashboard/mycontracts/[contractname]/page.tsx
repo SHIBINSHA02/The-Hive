@@ -37,6 +37,9 @@ export default function ContractDetailsPage() {
   const [inviteEmail, setInviteEmail] = useState("");
   const [isSendingInvite, setIsSendingInvite] = useState(false);
   const [inviteError, setInviteError] = useState("");
+  const [isLocking, setIsLocking] = useState(false);
+  const [isSigning, setIsSigning] = useState(false);
+  const [isAgreeing, setIsAgreeing] = useState(false);
 
   // --- AI CHAT STATES ---
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -153,6 +156,59 @@ export default function ContractDetailsPage() {
     }
   };
 
+  const handleLock = async () => {
+    try {
+      setIsLocking(true);
+      const res = await fetch(`/api/contracts/${contractId}/lock`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to lock contract");
+      const result = await res.json();
+      setData(prev => prev ? { ...prev, contractStatus: result.status } as Contract : null);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsLocking(false);
+    }
+  };
+
+  const handleAgree = async () => {
+    try {
+      setIsAgreeing(true);
+      const res = await fetch(`/api/contracts/${contractId}/agree`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to record agreement");
+      const result = await res.json();
+      setData(prev => prev ? { 
+        ...prev, 
+        contractStatus: result.status,
+        ownerAgreed: result.ownerAgreed,
+        partyBAgreed: result.partyBAgreed
+      } as Contract : null);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsAgreeing(false);
+    }
+  };
+
+  const handleSign = async () => {
+    try {
+      setIsSigning(true);
+      const res = await fetch(`/api/contracts/${contractId}/sign`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to sign contract");
+      const result = await res.json();
+      setData(prev => prev ? { 
+        ...prev, 
+        contractStatus: result.status,
+        ownerSigned: result.ownerSigned,
+        partyBSigned: result.partyBSigned,
+        progress: result.status === "active" ? 100 : prev.progress
+      } as Contract : null);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsSigning(false);
+    }
+  };
+
   if (loading) return <div className="p-6 text-lg font-semibold">Loading contract…</div>;
   if (error) return <div className="p-6 text-red-600 font-semibold">Error: {error}</div>;
   if (!data) return <div className="p-6">No contract found</div>;
@@ -179,16 +235,65 @@ export default function ContractDetailsPage() {
             </div>
           </div>
 
-          {/* NEW: Send for Review Button placed securely in the header */}
-          {canSendForReview && (
-            <button
-              onClick={() => setIsInviteModalOpen(true)}
-              className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
-            >
-              <Mail className="w-5 h-5" />
-              Send for Review
-            </button>
-          )}
+          {/* Action Buttons */}
+          <div className="flex items-center gap-3">
+            {data.contractStatus === "draft" && viewerRole === "owner" && (
+              <button
+                onClick={() => setIsInviteModalOpen(true)}
+                className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
+              >
+                <Mail className="w-5 h-5" />
+                Send for Review
+              </button>
+            )}
+
+            {(data.contractStatus === "in_negotiation" || data.contractStatus === "sent_for_review") && (
+              <div className="flex items-center gap-2">
+                {((viewerRole === "owner" && !data.ownerAgreed) || (viewerRole !== "owner" && !data.partyBAgreed)) ? (
+                  <button
+                    onClick={handleAgree}
+                    disabled={isAgreeing}
+                    className="bg-amber-600 hover:bg-amber-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
+                  >
+                    {isAgreeing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                    Agree to Content
+                  </button>
+                ) : (
+                  <div className="bg-white/20 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Waiting for Counterparty
+                  </div>
+                )}
+              </div>
+            )}
+
+            {data.contractStatus === "locked" && (
+              <>
+                {(viewerRole === "owner" && !data.ownerSigned) || (viewerRole !== "owner" && !data.partyBSigned) ? (
+                  <button
+                    onClick={handleSign}
+                    disabled={isSigning}
+                    className="bg-green-600 hover:bg-green-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
+                  >
+                    {isSigning ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                    Sign Contract
+                  </button>
+                ) : (
+                  <div className="bg-white/20 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2">
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Awaiting Other Signature
+                  </div>
+                )}
+              </>
+            )}
+
+            {data.contractStatus === "active" && (
+              <div className="bg-green-500/80 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg">
+                <Sparkles className="w-5 h-5" />
+                Contract Active & Signed
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

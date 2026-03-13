@@ -45,8 +45,8 @@ export async function POST(
 
   if (!conversation) {
     const contract = await (
-      Contract as { findById: (id: string) => { select: (s: string) => { lean: () => Promise<unknown> } } }
-    ).findById(contractId).select("client contractor contractId").lean();
+      Contract as { findOne: (q: object) => { select: (s: string) => { lean: () => Promise<unknown> } } }
+    ).findOne({ contractId }).select("_id client contractor contractId").lean();
     if (!contract)
       return NextResponse.json({ error: "Contract not found" }, { status: 404 });
     const contractDoc = contract as { contractId?: string; client: unknown; contractor: unknown };
@@ -64,7 +64,7 @@ export async function POST(
     const doc = Array.isArray(created) ? created[0] ?? null : created;
     if (!doc)
       return NextResponse.json({ error: "Failed to create conversation" }, { status: 500 });
-    await (Contract as { findByIdAndUpdate: (id: string, update: object, options?: object) => Promise<unknown> }).findByIdAndUpdate(contractId, { conversationId: doc.conversationId }, {});
+    await (Contract as { findOneAndUpdate: (q: object, update: object, options?: object) => Promise<unknown> }).findOneAndUpdate({ _id: (contract as any)._id }, { conversationId: doc.conversationId }, {});
     conversation = doc;
   }
 

@@ -31,8 +31,8 @@ export async function GET(
 
   type ConvLean = { threads?: unknown[]; messages?: unknown[]; conversationId?: string; toObject?: () => object };
   const contract = await (
-    Contract as { findById: (id: string) => { select: (s: string) => { lean: () => { exec: () => Promise<any> } } } }
-  ).findById(contractId).select("client contractor contractId").lean().exec();
+    Contract as { findOne: (q: object) => { select: (s: string) => { lean: () => { exec: () => Promise<any> } } } }
+  ).findOne({ contractId }).select("_id client contractor contractId").lean().exec();
   if (!contract)
     return NextResponse.json({ error: "Contract not found" }, { status: 404 });
 
@@ -62,7 +62,7 @@ export async function GET(
   // Update contract if it doesn't have conversationId yet
   if (!(contract as any).conversationId) {
     await Contract.updateOne(
-      { _id: contractId },
+      { _id: contract._id },
       { $set: { conversationId: conversation.conversationId } }
     );
   }

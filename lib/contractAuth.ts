@@ -1,6 +1,6 @@
-// lib/contractAuth.ts - shared auth for contract-scoped routes
 import { connectDB } from "@/lib/db";
 import mongoose from "mongoose";
+import { currentUser } from "@clerk/nextjs/server";
 import User from "@/db/models/User";
 import Contract from "@/db/models/Contract";
 import ClientProfile from "@/db/models/ClientProfile";
@@ -12,10 +12,21 @@ export async function getContractAndRole(contractId: string, clerkId: string) {
   await connectDB();
 
   const user = await User.findOne({ clerkId });
-  if (!user) return null;
+  
+  // Collect all potential emails for this user
+  let userEmails: string[] = user?.email ? [user.email.toLowerCase().trim()] : [];
+  
+  const clerkUser = await currentUser();
+  if (clerkUser) {
+    const clerkEmails = clerkUser.emailAddresses.map(e => e.emailAddress.toLowerCase().trim());
+    // Use a Set to unique-ify and spread back to array
+    userEmails = Array.from(new Set([...userEmails, ...clerkEmails]));
+  }
 
-  const clientProfile = await ClientProfile.findOne({ user: user._id });
-  const contractorProfile = await ContractProfile.findOne({ user: user._id });
+  const userEmail = userEmails[0] || null; // For backward compatibility in logs if needed
+
+  const clientProfile = user ? await ClientProfile.findOne({ user: user._id }) : null;
+  const contractorProfile = user ? await ContractProfile.findOne({ user: user._id }) : null;
 
   // 1. Add ownerId and Party B fields to the search conditions
   const conditions: Record<string, unknown>[] = [
@@ -23,10 +34,8 @@ export async function getContractAndRole(contractId: string, clerkId: string) {
     { partyB_ClerkId: clerkId }
   ];
   
-  // If we have the user's email, they can also access if partyB_Email matches
-  const userEmail = user.email;
-  if (userEmail) {
-    conditions.push({ partyB_Email: userEmail });
+  if (userEmails.length > 0) {
+    conditions.push({ partyB_Email: { $in: userEmails } });
   }
 
   if (clientProfile) conditions.push({ client: clientProfile._id });
@@ -38,9 +47,19 @@ export async function getContractAndRole(contractId: string, clerkId: string) {
     : { contractId: contractId };
 
   const filter = { ...idCondition, $or: conditions };
+  // FIX: Use $and to prevent $or collision
+  const finalFilter = { $and: [idCondition, { $or: conditions }] };
+
+  console.log("DEBUG: getContractAndRole filters:", { 
+    contractId, 
+    clerkId, 
+    userEmails, 
+    finalFilter: JSON.stringify(finalFilter) 
+  });
 
   // 2. Update type to handle nulls from dummy IDs and the new ownerId
   type ContractLean = {
+    _id: mongoose.Types.ObjectId;
     ownerId?: string;
     partyB_Email?: string;
     partyB_ClerkId?: string;
@@ -58,7 +77,9 @@ export async function getContractAndRole(contractId: string, clerkId: string) {
         };
       };
     }
-  ).findOne(filter).populate("client").populate("contractor").lean();
+  ).findOne(finalFilter).populate("client").populate("contractor").lean();
+
+  console.log("DEBUG: contract found:", !!contract);
 
   if (!contract) return null;
 
@@ -75,10 +96,11 @@ export async function getContractAndRole(contractId: string, clerkId: string) {
 
   const isOwner = contract.ownerId === clerkId;
   
-  const userEmailForCheck = user.email;
   const isPartyB = 
     (contract.partyB_ClerkId && contract.partyB_ClerkId === clerkId) || 
-    (contract.partyB_Email && userEmailForCheck && contract.partyB_Email === userEmailForCheck);
+    (contract.partyB_Email && userEmails.includes(contract.partyB_Email.toLowerCase().trim()));
+
+  console.log("DEBUG: role calculation:", { isClient, isContractor, isOwner, isPartyB });
 
   // 4. Assign the correct role and sender ID
   let role: "client" | "contractor" | "owner" | "partyB";

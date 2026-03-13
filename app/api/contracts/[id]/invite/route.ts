@@ -56,8 +56,8 @@ export async function POST(
 
     // 6. Execute the State Machine Transition
     // We update the target email and flip the status.
-    const updatedContract = await Contract.findByIdAndUpdate(
-      id,
+    const updatedContract = await Contract.findOneAndUpdate(
+      { contractId: id },
       {
         $set: {
           partyB_Email: email.toLowerCase().trim(),
