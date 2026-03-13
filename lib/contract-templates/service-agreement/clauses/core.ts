@@ -177,8 +177,8 @@ Authorized Signatory: {{PARTY_A_SIGNATORY_NAME}}
 Title: {{PARTY_A_SIGNATORY_TITLE}}
 Email: {{PARTY_A_EMAIL}}
 
-Signature: _______________________
-Date: ____________________________
+Signature: {{PARTY_A_SIGNATURE}}
+Date: {{EFFECTIVE_DATE}}
 
 
 ------------------------------------
@@ -188,8 +188,8 @@ Authorized Signatory: {{PARTY_B_SIGNATORY_NAME}}
 Title: {{PARTY_B_SIGNATORY_TITLE}}
 Email: {{PARTY_B_EMAIL}}
 
-Signature: _______________________
-Date: ____________________________
+Signature: {{PARTY_B_SIGNATURE}}
+Date: {{EFFECTIVE_DATE}}
 `,
 } as const;
 

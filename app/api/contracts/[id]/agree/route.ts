@@ -44,10 +44,27 @@ export async function POST(
       );
     }
 
+    const nowStr = new Date().toLocaleDateString("en-US", { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
     if (role === "owner") {
       contractDoc.ownerAgreed = true;
+      // Creator's agreement counts as signature/locking
+      const sigText = `DIGITALLY SIGNED by ${clerkId} (Owner) on ${nowStr}`;
+      contractDoc.contractContent = (contractDoc.contractContent || "")
+        .replace("{{PARTY_A_SIGNATURE}}", sigText)
+        .replace("_______________________", sigText); // Fallback for old templates
     } else if (role === "partyB" || role === "client" || role === "contractor") {
       contractDoc.partyBAgreed = true;
+      const sigText = `DIGITALLY SIGNED by ${clerkId} (Party B) on ${nowStr}`;
+      contractDoc.contractContent = (contractDoc.contractContent || "")
+        .replace("{{PARTY_B_SIGNATURE}}", sigText)
+        .replace("_______________________", sigText); // Fallback for old templates
     } else {
       return NextResponse.json({ error: "Unauthorized role for agreement" }, { status: 403 });
     }

@@ -11,7 +11,7 @@
 import { contractStructure, ClauseId } from "./structure";
 import { coreClauses, CoreClauseId } from "./clauses/core";
 import { optionalClauses, OptionalClauseId } from "./clauses/optional";
-import { PlaceholderKey, PlaceholderValueMap } from "./placeholders";
+import { PlaceholderKey, PlaceholderValueMap, contractPlaceholders } from "./placeholders";
 import { validatePlaceholders } from "./validatePlaceholders";
 
 /**
@@ -93,6 +93,8 @@ export function generateContract(input: GenerateContractInput): string {
    * STEP 5: Placeholder Replacement
    * We replace tokens like {{PARTY_A_NAME}} with the actual value.
    */
+  const signatureFields = ["PARTY_A_SIGNATURE", "PARTY_B_SIGNATURE"];
+  
   for (const key in placeholderValues) {
     const value = placeholderValues[key as PlaceholderKey];
     
@@ -101,6 +103,14 @@ export function generateContract(input: GenerateContractInput): string {
       const placeholderToken = `{{${key}}}`;
       // Split/Join is faster and safer for global replacement in large strings
       contractText = contractText.split(placeholderToken).join(String(value));
+    }
+  }
+
+  // Handle signature defaults if not explicitly provided
+  for (const key of signatureFields) {
+    if (!placeholderValues[key as PlaceholderKey]) {
+      const placeholderToken = `{{${key}}}`;
+      contractText = contractText.split(placeholderToken).join("_______________________");
     }
   }
 

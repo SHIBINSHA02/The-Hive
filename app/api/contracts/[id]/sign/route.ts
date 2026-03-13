@@ -43,11 +43,27 @@ export async function POST(
       );
     }
 
+    const nowStr = new Date().toLocaleDateString("en-US", { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+
     if (role === "owner") {
       contractDoc.ownerSigned = true;
+      const sigText = `DIGITALLY SIGNED by ${clerkId} (Owner) on ${nowStr}`;
+      contractDoc.contractContent = (contractDoc.contractContent || "")
+        .replace("{{PARTY_A_SIGNATURE}}", sigText)
+        .replace("_______________________", sigText); // Fallback
     } else if (role === "partyB" || role === "client" || role === "contractor") {
       // Mapping other roles to partyBSigned for simplicity in the 2-party logic
       contractDoc.partyBSigned = true;
+      const sigText = `DIGITALLY SIGNED by ${clerkId} (Party B) on ${nowStr}`;
+      contractDoc.contractContent = (contractDoc.contractContent || "")
+        .replace("{{PARTY_B_SIGNATURE}}", sigText)
+        .replace("_______________________", sigText); // Fallback
     } else {
       return NextResponse.json({ error: "Unauthorized role for signing" }, { status: 403 });
     }

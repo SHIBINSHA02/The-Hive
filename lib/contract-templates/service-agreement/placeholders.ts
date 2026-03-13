@@ -330,6 +330,18 @@ export const contractPlaceholders = {
     label: "Party B Signatory Title",
     placeholder: "e.g., CEO / Manager",
   },
+  PARTY_A_SIGNATURE: {
+    type: "string",
+    required: false,
+    label: "Party A Digital Signature",
+    placeholder: "Automatic upon agreement",
+  },
+  PARTY_B_SIGNATURE: {
+    type: "string",
+    required: false,
+    label: "Party B Digital Signature",
+    placeholder: "Automatic upon agreement",
+  },
 } as const;
 
 /**
