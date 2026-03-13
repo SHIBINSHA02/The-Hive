@@ -26,20 +26,30 @@ export async function GET() {
     const clientProfileId = clientProfile?._id?.toString();
     const contractorProfileId = contractorProfile?._id?.toString();
 
-    // ---------- FIX IS HERE ----------
+    // Collect all potential emails for this user to match Party B invitations
+    const userEmails: string[] = user.email ? [user.email.toLowerCase().trim()] : [];
+    
+    // ---------- FIX FOR VISIBILITY ----------
     const conditions: Record<string, unknown>[] = [];
 
     // 1. Fetch contracts you own (drafts)
     conditions.push({ ownerId: clerkId }); 
 
-    // 2. Fetch contracts tied to your profiles (if they exist)
+    // 2. Fetch contracts where you are Party B (by Clerk ID or Email)
+    conditions.push({ partyB_ClerkId: clerkId });
+    if (userEmails.length > 0) {
+      conditions.push({ partyB_Email: { $in: userEmails } });
+    }
+
+    // 3. Fetch contracts tied to your profiles (if they exist)
     if (clientProfile) conditions.push({ client: clientProfile._id });
     if (contractorProfile) conditions.push({ contractor: contractorProfile._id });
     // ----------------------------------
 
     const contracts = await Contract.find({ 
       $or: conditions,
-      contractStatus: { $in: ["locked", "active", "completed"] }
+      // Show all negotiation and active statuses
+      contractStatus: { $in: ["draft", "sent_for_review", "in_negotiation", "locked", "active", "completed"] }
     })
       .populate("client")
       .populate("contractor")
@@ -47,6 +57,11 @@ export async function GET() {
       .lean();
 
     const formattedContracts = contracts.map((contract: any) => {
+      // Security: Drafts are only visible to the owner
+      if (contract.contractStatus === "draft" && contract.ownerId !== clerkId) {
+        return null;
+      }
+
       const clientId =
         contract?.client?._id?.toString?.() ??
         contract?.client?.toString?.() ??
@@ -56,8 +71,11 @@ export async function GET() {
         contract?.contractor?.toString?.() ??
         (contract?.contractor ? String(contract.contractor) : "");
 
-      // If you are the owner, you are viewing your own draft.
-      // Otherwise, we check if you are the client or contractor.
+      // Identify viewer role
+      const isPartyB = 
+        (contract.partyB_ClerkId && contract.partyB_ClerkId === clerkId) || 
+        (contract.partyB_Email && userEmails.includes(contract.partyB_Email.toLowerCase().trim()));
+
       const viewerRole =
         contract.ownerId === clerkId
           ? "owner"
@@ -65,7 +83,9 @@ export async function GET() {
             ? "client"
             : contractorProfileId && contractorId && contractorId === contractorProfileId
               ? "contractor"
-              : undefined;
+              : isPartyB
+                ? "partyB"
+                : undefined;
 
       const clientName: string | undefined = contract?.client?.name;
       const contractorName: string | undefined = contract?.contractor?.name;
@@ -74,7 +94,9 @@ export async function GET() {
           ? contractorName
           : viewerRole === "contractor"
             ? clientName
-            : undefined;
+            : viewerRole === "partyB"
+              ? contract.companyName // Fallback for invited guest seeing the company
+              : undefined;
 
       return {
         _id: contract._id.toString(),
@@ -98,10 +120,10 @@ export async function GET() {
         contractContent: contract.contractContent || "",
         clientName,
         contractorName,
-        viewerRole, // Will now output "owner", "client", or "contractor"
+        viewerRole, 
         counterpartyName,
       };
-    });
+    }).filter(Boolean); // Filter out nulls from draft security check
 
     return NextResponse.json(formattedContracts);
   } catch (err: unknown) {
