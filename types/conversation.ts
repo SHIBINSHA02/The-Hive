@@ -3,7 +3,7 @@
 export interface ConversationMessage {
   _id?: string;
   senderId: string;
-  senderRole: "client" | "contractor" | "system";
+  senderRole: "client" | "contractor" | "system" | "owner" | "partyB";
   message: string;
   attachments?: string[];
   isRead?: boolean;

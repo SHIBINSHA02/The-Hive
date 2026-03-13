@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { connectDB } from "@/lib/db";
 import mongoose from "mongoose";
-import Conversation from "@/db/models/Conversation";
+import ContractConversation from "@/db/models/Conversation";
 import Contract from "@/db/models/Contract";
 import { getContractAndRole } from "@/lib/contractAuth";
 
@@ -40,7 +40,7 @@ export async function POST(
   await connectDB();
 
   type ConvDoc = { threads: { id: (tid: string) => { messages: { push: (m: object) => void } } | null }; lastMessage?: string; save: () => Promise<unknown>; conversationId: string };
-  const findOne = (Conversation as { findOne: (q: object) => Promise<ConvDoc | null> }).findOne.bind(Conversation);
+  const findOne = (ContractConversation as { findOne: (q: object) => Promise<ConvDoc | null> }).findOne.bind(ContractConversation);
   let conversation = await findOne({ contractId });
 
   if (!conversation) {
@@ -59,7 +59,7 @@ export async function POST(
       status: "active",
     };
     const created = await (
-      Conversation as { create: (doc: typeof createPayload) => Promise<ConvDoc | ConvDoc[]> }
+      ContractConversation as { create: (doc: typeof createPayload) => Promise<ConvDoc | ConvDoc[]> }
     ).create(createPayload);
     const doc = Array.isArray(created) ? created[0] ?? null : created;
     if (!doc)
@@ -86,7 +86,7 @@ export async function POST(
   await conversation.save();
 
   const updated = await (
-    Conversation as { findOne: (q: object) => { lean: () => { exec: () => Promise<unknown> } } }
+    ContractConversation as { findOne: (q: object) => { lean: () => { exec: () => Promise<unknown> } } }
   ).findOne({ contractId }).lean().exec();
   const normalized = normalizeConversation(updated as Parameters<typeof normalizeConversation>[0]);
   return NextResponse.json(normalized);

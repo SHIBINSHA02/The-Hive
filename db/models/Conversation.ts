@@ -2,7 +2,7 @@ import mongoose, { Schema, Document, Model } from "mongoose";
 
 export interface IMessage {
   senderId: string;
-  senderRole: "client" | "contractor" | "system";
+  senderRole: "client" | "contractor" | "system" | "owner" | "partyB";
   message: string;
   attachments: string[];
   isRead: boolean;
@@ -20,10 +20,10 @@ export interface IThread {
 
 export interface IConversation extends Document {
   conversationId: string;
-  contractId: mongoose.Types.ObjectId;
+  contractId: string;
   participants: {
-    client: mongoose.Types.ObjectId;
-    contractor: mongoose.Types.ObjectId;
+    client: string;
+    contractor: string;
   };
   threads: mongoose.Types.DocumentArray<IThread>;
   messages: IMessage[];
@@ -41,7 +41,7 @@ const MessageSchema = new Schema(
     },
     senderRole: {
       type: String,
-      enum: ["client", "contractor", "system"],
+      enum: ["client", "contractor", "system", "owner", "partyB"],
       required: true,
     },
     message: {
@@ -84,20 +84,17 @@ const ConversationSchema = new Schema<IConversation>(
     },
 
     contractId: {
-      type: Schema.Types.ObjectId,
-      ref: "Contract",
+      type: String,
       required: true,
     },
 
     participants: {
       client: {
-        type: Schema.Types.ObjectId,
-        ref: "ClientProfile",
+        type: String,
         required: true,
       },
       contractor: {
-        type: Schema.Types.ObjectId,
-        ref: "ContractProfile",
+        type: String,
         required: true,
       },
     },
@@ -127,7 +124,7 @@ const ConversationSchema = new Schema<IConversation>(
   { timestamps: true }
 );
 
-const Conversation: Model<IConversation> =
-  mongoose.models.Conversation || mongoose.model<IConversation>("Conversation", ConversationSchema);
+const ContractConversation: Model<IConversation> =
+  mongoose.models.ContractConversation || mongoose.model<IConversation>("ContractConversation", ConversationSchema);
 
-export default Conversation;
+export default ContractConversation;
