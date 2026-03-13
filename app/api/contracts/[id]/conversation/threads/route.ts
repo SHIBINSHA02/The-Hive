@@ -19,15 +19,17 @@ export async function POST(
   req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
-  const { id: contractId } = await context.params;
+  const { id: contractIdParam } = await context.params;
   const { userId: clerkId } = await auth();
   if (!clerkId)
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const result = await getContractAndRole(contractId, clerkId);
+  const result = await getContractAndRole(contractIdParam, clerkId);
   if (!result)
     return NextResponse.json({ error: "Contract not found" }, { status: 404 });
 
+  const contract = result.contract as any;
+  const canonicalId = contract.contractId || contractIdParam;
   const body = await req.json().catch(() => ({}));
   const subject = typeof body.subject === "string" ? body.subject.trim() : "";
   if (!subject)
@@ -37,19 +39,16 @@ export async function POST(
 
   type ConvDoc = { threads: { push: (x: { subject: string; messages: unknown[] }) => void }; save: () => Promise<unknown>; conversationId: string };
   const findOne = (ContractConversation as { findOne: (q: object) => Promise<ConvDoc | null> }).findOne.bind(ContractConversation);
-  let conversation = await findOne({ contractId });
+  let conversation = await findOne({ contractId: canonicalId });
 
   if (!conversation) {
-    const contract = await (
-      Contract as { findOne: (q: object) => { select: (s: string) => { lean: () => Promise<unknown> } } }
-    ).findOne({ contractId }).select("_id client contractor contractId").lean();
-    if (!contract)
-      return NextResponse.json({ error: "Contract not found" }, { status: 404 });
-    const contractDoc = contract as { contractId?: string; client: unknown; contractor: unknown };
     const createPayload = {
-      conversationId: `CONVO-${contractDoc.contractId ?? contractId}`,
-      contractId,
-      participants: { client: contractDoc.client, contractor: contractDoc.contractor },
+      conversationId: `CONVO-${canonicalId}`,
+      contractId: canonicalId,
+      participants: { 
+        client: contract.client?._id?.toString() || contract.client?.toString() || "", 
+        contractor: contract.contractor?._id?.toString() || contract.contractor?.toString() || "" 
+      },
       threads: [],
       messages: [],
       status: "active",
@@ -72,7 +71,7 @@ export async function POST(
 
   const updated = await (
     ContractConversation as { findOne: (q: object) => { lean: () => { exec: () => Promise<unknown> } } }
-  ).findOne({ contractId }).lean().exec();
+  ).findOne({ contractId: canonicalId }).lean().exec();
   const normalized = normalizeConversation(updated as Parameters<typeof normalizeConversation>[0]);
   return NextResponse.json(normalized);
 }

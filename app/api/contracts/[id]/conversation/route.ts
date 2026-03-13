@@ -28,28 +28,22 @@ export async function GET(
     if (!result)
       return NextResponse.json({ error: "Contract not found" }, { status: 404 });
 
-    await connectDB();
-
-    const contract = await (
-      Contract as { findOne: (q: object) => { select: (s: string) => { lean: () => { exec: () => Promise<any> } } } }
-    ).findOne({ contractId }).select("_id client contractor contractId conversationId").lean().exec();
-    
-    if (!contract)
-      return NextResponse.json({ error: "Contract not found" }, { status: 404 });
+    const contract = result.contract as any;
+    const canonicalId = contract.contractId || contractId;
 
     const createPayload = {
-      conversationId: `CONVO-${contract.contractId ?? contractId}`,
-      contractId,
+      conversationId: `CONVO-${canonicalId}`,
+      contractId: canonicalId,
       participants: { 
-        client: contract.client.toString(), 
-        contractor: contract.contractor.toString() 
+        client: contract.client?._id?.toString() || contract.client?.toString() || "", 
+        contractor: contract.contractor?._id?.toString() || contract.contractor?.toString() || "" 
       },
       status: "active",
     };
 
     // Atomic Find or Create (Upsert)
     const conversation = await ContractConversation.findOneAndUpdate(
-      { contractId },
+      { contractId: canonicalId },
       { 
         $setOnInsert: {
           ...createPayload,
