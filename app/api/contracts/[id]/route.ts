@@ -63,7 +63,7 @@ export async function GET(
       : new Date().toISOString(),
     progress: (contract as any).progress ?? 0,
     contractStatus: (contract as any).contractStatus ?? "pending",
-    partyB_Email: (contract as any).partyB_Email, // Give the frontend access to the email
+    partyB_Email: (contract as any).partyB_Email,
     clauses: (contract as any).clauses ?? [],
     keypoints: (contract as any).keypoints ?? [],
     contractContent: (contract as any).contractContent ?? "",
@@ -71,6 +71,7 @@ export async function GET(
     partyBSigned: (contract as any).partyBSigned ?? false,
     ownerAgreed: (contract as any).ownerAgreed ?? false,
     partyBAgreed: (contract as any).partyBAgreed ?? false,
+    currentTurn: (contract as any).currentTurn ?? "owner",
     clientName,
     contractorName,
     viewerRole: role,
@@ -86,37 +87,27 @@ export async function PUT(
   req: Request,
   context: { params: Promise<{ id: string }> }
 ) {
+  // LECTURE: We keep PUT the same for now, as it's typically used for total resource replacement.
+  // We will concentrate our version control logic on the PATCH route below.
   const { id } = await context.params;
 
   const { userId: clerkId } = await auth();
-  if (!clerkId)
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  // Safety check: Ensures the user has permission (owner, client, or contractor)
   const exists = await getContractAndRole(id, clerkId);
-  if (!exists)
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  if (!exists) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await connectDB();
   const body = await req.json();
-  
-  // Security: Ensure ownerId can't be updated
   delete body.ownerId;
 
-  // If content is modified, reset agreements
   if (body.contractContent) {
     body.ownerAgreed = false;
     body.partyBAgreed = false;
   }
 
-  // Use the internal _id of the contract we just verified
   const internalId = exists.contract._id;
-
-  console.log("DEBUG: Contract PUT update:", { id, internalId, bodyKeys: Object.keys(body) });
-
   const updated = await Contract.findByIdAndUpdate(internalId, body, { new: true });
-  console.log("DEBUG: Contract PUT updated success:", !!updated);
-
   return NextResponse.json(updated);
 }
 
@@ -137,26 +128,61 @@ export async function PATCH(
   await connectDB();
   const body = await req.json();
   
-  // Security: Ensure ownerId can't be patched
+  // Security: Ensure ownerId can't be patched by a bad actor
   delete body.ownerId;
 
-  // If content is modified, reset agreements
-  if (body.contractContent) {
-    body.ownerAgreed = false;
-    body.partyBAgreed = false;
+  const internalId = exists.contract._id;
+  
+  // LECTURE: We fetch the currently saved document *before* we apply any updates. 
+  // We need to compare the incoming text with the old text.
+  const existingContract = await Contract.findById(internalId);
+  if (!existingContract) return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // LECTURE: This is a complex Mongoose update object. We separate $set (replacing fields) 
+  // from $push (adding an item to an array) so they execute simultaneously.
+  const updateDoc: any = { $set: { ...body } };
+
+  // LECTURE: The crucial version control & mutual exclusion check.
+  if (body.contractContent && body.contractContent !== existingContract.contractContent) {
+    
+    // 1. Reset the "Handshake" flags
+    updateDoc.$set.ownerAgreed = false;
+    updateDoc.$set.partyBAgreed = false;
+    
+    // NEW: Shift the status to negotiation mode so both parties can participate
+    updateDoc.$set.contractStatus = "in_negotiation"; 
+
+    // 2. MUTUAL EXCLUSION: Pass the "pen" to the other party
+    const isOwner = exists.role === "owner";
+    updateDoc.$set.currentTurn = isOwner ? "partyB" : "owner";
+
+    // 3. Create the snapshot of the OLD text
+    updateDoc.$push = {
+      versionHistory: {
+        updatedBy: clerkId,
+        updatedAt: new Date(),
+        contentSnapshot: existingContract.contractContent,
+        action: "proposed_edit"
+      }
+    };
   }
 
-  // Use the internal _id of the contract we just verified
-  const internalId = exists.contract._id;
+  // Also pass the pen if the owner is sending a draft for review
+  if (body.contractStatus === "sent_for_review") {
+      updateDoc.$set.currentTurn = "partyB";
+  }
 
-  console.log("DEBUG: Contract PATCH update:", { id, internalId, bodyKeys: Object.keys(body) });
+  // Also pass the pen if the owner is sending a draft for review
+  if (body.contractStatus === "sent_for_review") {
+      updateDoc.$set.currentTurn = "partyB";
+  }
 
+  // Execute the secure update
   const updated = await Contract.findByIdAndUpdate(
     internalId,
-    { $set: body },
-    { new: true }
+    updateDoc,
+    { new: true } // Return the freshly updated document
   );
-  console.log("DEBUG: Contract PATCH updated success:", !!updated);
 
   return NextResponse.json(updated);
 }

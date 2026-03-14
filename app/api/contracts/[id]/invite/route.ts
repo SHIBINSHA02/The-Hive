@@ -74,6 +74,7 @@ export async function POST(
           partyB_Email: invitedEmail.toLowerCase().trim(),
           contractStatus: "sent_for_review",
           ownerAgreed: true, // The creator agrees upon sending
+          currentTurn: "partyB",
         },
       },
       { new: true } // Returns the modified document

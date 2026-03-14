@@ -8,7 +8,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Contract, Financial } from "@/types/contract";
 import type { ConversationType } from "@/types/conversation";
-import { Bot, Send, X, MessageSquare, Sparkles, Mail, Loader2, Camera } from "lucide-react";
+import { Bot, Send, X, MessageSquare, Sparkles, Mail, Loader2, Camera, Edit3, Save } from "lucide-react";
 
 interface ContractDetailsResponse {
   contract: Contract;
@@ -31,6 +31,13 @@ export default function RequestContractDetailsPage() {
   const [isAgreeing, setIsAgreeing] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
+
+  // ==========================================
+  // LECTURE: NEW EDITING STATE VARIABLES
+  // ==========================================
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
 
   // --- AI CHAT STATES ---
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -106,6 +113,38 @@ export default function RequestContractDetailsPage() {
     }
   };
 
+  // ==========================================
+  // LECTURE: EDITING LOGIC HANDLERS
+  // ==========================================
+  const handleEditToggle = () => {
+    setEditContent(data?.contractContent || "");
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      setIsSavingEdit(true);
+      const res = await fetch(`/api/contracts/${contractId}`, { 
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contractContent: editContent })
+      });
+      
+      if (!res.ok) throw new Error("Failed to save changes");
+      
+      const updated = await res.json();
+      setData(updated as Contract);
+      setIsEditing(false); 
+      setIsAgreeing(false); // Force re-agreement on new text
+      
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  // --- EXISTING ACTION HANDLERS ---
   const handleAgree = async () => {
     try {
       setIsAgreeing(true);
@@ -167,23 +206,6 @@ export default function RequestContractDetailsPage() {
     }
   };
 
-  const handleSendForReview = async () => {
-    try {
-      setLoading(true);
-      const res = await fetch(`/api/contracts/${contractId}`, { 
-          method: "PATCH",
-          body: JSON.stringify({ contractStatus: "sent_for_review" })
-      });
-      if (!res.ok) throw new Error("Failed to send for review");
-      const updated = await res.json();
-      setData(updated as Contract);
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   if (loading) return (
     <div className="flex items-center justify-center p-12">
       <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
@@ -202,7 +224,7 @@ export default function RequestContractDetailsPage() {
           <div className="absolute inset-0 bg-gray-200" />
         )}
 
-        {/* Background Edit Button (Owner Only) */}
+        {/* Background Edit Button (Owner Only - In case Owner opens via Requests) */}
         {viewerRole === "owner" && (
           <label className="absolute top-4 right-4 z-50 bg-black/70 hover:bg-black/90 backdrop-blur-md text-white px-3 py-2 rounded-lg cursor-pointer transition-all flex items-center gap-2 text-sm font-bold shadow-2xl border border-white/20">
             <Camera className="w-5 h-5 text-blue-400" />
@@ -235,7 +257,7 @@ export default function RequestContractDetailsPage() {
           </label>
         )}
 
-        <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/40 to-transparent p-6 flex items-end justify-between text-white">
+        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6 flex items-end justify-between text-white">
           <div>
             <h1 className="text-3xl font-bold">{data.contractTitle}</h1>
             <div className="flex items-center gap-3 mt-2 relative group/logo">
@@ -287,25 +309,35 @@ export default function RequestContractDetailsPage() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3">
+            {/* LECTURE: "Suggest Edits" toggle. Only visible if it is Party B's turn! */}
+            {(data.contractStatus === "in_negotiation" || data.contractStatus === "sent_for_review") && !isEditing && (
+              data.currentTurn === "partyB" ? (
+                <button
+                  onClick={handleEditToggle}
+                  className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-4 py-2.5 rounded-lg font-semibold border border-white/50 flex items-center gap-2 transition-all shadow-lg"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Suggest Edits
+                </button>
+              ) : (
+                <div className="bg-white/20 backdrop-blur-md text-white px-4 py-2.5 rounded-lg font-semibold border border-white/50 flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Owner is Editing...
+                </div>
+              )
+            )}
+
             {(data.contractStatus === "in_negotiation" || data.contractStatus === "sent_for_review" || data.contractStatus === "draft") && (
               <div className="flex items-center gap-2">
-                {viewerRole === "owner" && data.contractStatus === "draft" && (
-                    <button
-                        onClick={handleSendForReview}
-                        className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
-                    >
-                        <Send className="w-5 h-5" />
-                        Send for Review
-                    </button>
-                )}
-
                 {((viewerRole === "owner" && !data.ownerAgreed) || (viewerRole !== "owner" && !data.partyBAgreed)) ? (
                   <div className="flex items-center gap-3">
                     {data.contractStatus !== "draft" && (
                         <button
                             onClick={handleAgree}
-                            disabled={isAgreeing}
-                            className="bg-amber-600 hover:bg-amber-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
+                            disabled={isAgreeing || isEditing} // Can't agree while editing!
+                            className={`px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105 ${
+                              isEditing ? "bg-gray-400 text-gray-200 cursor-not-allowed" : "bg-amber-600 hover:bg-amber-500 text-white"
+                            }`}
                         >
                             {isAgreeing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
                             Agree to Content
@@ -488,11 +520,44 @@ export default function RequestContractDetailsPage() {
         </ul>
       </div>
 
-      {/* Full Document Section */}
+      {/* ========================================== */}
+      {/* LECTURE: FULL DOCUMENT SECTION WITH EDITING TENT */}
+      {/* ========================================== */}
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
-        <h2 className="font-semibold text-lg">Contract Document</h2>
-        <div className="prose max-w-none mt-3">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{data.contractContent || ""}</ReactMarkdown>
+        <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+            <h2 className="font-semibold text-lg">Contract Document</h2>
+            {isEditing && (
+                <div className="flex gap-2 animate-in fade-in zoom-in duration-200">
+                    <button 
+                        onClick={() => setIsEditing(false)}
+                        className="px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        onClick={handleSaveEdit}
+                        disabled={isSavingEdit || editContent === data.contractContent}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:bg-blue-400"
+                    >
+                        {isSavingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        Save Proposed Changes
+                    </button>
+                </div>
+            )}
+        </div>
+        
+        <div className="prose max-w-none mt-4">
+          {/* LECTURE: The actual Toggle. If true, show a text area. If false, show the Markdown. */}
+          {isEditing ? (
+              <textarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  className="w-full min-h-[500px] p-4 text-sm font-mono bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                  placeholder="Type your contract edits here..."
+              />
+          ) : (
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{data.contractContent || ""}</ReactMarkdown>
+          )}
         </div>
       </div>
 
