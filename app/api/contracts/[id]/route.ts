@@ -59,6 +59,7 @@ export async function GET(
       : new Date().toISOString(),
     progress: (contract as any).progress ?? 0,
     contractStatus: (contract as any).contractStatus ?? "pending",
+    partyB_Email: (contract as any).partyB_Email, // Give the frontend access to the email
     clauses: (contract as any).clauses ?? [],
     keypoints: (contract as any).keypoints ?? [],
     contractContent: (contract as any).contractContent ?? "",

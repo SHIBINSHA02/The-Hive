@@ -49,6 +49,8 @@ export async function POST(
         contractDoc.contractStatus = "draft";
         contractDoc.ownerAgreed = false;
         contractDoc.partyBAgreed = false;
+        contractDoc.ownerSigned = false;
+        contractDoc.partyBSigned = false;
         message = "Contract request cancelled and moved back to draft.";
     } 
     // LOGIC 2: Rescinding personal agreement

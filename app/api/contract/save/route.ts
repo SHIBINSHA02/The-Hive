@@ -5,24 +5,38 @@ import { v4 as uuidv4 } from "uuid";
 
 // 1. Import your Models and Logic
 import Contract from "@/db/models/Contract";
-// import ClientProfile from "@/db/models/ClientProfile"; // Uncomment if you have this
+import User from "@/db/models/User";
+import ClientProfile from "@/db/models/ClientProfile";
+import ContractProfile from "@/db/models/ContractProfile";
 import { getContractLogic } from "@/lib/contract-templates/logic-registry";
 import { connectDB } from "@/lib/db"; // ✅ FIX 1: Corrected import name
 
 export async function POST(req: NextRequest) {
   try {
-    // 2. Authenticate (✅ FIX 2: Added 'await')
+    // 2. Authenticate
     const { userId } = await auth();
 
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // 3. Parse Request
-    const { contractType, formData, selectedClauses } = await req.json();
-
     // 4. Connect to DB
     await connectDB();
+
+    const userDoc = await User.findOne({ clerkId: userId });
+    let clientId = new mongoose.Types.ObjectId();
+    let contractorId = new mongoose.Types.ObjectId();
+
+    if (userDoc) {
+      const clientProfile = await ClientProfile.findOne({ user: userDoc._id });
+      const contractorProfile = await ContractProfile.findOne({ user: userDoc._id });
+
+      if (clientProfile) clientId = clientProfile._id;
+      if (contractorProfile) contractorId = contractorProfile._id;
+    }
+
+    // 3. Parse Request
+    const { contractType, formData, selectedClauses } = await req.json();
 
     // 5. Generate the "Clean" Contract Content
     const templateLogic = getContractLogic(contractType);
@@ -44,10 +58,8 @@ export async function POST(req: NextRequest) {
 
     /**
      * 6. Resolve Relationships
-     * For now, we generate IDs. Later, replace this with a real ClientProfile lookup.
+     * Fallback to new ObjectIds if the user profiles aren't found
      */
-    const clientId = new mongoose.Types.ObjectId();
-    const contractorId = new mongoose.Types.ObjectId();
 
     // 7. Create the Contract Document
     // We map your Form Data to the exact Schema fields you shared
@@ -70,6 +82,7 @@ export async function POST(req: NextRequest) {
       // Relationships
       client: clientId,
       contractor: contractorId,
+      partyB_Email: formData.PARTY_B_EMAIL, // Newly added to save the collected email
 
       // The Core Content
       contractContent: finalContent,

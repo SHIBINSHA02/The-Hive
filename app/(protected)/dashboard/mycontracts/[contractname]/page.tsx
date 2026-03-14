@@ -119,12 +119,30 @@ export default function ContractDetailsPage() {
   // PHASE 2: INVITE SUBMISSION LOGIC
   // ==========================================
   /**
-   * Handles sending the counterparty's email to the backend.
+   * Instantly sends the invite using the email already captured during the draft creation.
    * This flips the contract status from "draft" to "sent_for_review".
    */
   const handleSendInvite = async () => {
-    if (!inviteEmail.includes("@")) {
-      setInviteError("Please enter a valid email address.");
+    // Determine the email to use: priority to what's already saved
+    const emailToUse = data?.partyB_Email || inviteEmail;
+
+    if (!emailToUse || !emailToUse.includes("@")) {
+      // Fallback if somehow the email didn't save, just prompt
+      const fallbackEmail = window.prompt("Please enter the counterparty's email to send the review request:");
+      if (!fallbackEmail || !fallbackEmail.includes("@")) {
+        alert("Valid email is required to send the contract for review.");
+        return;
+      }
+      setInviteEmail(fallbackEmail);
+      return; 
+      // The state update will trigger re-render, user will have to click again or we can just continue:
+      // Actually, better to just proceed with fallbackEmail
+    }
+
+    // Use fallbackEmail if emailToUse wasn't valid but fallback was
+    const finalEmail = (emailToUse && emailToUse.includes("@")) ? emailToUse : inviteEmail;
+
+    if (!window.confirm(`Are you sure you want to send this contract to ${finalEmail} for review?`)) {
       return;
     }
 
@@ -132,11 +150,10 @@ export default function ContractDetailsPage() {
     setInviteError("");
 
     try {
-      // We will build this API route next!
       const res = await fetch(`/api/contracts/${contractId}/invite`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: inviteEmail }),
+        body: JSON.stringify({ email: finalEmail }),
       });
 
       if (!res.ok) {
@@ -146,11 +163,9 @@ export default function ContractDetailsPage() {
 
       // Success! Update local state to reflect the new status
       setData(prev => prev ? { ...prev, contractStatus: "sent_for_review" } as Contract : null);
-      setIsInviteModalOpen(false);
-      setInviteEmail("");
       
     } catch (err: any) {
-      setInviteError(err.message);
+      alert(err.message || "Something went wrong sending the invite.");
     } finally {
       setIsSendingInvite(false);
     }
@@ -239,11 +254,12 @@ export default function ContractDetailsPage() {
           <div className="flex items-center gap-3">
             {data.contractStatus === "draft" && viewerRole === "owner" && (
               <button
-                onClick={() => setIsInviteModalOpen(true)}
+                onClick={handleSendInvite}
+                disabled={isSendingInvite}
                 className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
               >
-                <Mail className="w-5 h-5" />
-                Send for Review
+                {isSendingInvite ? <Loader2 className="w-5 h-5 animate-spin" /> : <Mail className="w-5 h-5" />}
+                Send to Counterparty
               </button>
             )}
 
@@ -377,67 +393,8 @@ export default function ContractDetailsPage() {
       </div>
 
       {/* ========================================== */}
-      {/* PHASE 2: SEND FOR REVIEW MODAL             */}
+      {/* PHASE 2: INVITE LOGIC IS NOW MODAL-LESS    */}
       {/* ========================================== */}
-      {isInviteModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-in fade-in duration-200 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-200">
-            {/* Modal Header */}
-            <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-              <h3 className="text-lg font-bold text-gray-900">Invite to Negotiate</h3>
-              <button 
-                onClick={() => setIsInviteModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            {/* Modal Body */}
-            <div className="p-6">
-              <p className="text-sm text-gray-600 mb-4">
-                Enter the email address of the counterparty. They will receive a secure link to review and suggest edits to this document.
-              </p>
-              
-              <div className="space-y-1">
-                <label className="text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                  Counterparty Email
-                </label>
-                <input
-                  type="email"
-                  placeholder="e.g., legal@company.com"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  className="w-full px-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all outline-none"
-                  autoFocus
-                />
-              </div>
-              
-              {inviteError && (
-                <p className="mt-2 text-sm text-red-600 font-medium">{inviteError}</p>
-              )}
-            </div>
-
-            {/* Modal Footer */}
-            <div className="px-6 py-4 bg-gray-50 flex justify-end gap-3 border-t border-gray-100">
-              <button
-                onClick={() => setIsInviteModalOpen(false)}
-                className="px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-200 transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={handleSendInvite}
-                disabled={isSendingInvite || !inviteEmail}
-                className="px-6 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
-              >
-                {isSendingInvite ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
-                Send Request
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* --- AI CHAT SIDEBAR (Existing Code) --- */}
       {isChatOpen && (

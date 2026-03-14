@@ -62,6 +62,7 @@ export async function POST(
         $set: {
           partyB_Email: email.toLowerCase().trim(),
           contractStatus: "sent_for_review",
+          ownerAgreed: true, // The creator agrees upon sending
         },
       },
       { new: true } // Returns the modified document

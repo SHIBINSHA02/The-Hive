@@ -52,13 +52,9 @@ export async function POST(
     });
 
     if (role === "owner") {
-      contractDoc.ownerSigned = true;
-      const sigText = `DIGITALLY SIGNED by ${clerkId} (Owner) on ${nowStr}`;
-      contractDoc.contractContent = (contractDoc.contractContent || "")
-        .replace("{{PARTY_A_SIGNATURE}}", sigText)
-        .replace("_______________________", sigText); // Fallback
+      return NextResponse.json({ error: "Owner has already signed by locking the contract." }, { status: 400 });
     } else if (role === "partyB" || role === "client" || role === "contractor") {
-      // Mapping other roles to partyBSigned for simplicity in the 2-party logic
+      // Mapping other roles to partyBSigned
       contractDoc.partyBSigned = true;
       const sigText = `DIGITALLY SIGNED by ${clerkId} (Party B) on ${nowStr}`;
       contractDoc.contractContent = (contractDoc.contractContent || "")
@@ -68,7 +64,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized role for signing" }, { status: 403 });
     }
 
-    // Check if both have signed
+    // Since the owner signed during locking, and Party B just signed:
     if (contractDoc.ownerSigned && contractDoc.partyBSigned) {
       contractDoc.contractStatus = "active";
       contractDoc.progress = 100;

@@ -39,15 +39,14 @@ export async function GET() {
     // Find contracts where this user's email matches partyB_Email AND it is currently in the negotiation loop.
     const receivedRequests = await Contract.find({
       partyB_Email: userEmail.toLowerCase().trim(),
-      contractStatus: { $in: ["sent_for_review", "in_negotiation"] }
+      contractStatus: { $in: ["sent_for_review", "in_negotiation", "locked"] }
     }).sort({ updatedAt: -1 }); // Sort by newest first
 
-    // 4. FETCH OUTBOX (Sent Requests)
-    // Find contracts where this user is the owner AND they have sent it out for review.
-    // Exclude 'draft' so that cancelling (moving back to draft) removes it from this view.
+    // 4. FETCH OUTBOX (Sent Requests & Drafts)
+    // Find contracts where this user is the owner AND they are still in draft/negotiation/locked phases.
     const sentRequests = await Contract.find({
       ownerId: clerkId,
-      contractStatus: { $in: ["sent_for_review", "in_negotiation"] }
+      contractStatus: { $in: ["draft", "sent_for_review", "in_negotiation", "locked"] }
     }).sort({ updatedAt: -1 });
 
     // 5. Return both arrays to the frontend

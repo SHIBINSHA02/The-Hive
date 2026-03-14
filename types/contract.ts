@@ -24,6 +24,7 @@ export interface Contract {
   partyBSigned: boolean;
   ownerAgreed: boolean;
   partyBAgreed: boolean;
+  partyB_Email?: string; // Captured email for sending invitations
 
   // Populated by API in some views
   clientName?: string;

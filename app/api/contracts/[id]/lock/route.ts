@@ -36,17 +36,34 @@ export async function POST(
        return NextResponse.json({ error: "Contract not found" }, { status: 404 });
     }
 
-    // You can only lock if it's in negotiation or sent for review
-    const validStatuses = ["sent_for_review", "in_negotiation"];
-    if (!validStatuses.includes(contractDoc.contractStatus)) {
-      return NextResponse.json(
-        { error: `Cannot lock contract in ${contractDoc.contractStatus} state.` },
-        { status: 400 }
-      );
+    // Only the owner can lock the contract
+    if (authResult.role !== "owner") {
+      return NextResponse.json({ error: "Only the contract owner can lock the contract." }, { status: 403 });
     }
+
+    // Ensure the counterparty has agreed before locking (optional but good practice)
+    if (!contractDoc.partyBAgreed) {
+      return NextResponse.json({ error: "Cannot lock until the other party has agreed to the terms." }, { status: 400 });
+    }
+
+    const nowStr = new Date().toLocaleDateString("en-US", { 
+      year: 'numeric', 
+      month: 'long', 
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    });
 
     await connectDB();
     contractDoc.contractStatus = "locked";
+    contractDoc.ownerSigned = true;
+
+    // Creator's locking acts as their signature
+    const sigText = `DIGITALLY SIGNED by ${clerkId} (Owner) on ${nowStr}`;
+    contractDoc.contractContent = (contractDoc.contractContent || "")
+      .replace("{{PARTY_A_SIGNATURE}}", sigText)
+      .replace("_______________________", sigText); // Fallback
+
     await contractDoc.save();
 
     return NextResponse.json({

@@ -7,7 +7,7 @@ import Link from "next/link";
 import { Contract } from "@/types/contract";
 import { useRouter } from "next/navigation";
 
-const filterOptions = ["All Contracts", "Active", "Pending", "Completed"];
+const filterOptions = ["All Contracts", "Active", "Completed"];
 
 export default function ContractPage() {
   const router = useRouter();
@@ -51,9 +51,6 @@ export default function ContractPage() {
 
     if (activeFilter === "Active")
       return matchesSearch && contract.contractStatus === "active";
-
-    if (activeFilter === "Pending")
-      return matchesSearch && contract.contractStatus === "pending";
 
     if (activeFilter === "Completed")
       return matchesSearch && contract.contractStatus === "completed";
