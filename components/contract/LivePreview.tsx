@@ -1,55 +1,68 @@
 "use client";
 
-/**
- * LivePreview.tsx
- * ---------------
- * This component acts as a "Real-Time Mirror" of the contract data.
- * It consumes the ContractContext to show a live rendered document of what has been filled.
- * * * DESIGN UPDATE: Now utilizes the deterministic generator.ts engine to render 
- * a 1:1 WYSIWYG (What You See Is What You Get) A4 paper preview.
- */
-
-import { useMemo } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 import { useContract } from "@/app/(protected)/dashboard/mycontracts/create-contract/_context/ContractContext";
-
-// Ensure this path points correctly to your generator engine
 import { generateContract } from "@/lib/contract-templates/service-agreement/generator"; 
 
 export function LivePreview() {
-  // 1. Pull current form state and template metadata from Context
   const { formData, template, selectedClauses } = useContract();
+  
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
-  // 2. Logic: Check if the user has started typing anything at all
-  // We use .some() to check if at least one value in formData is truthy
+  // ==========================================
+  // ADDED: TRACK CURRENTLY UPDATING FIELD
+  // ==========================================
+  const [activeKey, setActiveKey] = useState<string | null>(null);
+  const prevFormData = useRef<Record<string, any>>(formData);
+
+  useEffect(() => {
+    // 1. Compare new formData against old to find what just changed
+    const allKeys = Array.from(new Set([...Object.keys(formData), ...Object.keys(prevFormData.current)]));
+    const changedKey = allKeys.find(k => formData[k] !== prevFormData.current[k]);
+    
+    if (changedKey) {
+      setActiveKey(changedKey);
+    }
+    
+    prevFormData.current = formData;
+
+  }, [formData]);
+
+
   const hasData = Object.values(formData).some((val) => val && String(val).trim() !== "");
 
-  // 3. Logic: Generate the real-time HTML string using the deterministic engine
   const liveHtmlPreview = useMemo(() => {
     if (!hasData) return "";
 
     try {
-      // We pass isDraft: true so validation errors don't crash the preview
-      // This allows the UI to render incomplete contracts during editing safely.
+      // ==========================================
+      // ADDED: INJECT HIGHLIGHT HTML
+      // ==========================================
+      // We clone the data so we don't accidentally save HTML tags to the real database
+      const previewData = { ...formData };
+      
+      if (activeKey && previewData[activeKey] && String(previewData[activeKey]).trim() !== "") {
+        previewData[activeKey] = `<span class="active-highlight bg-blue-200 text-blue-900 border border-blue-300 px-1 py-0.5 rounded shadow-sm transition-all duration-300">${previewData[activeKey]}</span>`;
+      }
+
+      // Generate text using our cloned, highlighted data
       const rawText = generateContract({
-        placeholderValues: formData,
+        placeholderValues: previewData,
         selectedOptionalClauses: selectedClauses,
         isDraft: true, 
       });
 
-      // Format the raw legal structure into HTML paragraphs for the UI
       let formattedHtml = rawText
         .split("\n\n")
         .map(paragraph => `<p class="mb-4 text-justify leading-relaxed">${paragraph}</p>`)
         .join("");
 
-      // Make the [MISSING: KEY] tokens visually glow yellow for the user
-      // so they know exactly what fields are still required.
+      // Still highlight the missing tokens in yellow
       formattedHtml = formattedHtml.replace(
         /\[MISSING:\s*([^\]]+)\]/g,
-        `<span class="bg-yellow-200 text-yellow-900 text-xs font-bold px-1.5 py-0.5 rounded shadow-sm mx-1 align-baseline border border-yellow-300">$1</span>`
+        `<span class="missing-token bg-yellow-200 text-yellow-900 text-xs font-bold px-1.5 py-0.5 rounded shadow-sm mx-1 align-baseline border border-yellow-300">$1</span>`
       );
 
-      // Prepend the official Document Title based on the template config
       const logoHtml = formData.COMPANY_LOGO 
         ? `<div class="flex justify-center mb-6"><img src="${formData.COMPANY_LOGO}" alt="Company Logo" class="max-h-24 object-contain" /></div>` 
         : "";
@@ -64,13 +77,33 @@ export function LivePreview() {
       console.error("Preview Generation Error:", error);
       return `<div class="p-4 bg-red-50 text-red-600 rounded border border-red-200">Failed to render preview.</div>`;
     }
-  }, [formData, selectedClauses, template, hasData]);
+  }, [formData, selectedClauses, template, hasData, activeKey]);
+
+  // ==========================================
+  // UPDATED: AUTO-SCROLL ENGINE
+  // ==========================================
+  useEffect(() => {
+    const scrollTimeout = setTimeout(() => {
+      if (scrollContainerRef.current) {
+        // Look for the active typing highlight first. If not found, look for the next missing token.
+        const targetElement = 
+          scrollContainerRef.current.querySelector('.active-highlight') || 
+          scrollContainerRef.current.querySelector('.missing-token');
+        
+        if (targetElement) {
+          targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }, 100);
+
+    return () => clearTimeout(scrollTimeout);
+  }, [liveHtmlPreview]); 
 
 
   return (
     <div className="flex flex-col h-full bg-gray-200/50 rounded-xl overflow-hidden border border-gray-200">
       
-      {/* HEADER: Displays the specific contract type name from the Registry */}
+      {/* HEADER */}
       <div className="flex items-center justify-between px-4 py-3 bg-white border-b border-gray-200 shadow-sm z-10">
         <h2 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
           <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
@@ -84,10 +117,9 @@ export function LivePreview() {
       </div>
 
       {/* SCROLLABLE DESK AREA */}
-      <div className="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center custom-scrollbar">
+      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center custom-scrollbar scroll-smooth">
         
         {!hasData ? (
-          /* EMPTY STATE: Shown when no data has been entered yet */
           <div className="flex flex-col items-center justify-center text-center py-20 w-full max-w-[210mm] border-2 border-dashed border-gray-300 rounded-xl bg-gray-50/50">
             <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3 shadow-sm border border-gray-100">
               <svg className="w-6 h-6 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -99,9 +131,8 @@ export function LivePreview() {
             </p>
           </div>
         ) : (
-          /* ACTIVE STATE: Fades in as data is populated and renders the A4 Paper container */
           <div 
-            className="bg-white shadow-2xl ring-1 ring-gray-900/5 w-full max-w-[210mm] min-h-[297mm] p-[15mm] sm:p-[20mm] text-black font-serif transition-all duration-500 animate-in fade-in zoom-in-95"
+            className="bg-white shadow-2xl ring-1 ring-gray-900/5 w-full max-w-[210mm] min-h-[297mm] p-[15mm] sm:p-[20mm] text-black font-serif transition-all duration-500 animate-in fade-in zoom-in-95 relative"
             style={{ 
               backgroundImage: formData.BACKGROUND_IMAGE ? `url(${formData.BACKGROUND_IMAGE})` : undefined,
               backgroundSize: 'cover',
@@ -110,7 +141,6 @@ export function LivePreview() {
               backgroundBlendMode: 'overlay',
             }}
           >
-            {/* The actual injected HTML generated by the deterministic engine */}
             <div 
               className="prose prose-sm sm:prose-base max-w-none text-gray-800"
               dangerouslySetInnerHTML={{ __html: liveHtmlPreview }} 
