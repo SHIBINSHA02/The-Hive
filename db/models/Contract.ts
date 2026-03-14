@@ -1,18 +1,6 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { customAIClient } from "@/lib/customAIClient";
 
-// 1. Initialize Gemini (optionally, based on env)
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-let genAI: GoogleGenerativeAI | null = null;
-let embeddingsEnabled = false;
-let embeddingErrorLogged = false;
-
-if (!GEMINI_API_KEY) {
-  console.warn("GEMINI_API_KEY not set; contract embeddings are disabled.");
-} else {
-  genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-  embeddingsEnabled = true;
-}
 
 // --- NEW: Interface for Version History Objects ---
 // This defines the shape of a single edit snapshot.
@@ -159,20 +147,11 @@ ContractSchema.pre("save", async function () {
     this.isModified("contractTitle") ||
     this.embeddings.length === 0;
 
-  if (needsUpdate && embeddingsEnabled && genAI) {
+  if (needsUpdate) {
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
-      const result = await model.embedContent(getEmbedText(this));
-      this.embeddings = result.embedding.values;
+      this.embeddings = await customAIClient.getEmbedding(getEmbedText(this));
     } catch (err) {
-      if (!embeddingErrorLogged) {
-        console.error(
-          "Embedding generation failed on save; disabling further embedding attempts until restart.",
-          err
-        );
-        embeddingErrorLogged = true;
-      }
-      embeddingsEnabled = false;
+      console.error("Embedding generation failed on save:", err);
     }
   }
 });
@@ -186,20 +165,12 @@ ContractSchema.pre("findOneAndUpdate", async function () {
   // Check if any text fields are being updated
   const textChanged = update.contractContent || update.summary || update.contractTitle;
 
-  if (textChanged && embeddingsEnabled && genAI) {
+  if (textChanged) {
     try {
-      const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
-      const result = await model.embedContent(getEmbedText(update));
-      this.setUpdate({ ...update, embeddings: result.embedding.values });
+      const newEmbeddings = await customAIClient.getEmbedding(getEmbedText(update));
+      this.setUpdate({ ...update, embeddings: newEmbeddings });
     } catch (err) {
-      if (!embeddingErrorLogged) {
-        console.error(
-          "Embedding generation failed on update; disabling further embedding attempts until restart.",
-          err
-        );
-        embeddingErrorLogged = true;
-      }
-      embeddingsEnabled = false;
+      console.error("Embedding generation failed on update:", err);
     }
   }
 });

@@ -17,7 +17,7 @@
  * - Can mock for testing
  */
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { customAIClient } from "../../customAIClient";
 import { AIClient } from "./aiFillPlaceholders";
 
 /**
@@ -49,69 +49,17 @@ export function createGeminiClient(apiKey: string): AIClient {
     );
   }
 
-  // Initialize Gemini with API key
-  const genAI = new GoogleGenerativeAI(apiKey);
-
-  // Configure the model
-  const model = genAI.getGenerativeModel({
-    model: "gemini-2.5-flash", // Best model for professional writing
-
-    generationConfig: {
-      /**
-       * Temperature controls randomness/creativity:
-       * - 0.0 = Always picks most likely word (very consistent)
-       * - 0.3 = Mostly consistent with slight variation (good for contracts)
-       * - 0.7 = Balanced creativity
-       * - 1.0 = Very creative and random
-       *
-       * For legal contracts: Use 0.3 for professional consistency
-       */
-      temperature: 0.3,
-
-      /**
-       * topP: Nucleus sampling (0.0 to 1.0)
-       * Controls diversity of word selection
-       */
-      topP: 0.8,
-
-      /**
-       * topK: Limits number of token choices
-       * Smaller = more focused, larger = more diverse
-       */
-      topK: 40,
-    },
-  });
-
   // Return AIClient interface implementation
   return {
-    /**
-     * Generate text using Gemini
-     *
-     * @param prompt - Text prompt to send to Gemini
-     * @returns Generated text response
-     * @throws Error if Gemini API call fails
-     */
     generateText: async (prompt: string): Promise<string> => {
       try {
-        // Send prompt to Gemini
-        const result = await model.generateContent(prompt);
-
-        // Extract response
-        const response = await result.response;
-
-        // Return text content
-        return response.text();
+        return await customAIClient.generateText(prompt, {
+          temperature: 0.3,
+          max_new_tokens: 1024
+        });
       } catch (error) {
-        /**
-            * Normalize error output.
-            * Gemini SDK may throw non-standard error shapes.
-        */
-
-        const message = error instanceof Error 
-          ? error.message 
-          : String(error);
-
-        throw new Error(`Gemini API error: ${message}`);
+        const message = error instanceof Error ? error.message : String(error);
+        throw new Error(`Custom AI API error: ${message}`);
       }
     },
   };

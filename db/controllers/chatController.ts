@@ -1,7 +1,5 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { customAIClient } from "@/lib/customAIClient";
 import Contract from "@/db/models/Contract";
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
 export const handleChatLogic = async (
     prompt: string,
@@ -35,13 +33,7 @@ export const handleChatLogic = async (
         // 1. Generate embedding
         // -----------------------------
 
-        const embedModel = genAI.getGenerativeModel({
-            model: "gemini-embedding-001",
-        });
-
-        const embedResult = await embedModel.embedContent(prompt);
-
-        const queryVector = embedResult.embedding.values;
+        const queryVector = await customAIClient.getEmbedding(prompt);
 
         console.log("Embedding length:", queryVector.length);
 
@@ -109,10 +101,6 @@ ${d.contractContent}
         // 5. Generate answer with Gemini
         // -----------------------------
 
-        const chatModel = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
-        });
-
         const finalPrompt = `
 You are Hive AI, a professional legal contract assistant.
 
@@ -132,9 +120,11 @@ ${prompt}
 ANSWER:
 `;
 
-        const result = await chatModel.generateContent(finalPrompt);
+        const response = await customAIClient.generateText(finalPrompt, {
 
-        const response = result.response.text();
+            temperature: 0.3,
+            max_new_tokens: 1024
+        });
 
         return response;
 
