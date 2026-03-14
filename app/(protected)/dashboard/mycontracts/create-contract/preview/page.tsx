@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useContract } from "../_context/ContractContext";
-import { Loader2, FileText, ChevronLeft, Download, CheckCircle, Save } from "lucide-react";
+import { Loader2, FileText, ChevronLeft, Download, CheckCircle, Save, ImagePlus } from "lucide-react";
 
 export default function PreviewPage() {
   const router = useRouter();
@@ -127,43 +127,60 @@ export default function PreviewPage() {
         </div>
       </div>
 
-      <div className="bg-white border text-sm border-gray-200 shadow-sm rounded-lg overflow-hidden flex flex-col mb-6 p-6 space-y-4">
-        <h2 className="font-semibold text-gray-800 text-lg">Digital Presentation Aesthetics</h2>
-        <p className="text-gray-500 mb-4">Customize how the recipient sees this contract online. These images will not be included in the downloaded PDF.</p>
+      <div className="bg-white border text-sm border-gray-200 shadow-sm rounded-xl overflow-hidden flex flex-col mb-6 p-6 space-y-4">
+        <h2 className="font-semibold text-gray-800 text-lg flex items-center gap-2">
+          <ImagePlus className="w-5 h-5 text-blue-600" /> Digital Presentation Aesthetics
+        </h2>
+        <p className="text-gray-500 mb-2">Customize how the recipient sees this contract online. These images will not be included in the downloaded PDF.</p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-2">
+          <div className="space-y-3 relative group">
             <label className="text-sm font-semibold text-gray-700">Company Logo</label>
-            <input
-              type="file"
-              accept="image/*"
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onloadend = () => updateField("COMPANY_LOGO", reader.result as string);
-                  reader.readAsDataURL(file);
-                }
-              }}
-            />
-            {formData.COMPANY_LOGO && <p className="text-xs text-green-600 font-medium mt-1">Logo uploaded successfully</p>}
+            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-blue-50 hover:border-blue-400 transition-all">
+              <div className="flex flex-col items-center justify-center text-center px-4">
+                <ImagePlus className="w-6 h-6 mb-2 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                <p className="text-sm font-medium text-gray-600 group-hover:text-blue-600">Click to upload logo</p>
+                <p className="text-xs text-gray-400 mt-1">PNG, JPG or WEBP (Max 2MB)</p>
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => updateField("COMPANY_LOGO", reader.result as string);
+                    reader.readAsDataURL(file);
+                  }
+                }}
+              />
+            </label>
+            {formData.COMPANY_LOGO && <p className="text-xs text-green-600 font-medium absolute -bottom-5 left-0">✓ Logo uploaded successfully</p>}
           </div>
-          <div className="space-y-2">
+
+          <div className="space-y-3 relative group">
             <label className="text-sm font-semibold text-gray-700">Background Image</label>
-            <input
-              type="file"
-              accept="image/*"
-              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  const reader = new FileReader();
-                  reader.onloadend = () => updateField("BACKGROUND_IMAGE", reader.result as string);
-                  reader.readAsDataURL(file);
-                }
-              }}
-            />
-            {formData.BACKGROUND_IMAGE && <p className="text-xs text-green-600 font-medium mt-1">Background uploaded successfully</p>}
+            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-blue-50 hover:border-blue-400 transition-all">
+              <div className="flex flex-col items-center justify-center text-center px-4">
+                <ImagePlus className="w-6 h-6 mb-2 text-gray-400 group-hover:text-blue-500 transition-colors" />
+                <p className="text-sm font-medium text-gray-600 group-hover:text-blue-600">Click to upload background</p>
+                <p className="text-xs text-gray-400 mt-1">High-res landscape recommended</p>
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const reader = new FileReader();
+                    reader.onloadend = () => updateField("BACKGROUND_IMAGE", reader.result as string);
+                    reader.readAsDataURL(file);
+                  }
+                }}
+              />
+            </label>
+            {formData.BACKGROUND_IMAGE && <p className="text-xs text-green-600 font-medium absolute -bottom-5 left-0">✓ Background uploaded successfully</p>}
           </div>
         </div>
       </div>

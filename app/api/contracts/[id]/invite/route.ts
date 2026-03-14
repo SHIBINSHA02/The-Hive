@@ -29,10 +29,21 @@ export async function POST(
 
     // 3. Extract the email from the frontend payload
     const body = await req.json();
-    const { email } = body;
+    const { email: invitedEmail } = body;
 
-    if (!email || !email.includes("@")) {
+    if (!invitedEmail || !invitedEmail.includes("@")) {
       return NextResponse.json({ error: "Valid email is required" }, { status: 400 });
+    }
+
+    // IDENTITY CHECK: Ensure Party A and Party B are different people
+    const { currentUser: getClerkUser } = await import("@clerk/nextjs/server");
+    const user = await getClerkUser();
+    const myEmails = user?.emailAddresses.map(e => e.emailAddress.toLowerCase().trim()) || [];
+    if (myEmails.includes(invitedEmail.toLowerCase().trim())) {
+      return NextResponse.json(
+        { error: "You cannot invite yourself as the counterparty. Party A and Party B must be different people." },
+        { status: 400 }
+      );
     }
 
     // 4. Authorization via Gatekeeper
@@ -60,7 +71,7 @@ export async function POST(
       { contractId: id },
       {
         $set: {
-          partyB_Email: email.toLowerCase().trim(),
+          partyB_Email: invitedEmail.toLowerCase().trim(),
           contractStatus: "sent_for_review",
           ownerAgreed: true, // The creator agrees upon sending
         },

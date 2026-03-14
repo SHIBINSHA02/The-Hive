@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import mongoose from "mongoose";
 
 import { connectDB } from "@/lib/db";
 import Contract from "@/db/models/Contract";
@@ -22,7 +23,10 @@ export async function GET(
 
   // Safety: If this is Party B and we haven't linked their Clerk ID yet, do it now
   if (result.role === "partyB" && !result.contract.partyB_ClerkId) {
-    await Contract.findOneAndUpdate({ contractId: id }, { $set: { partyB_ClerkId: clerkId } });
+    const idFilter = mongoose.Types.ObjectId.isValid(id) 
+      ? { $or: [{ _id: id }, { contractId: id }] }
+      : { contractId: id };
+    await Contract.findOneAndUpdate(idFilter, { $set: { partyB_ClerkId: clerkId } });
   }
 
   // result now includes 'owner' in the role union
@@ -105,7 +109,13 @@ export async function PUT(
     body.partyBAgreed = false;
   }
 
-  const updated = await Contract.findOneAndUpdate({ contractId: id }, body, { new: true });
+  // Use the internal _id of the contract we just verified
+  const internalId = exists.contract._id;
+
+  console.log("DEBUG: Contract PUT update:", { id, internalId, bodyKeys: Object.keys(body) });
+
+  const updated = await Contract.findByIdAndUpdate(internalId, body, { new: true });
+  console.log("DEBUG: Contract PUT updated success:", !!updated);
 
   return NextResponse.json(updated);
 }
@@ -136,11 +146,17 @@ export async function PATCH(
     body.partyBAgreed = false;
   }
 
-  const updated = await Contract.findOneAndUpdate(
-    { contractId: id },
+  // Use the internal _id of the contract we just verified
+  const internalId = exists.contract._id;
+
+  console.log("DEBUG: Contract PATCH update:", { id, internalId, bodyKeys: Object.keys(body) });
+
+  const updated = await Contract.findByIdAndUpdate(
+    internalId,
     { $set: body },
     { new: true }
   );
+  console.log("DEBUG: Contract PATCH updated success:", !!updated);
 
   return NextResponse.json(updated);
 }

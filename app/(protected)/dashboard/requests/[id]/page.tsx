@@ -8,7 +8,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Contract, Financial } from "@/types/contract";
 import type { ConversationType } from "@/types/conversation";
-import { Bot, Send, X, MessageSquare, Sparkles, Mail, Loader2 } from "lucide-react";
+import { Bot, Send, X, MessageSquare, Sparkles, Mail, Loader2, Camera } from "lucide-react";
 
 interface ContractDetailsResponse {
   contract: Contract;
@@ -195,17 +195,92 @@ export default function RequestContractDetailsPage() {
   return (
     <div className="w-full lg:px-6 px-0 lg:py-6 py-0 space-y-6 relative">
       {/* Header */}
-      <div className="relative w-full h-56 rounded-2xl overflow-hidden shadow flex flex-col justify-end">
-        {data.bgImageUrl && (
+      <div className="relative w-full h-56 rounded-2xl overflow-hidden shadow flex flex-col justify-end group/bg">
+        {data.bgImageUrl ? (
           <Image src={data.bgImageUrl} alt="Background" fill className="object-cover" />
+        ) : (
+          <div className="absolute inset-0 bg-gray-200" />
         )}
+
+        {/* Background Edit Button (Owner Only) */}
+        {viewerRole === "owner" && (
+          <label className="absolute top-4 right-4 z-50 bg-black/70 hover:bg-black/90 backdrop-blur-md text-white px-3 py-2 rounded-lg cursor-pointer transition-all flex items-center gap-2 text-sm font-bold shadow-2xl border border-white/20">
+            <Camera className="w-5 h-5 text-blue-400" />
+            <span>Change Background</span>
+            <input 
+              type="file" 
+              accept="image/*" 
+              className="hidden" 
+              onChange={async (e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onloadend = async () => {
+                    const base64 = reader.result as string;
+                    setData(prev => prev ? { ...prev, bgImageUrl: base64 } as Contract : null);
+                    try {
+                      await fetch(`/api/contracts/${contractId}`, {
+                        method: "PATCH",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ bgImageUrl: base64 })
+                      });
+                    } catch (err) {
+                      console.error("Failed to update background", err);
+                    }
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }} 
+            />
+          </label>
+        )}
+
         <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/40 to-transparent p-6 flex items-end justify-between text-white">
           <div>
             <h1 className="text-3xl font-bold">{data.contractTitle}</h1>
-            <div className="flex items-center gap-3 mt-2">
-              {data.companyLogoUrl && (
-                <Image src={data.companyLogoUrl} alt={data.companyName} width={38} height={38} className="rounded bg-white p-0.5" />
+            <div className="flex items-center gap-3 mt-2 relative group/logo">
+              {data.companyLogoUrl ? (
+                <div className="relative w-[38px] h-[38px] rounded bg-white p-0.5 overflow-hidden">
+                  <Image src={data.companyLogoUrl} alt={data.companyName} fill className="object-cover" />
+                </div>
+              ) : (
+                <div className="w-[38px] h-[38px] rounded bg-white/20 flex items-center justify-center">
+                  <span className="text-sm font-bold">{data.companyName.charAt(0)}</span>
+                </div>
               )}
+
+              {/* Logo Edit Button (Owner Only) */}
+              {viewerRole === "owner" && (
+                <label className="absolute -top-3 -left-3 z-50 bg-blue-600 hover:bg-blue-500 text-white p-1.5 rounded-full cursor-pointer transition-all shadow-xl border-2 border-white">
+                  <Camera className="w-4 h-4" />
+                  <input 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden" 
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = async () => {
+                          const base64 = reader.result as string;
+                          setData(prev => prev ? { ...prev, companyLogoUrl: base64 } as Contract : null);
+                          try {
+                            await fetch(`/api/contracts/${contractId}`, {
+                              method: "PATCH",
+                              headers: { "Content-Type": "application/json" },
+                              body: JSON.stringify({ companyLogoUrl: base64 })
+                            });
+                          } catch (err) {
+                            console.error("Failed to update logo", err);
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }} 
+                  />
+                </label>
+              )}
+
               <span className="text-lg">{data.companyName}</span>
             </div>
           </div>

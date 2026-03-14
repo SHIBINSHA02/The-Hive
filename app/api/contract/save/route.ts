@@ -38,6 +38,21 @@ export async function POST(req: NextRequest) {
     // 3. Parse Request
     const { contractType, formData, selectedClauses } = await req.json();
 
+    // IDENTITY CHECK: Ensure Party A and Party B are different people
+    const invitedEmail = formData.PARTY_B_EMAIL?.toLowerCase().trim();
+    if (invitedEmail) {
+      const { currentUser: getClerkUser } = await import("@clerk/nextjs/server");
+      const clerkUser = await getClerkUser();
+      const myEmails = clerkUser?.emailAddresses.map(e => e.emailAddress.toLowerCase().trim()) || [];
+      
+      if (myEmails.includes(invitedEmail)) {
+        return NextResponse.json(
+          { error: "You cannot invite yourself as the counterparty. Party A and Party B must be different people." },
+          { status: 400 }
+        );
+      }
+    }
+
     // 5. Generate the "Clean" Contract Content
     const templateLogic = getContractLogic(contractType);
 
@@ -77,7 +92,7 @@ export async function POST(req: NextRequest) {
 
       companyName: formData.PARTY_B_NAME || "", // "Other Company" name
       companyLogoUrl: formData.COMPANY_LOGO || "",
-      bgImageUrl: formData.BACKGROUND_IMAGE || "/images/contract-bg-default.jpg",
+      bgImageUrl: formData.BACKGROUND_IMAGE || "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop",
 
       // Relationships
       client: clientId,
