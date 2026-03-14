@@ -58,6 +58,10 @@ function validateType(type: PlaceholderType, value: unknown): boolean {
     return typeof value === "string" && isValidDate(value);
   }
 
+  if (type === "image") {
+    return typeof value === "string" && value.startsWith("data:image/");
+  }
+
   return false;
 }
 

@@ -25,7 +25,7 @@
  * AI rules are stored separately in `aiPermissions.ts`.
  */
 
-export type PlaceholderType = "string" | "date" | "text";
+export type PlaceholderType = "string" | "date" | "text" | "image";
 
 export type PlaceholderDefinition = {
   type: PlaceholderType;
@@ -341,6 +341,18 @@ export const contractPlaceholders = {
     required: false,
     label: "Party B Digital Signature",
     placeholder: "Automatic upon agreement",
+  },
+  COMPANY_LOGO: {
+    type: "image",
+    required: false,
+    label: "Company Logo",
+    placeholder: "Upload your company logo",
+  },
+  BACKGROUND_IMAGE: {
+    type: "image",
+    required: false,
+    label: "Background Image",
+    placeholder: "Upload a background image for the contract",
   },
 } as const;
 

@@ -133,6 +133,28 @@ export function FormField({ fieldKey }: FormFieldProps) {
             placeholder={config.placeholder}
             disabled={isDisabled}
           />
+        ) : config.type === "image" ? (
+          <div className="space-y-2">
+            <input
+              type="file"
+              accept="image/*"
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              disabled={isDisabled}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onloadend = () => {
+                    updateField(fieldKey, reader.result as string);
+                  };
+                  reader.readAsDataURL(file);
+                }
+              }}
+            />
+            {value && (
+              <div className="mt-2 text-xs text-green-600 font-medium">Image uploaded successfully</div>
+            )}
+          </div>
         ) : (
           <input
             type={config.type === "date" ? "date" : "text"}

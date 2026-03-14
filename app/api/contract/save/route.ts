@@ -75,9 +75,9 @@ export async function POST(req: NextRequest) {
       startDate: new Date(formData.START_DATE),
       deadline: new Date(formData.END_DATE),
 
-      companyName: formData.PARTY_B_NAME, // "Other Company" name
-      companyLogoUrl: "",
-      bgImageUrl: "/images/contract-bg-default.jpg",
+      companyName: formData.PARTY_B_NAME || "", // "Other Company" name
+      companyLogoUrl: formData.COMPANY_LOGO || "",
+      bgImageUrl: formData.BACKGROUND_IMAGE || "/images/contract-bg-default.jpg",
 
       // Relationships
       client: clientId,

@@ -11,7 +11,7 @@ export default function PreviewPage() {
   const type = searchParams.get("type");
   
   // Grab everything from our context, including the new resetForm for persistence cleanup
-  const { template, formData, selectedClauses, resetForm } = useContract();
+  const { template, formData, selectedClauses, resetForm, updateField } = useContract();
   const [isProcessing, setIsProcessing] = useState(false);
 
   /**
@@ -124,6 +124,47 @@ export default function PreviewPage() {
           <p className="text-sm text-gray-500">
             Review your document carefully. Once saved, it will appear in your dashboard.
           </p>
+        </div>
+      </div>
+
+      <div className="bg-white border text-sm border-gray-200 shadow-sm rounded-lg overflow-hidden flex flex-col mb-6 p-6 space-y-4">
+        <h2 className="font-semibold text-gray-800 text-lg">Digital Presentation Aesthetics</h2>
+        <p className="text-gray-500 mb-4">Customize how the recipient sees this contract online. These images will not be included in the downloaded PDF.</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-700">Company Logo</label>
+            <input
+              type="file"
+              accept="image/*"
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onloadend = () => updateField("COMPANY_LOGO", reader.result as string);
+                  reader.readAsDataURL(file);
+                }
+              }}
+            />
+            {formData.COMPANY_LOGO && <p className="text-xs text-green-600 font-medium mt-1">Logo uploaded successfully</p>}
+          </div>
+          <div className="space-y-2">
+            <label className="text-sm font-semibold text-gray-700">Background Image</label>
+            <input
+              type="file"
+              accept="image/*"
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  const reader = new FileReader();
+                  reader.onloadend = () => updateField("BACKGROUND_IMAGE", reader.result as string);
+                  reader.readAsDataURL(file);
+                }
+              }}
+            />
+            {formData.BACKGROUND_IMAGE && <p className="text-xs text-green-600 font-medium mt-1">Background uploaded successfully</p>}
+          </div>
         </div>
       </div>
 
