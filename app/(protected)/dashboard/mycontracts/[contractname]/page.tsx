@@ -6,12 +6,14 @@ import Image from "next/image";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import ReactDiffViewer from 'react-diff-viewer-continued';
 import { Contract, Financial } from "@/types/contract";
 import type { ConversationType } from "@/types/conversation";
 import { Bot, Send, X, MessageSquare, Sparkles, Mail, Loader2, Camera, Edit3, Save } from "lucide-react";
 
 interface ContractDetailsResponse {
   contract: Contract;
+  versionHistory?: { contentSnapshot: string; updatedAt: Date }[];
   finance: Financial | null;
   role: "client" | "contractor" | "owner"; 
 }
@@ -46,7 +48,10 @@ export default function ContractDetailsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
-
+  
+  // ADD THIS LINE: Tracks if the user is looking at the diff viewer
+  const [showDiff, setShowDiff] = useState(false);
+  
   // --- AI CHAT STATES ---
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState("");
@@ -503,11 +508,32 @@ export default function ContractDetailsPage() {
       </div>
 
       {/* ========================================== */}
-      {/* LECTURE: FULL DOCUMENT SECTION WITH EDITING TENT */}
+      {/* LECTURE: FULL DOCUMENT SECTION WITH DIFF VIEWER */}
       {/* ========================================== */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow overflow-hidden">
         <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-            <h2 className="font-semibold text-lg">Contract Document</h2>
+            <div className="flex items-center gap-4">
+              <h2 className="font-semibold text-lg">Contract Document</h2>
+              
+              {/* The Diff Viewer Toggle Switch (Only shows if there is history!) */}
+              {data.versionHistory && data.versionHistory.length > 0 && !isEditing && (
+                <div className="flex bg-gray-100 p-1 rounded-lg">
+                  <button 
+                    onClick={() => setShowDiff(false)}
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${!showDiff ? "bg-white shadow text-black" : "text-gray-500 hover:text-black"}`}
+                  >
+                    Current Version
+                  </button>
+                  <button 
+                    onClick={() => setShowDiff(true)}
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${showDiff ? "bg-white shadow text-black" : "text-gray-500 hover:text-black"}`}
+                  >
+                    View Changes
+                  </button>
+                </div>
+              )}
+            </div>
+
             {isEditing && (
                 <div className="flex gap-2 animate-in fade-in zoom-in duration-200">
                     <button 
@@ -522,13 +548,13 @@ export default function ContractDetailsPage() {
                         className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:bg-blue-400"
                     >
                         {isSavingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        Save Changes
+                        Save Proposed Changes
                     </button>
                 </div>
             )}
         </div>
         
-        <div className="prose max-w-none mt-4">
+        <div className="mt-4">
           {isEditing ? (
               <textarea
                   value={editContent}
@@ -536,8 +562,23 @@ export default function ContractDetailsPage() {
                   className="w-full min-h-[500px] p-4 text-sm font-mono bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
                   placeholder="Type your contract edits here..."
               />
+          ) : showDiff && data.versionHistory && data.versionHistory.length > 0 ? (
+              // LECTURE: The Diff Viewer!
+              // It grabs the LAST item in the versionHistory array (the snapshot taken right before the current edit)
+              <div className="border border-gray-200 rounded-lg overflow-hidden max-h-[600px] overflow-y-auto">
+                <ReactDiffViewer
+                  oldValue={data.versionHistory[data.versionHistory.length - 1].contentSnapshot}
+                  newValue={data.contractContent || ""}
+                  splitView={true}
+                  useDarkTheme={false}
+                  leftTitle="Previous Version"
+                  rightTitle="Proposed Changes"
+                />
+              </div>
           ) : (
-              <ReactMarkdown remarkPlugins={[remarkGfm]}>{data.contractContent || ""}</ReactMarkdown>
+              <div className="prose max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{data.contractContent || ""}</ReactMarkdown>
+              </div>
           )}
         </div>
       </div>

@@ -34,6 +34,7 @@ export interface Contract {
   viewerRole?: "client" | "contractor";
   counterpartyName?: string;
   currentTurn?: "owner" | "partyB";
+  versionHistory?: { contentSnapshot: string; updatedAt: Date }[];
 }
 
 export interface FinanceMilestone {
