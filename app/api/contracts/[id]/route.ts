@@ -72,6 +72,8 @@ export async function GET(
     ownerAgreed: (contract as any).ownerAgreed ?? false,
     partyBAgreed: (contract as any).partyBAgreed ?? false,
     currentTurn: (contract as any).currentTurn ?? "owner",
+    // LECTURE: Add this line to send the backup snapshots to the browser!
+    versionHistory: (contract as any).versionHistory ?? [],
     clientName,
     contractorName,
     viewerRole: role,
