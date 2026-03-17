@@ -128,13 +128,8 @@ export default function Sidebar({ isOpen, onClose, onOpen }: SidebarProps) {
               </Link>
             </li>
             <li className="text-gray-600 hover:text-black hover:bg-gray-200 p-2 rounded-lg transition">
-              <Link href="/dashboard/upload" onClick={onClose}>
-                AI Risk Analysis
-              </Link>
-            </li>
-            <li className="text-gray-600 hover:text-black hover:bg-gray-200 p-2 rounded-lg transition">
               <Link href="/dashboard/other" onClick={onClose}>
-                Analyse other contracts
+                AI Contract Analyzer
               </Link>
             </li>
           </ul>
