@@ -38,7 +38,7 @@ export function createCustomAIClient(): AIClient {
           },
           body: JSON.stringify({
             prompt: prompt,
-            max_new_tokens: 300, // Enough for contract language refinements
+            max_new_tokens: 1000, // Increased to prevent truncation for long legal clauses
             temperature: 0.3,   // Professional, consistent
             top_p: 0.8
           }),

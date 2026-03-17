@@ -54,21 +54,59 @@ export default function OtherPage() {
   };
 
   const extractJson = (text: string) => {
-    const match = text.match(/(\{[\s\S]*\})/);
-    if (match) {
-      const jsonStr = match[1].trim();
-      try {
-        return JSON.parse(jsonStr);
-      } catch (e) {
-        try {
-          const cleaned = jsonStr.replace(/,\s*([\]}])/g, '$1');
-          return JSON.parse(cleaned);
-        } catch (innerE) {
-          console.error("JSON parsing failed", innerE);
+    try {
+      // 1. Find the outermost braces
+      const start = text.indexOf('{');
+      const end = text.lastIndexOf('}');
+      
+      if (start === -1) return null;
+
+      let jsonStr = "";
+      
+      if (end !== -1 && end > start) {
+        // We have a full (or seemingly full) object
+        jsonStr = text.substring(start, end + 1);
+      } else {
+        // Potentially truncated JSON - try to "auto-close" it
+        // This is highly experimental for streaming
+        jsonStr = text.substring(start);
+        
+        // Basic truncation repair for simple structures
+        // Count braces/brackets
+        const openBrace = (jsonStr.match(/\{/g) || []).length;
+        const closeBrace = (jsonStr.match(/\}/g) || []).length;
+        const openBracket = (jsonStr.match(/\[/g) || []).length;
+        const closeBracket = (jsonStr.match(/\]/g) || []).length;
+
+        // If we're missing exactly one closing brace and we just ended mid-string or mid-value
+        if (openBrace > closeBrace) {
+           // If it ends with a comma, it was likely an array/object element
+           if (jsonStr.trim().endsWith(',')) {
+              jsonStr = jsonStr.trim().slice(0, -1);
+           }
+           // Try to close what's open
+           jsonStr += "}".repeat(openBrace - closeBrace);
         }
       }
+
+      // 2. Clean common issues
+      jsonStr = jsonStr
+        .replace(/,\s*([\]\}])/g, '$1') // Trailing commas
+        .replace(/[\u0000-\u001F]+/g, ""); // Control characters
+
+      return JSON.parse(jsonStr);
+    } catch (e) {
+      // If still failing, try a very basic match as last resort
+      const match = text.match(/(\{[\s\S]*\})/);
+      if (match) {
+        try {
+          return JSON.parse(match[1].replace(/,\s*([\]\}])/g, '$1'));
+        } catch (innerE) {
+          console.error("JSON extraction failed even after repair attempt", innerE);
+        }
+      }
+      return null;
     }
-    return null;
   };
 
   const mergeResults = (final: any, next: any) => {

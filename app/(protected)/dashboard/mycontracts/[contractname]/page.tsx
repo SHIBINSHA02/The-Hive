@@ -8,7 +8,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Contract, Financial } from "@/types/contract";
 import type { ConversationType } from "@/types/conversation";
-import { Bot, Send, X, MessageSquare, Sparkles, Mail, Loader2, Camera } from "lucide-react"; // <-- Added Mail and Loader2 icons
+import { Bot, Send, X, MessageSquare, Sparkles, Mail, Loader2, Camera, ShieldAlert } from "lucide-react"; // <-- Added ShieldAlert
 
 interface ContractDetailsResponse {
   contract: Contract;
@@ -438,6 +438,14 @@ export default function ContractDetailsPage() {
             <Sparkles size={16} />
             Ask AI Assistant
           </button>
+
+          <Link
+            href={`/dashboard/mycontracts/${encodeURIComponent(contractId)}/riskdetect`}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
+          >
+            <ShieldAlert size={16} />
+            Risk Detection
+          </Link>
 
           <Link
             href={`/dashboard/mycontracts/${encodeURIComponent(contractId)}/conversation`}

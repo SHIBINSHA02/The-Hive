@@ -4,8 +4,8 @@ export const dynamic = "force-dynamic";
 
 const BACKEND_URL = process.env.CUSTOM_MODEL_ENDPOINT?.replace("/generate", "") || "http://api.thehive.plannow.in:8000";
 
-const MAX_INPUT_TOKENS = 4800;
-const MAX_NEW_TOKENS = 1000;
+const MAX_INPUT_TOKENS = 6000;
+const MAX_NEW_TOKENS = 4000;
 
 function buildSystemInstruction(role: string): string {
   const roleFocus = role === "Client"

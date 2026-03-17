@@ -1,6 +1,28 @@
 // lib/contractExtraction.ts
 "use server";
 
+// Polyfill for browser globals that pdf-parse v2.4.5 depends on
+if (typeof global.DOMMatrix === "undefined") {
+  (global as any).DOMMatrix = class DOMMatrix {
+    a = 1; b = 0; c = 0; d = 1; e = 0; f = 0;
+  };
+}
+if (typeof global.ImageData === "undefined") {
+  (global as any).ImageData = class ImageData {
+    width: number;
+    height: number;
+    data: Uint8ClampedArray;
+    constructor(width: number, height: number) {
+      this.width = width;
+      this.height = height;
+      this.data = new Uint8ClampedArray(width * height * 4);
+    }
+  } as any;
+}
+if (typeof global.Path2D === "undefined") {
+  (global as any).Path2D = class Path2D {};
+}
+
 const pdf = require("pdf-parse");
 
 /**

@@ -36,10 +36,26 @@ export type AIClient = {
  */
 function safeJsonParse(raw: string): any {
   try {
-    // Remove markdown code blocks like ```json ... ```
-    const cleaned = raw.replace(/```json\n?|\n?```/g, "").trim();
-    return JSON.parse(cleaned);
-  } catch {
+    // 1. Extract the JSON core using outermost braces
+    const start = raw.indexOf("{");
+    const end = raw.lastIndexOf("}");
+
+    if (start === -1 || end === -1 || end < start) {
+      return null;
+    }
+
+    let jsonCandidate = raw.substring(start, end + 1);
+
+    // 2. Fix common AI JSON quirks (like trailing commas before closing braces/brackets)
+    jsonCandidate = jsonCandidate
+      .replace(/,\s*([\}\]])/g, "$1") // Remove trailing commas
+      .replace(/\\n/g, "\\n")      // Ensure correct newline escaping
+      .replace(/[\u0000-\u001F]+/g, ""); // Remove control characters
+
+    return JSON.parse(jsonCandidate);
+  } catch (err: any) {
+    console.warn("⚠️ [AI Refine] JSON Repair failed:", err.message);
+    console.debug("Raw output that failed:", raw);
     return null;
   }
 }
