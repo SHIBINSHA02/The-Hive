@@ -2,6 +2,7 @@
 "use client"
 
 import { useState, useMemo, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Notification, NotificationType } from "@/types/notification";
 import NotificationHeader from './_components/NotificationHeader';
 import NotificationStats from './_components/NotificationStats';
@@ -11,6 +12,7 @@ import { fetchAllNotifications } from './notificationService';
 
 
 export default function NotificationsPage() {
+  const router = useRouter();
   const [notifications, setNotifications] = useState<Notification[]>(fetchAllNotifications());
   const [activeFilter, setActiveFilter] = useState<NotificationType | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -130,9 +132,22 @@ export default function NotificationsPage() {
   };
 
   const handleAction = (notificationId: string, action: string) => {
-    // In a real app, this would trigger the appropriate action
-    console.log('Action triggered:', notificationId, action);
-    // You can add navigation or API calls here based on the action
+    const notification = notifications.find(n => n.id === notificationId);
+    if (!notification || !notification.contractId) return;
+
+    // Mark as read immediately upon clicking
+    if (!notification.isRead) {
+      handleMarkRead(notificationId);
+    }
+
+    // Route the user based on the notification type
+    // If it is a "request" (meaning someone sent it to them), route them to the Requests view.
+    // Otherwise, route them to their My Contracts view.
+    if (notification.type === 'request' || action === 'review' || action === 'sign') {
+      router.push(`/dashboard/requests/${encodeURIComponent(notification.contractId)}`);
+    } else {
+      router.push(`/dashboard/mycontracts/${encodeURIComponent(notification.contractId)}`);
+    }
   };
 
   // Loading state

@@ -39,17 +39,23 @@ export async function generateUserNotifications(userId: mongoose.Types.ObjectId)
   const clientProfile = await ClientProfile.findOne({ user: userId });
   const contractorProfile = await ContractProfile.findOne({ user: userId });
 
-  const conditions: Record<string, unknown>[] = [];
+  // 1. Use the robust query array to catch Owner, Party B, and Profile links
+  const userEmails = user.email ? [user.email.toLowerCase().trim()] : [];
+  const conditions: Record<string, unknown>[] = [
+    { ownerId: user.clerkId },
+    { partyB_ClerkId: user.clerkId }
+  ];
+  if (userEmails.length > 0) conditions.push({ partyB_Email: { $in: userEmails } });
   if (clientProfile) conditions.push({ client: clientProfile._id });
   if (contractorProfile) conditions.push({ contractor: contractorProfile._id });
-
-  if (!conditions.length) return;
 
   // Fetch all contracts for the user
   const contracts = await Contract.find({ $or: conditions })
     .populate("client")
     .populate("contractor")
     .lean();
+
+  if (!contracts.length) return;
 
   // Fetch finance data for all contracts
   const contractIds = contracts.map((c) => c._id);
@@ -68,15 +74,10 @@ export async function generateUserNotifications(userId: mongoose.Types.ObjectId)
   );
 
   const now = new Date();
-  const thirtyDaysFromNow = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-  const sevenDaysFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
-  const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000);
-
   const notificationsToCreate: NotificationData[] = [];
 
   for (const contract of contracts) {
     const contractDeadline = new Date(contract.deadline);
-    const contractStartDate = new Date(contract.startDate);
     const isUserClient = contract.client &&
       (typeof contract.client === 'object' ? (contract.client as any)._id?.toString() : (contract.client as any).toString()) ===
       (clientProfile?._id.toString() || '');
@@ -86,12 +87,15 @@ export async function generateUserNotifications(userId: mongoose.Types.ObjectId)
       ? ((otherParty as any)?.name || contract.companyName || 'Unknown')
       : contract.companyName || 'Unknown';
 
+    // Determine if it's actually this user's turn to act
+    const isOwner = contract.ownerId === user.clerkId;
+    const myTurn = (isOwner && contract.currentTurn === "owner") || (!isOwner && contract.currentTurn === "partyB");
+
     // 1. Contract Agreement Request (pending contracts / negotiations)
-    if (contract.contractStatus === 'sent_for_review' || contract.contractStatus === 'in_negotiation') {
+    if (myTurn && (contract.contractStatus === 'sent_for_review' || contract.contractStatus === 'in_negotiation')) {
       const daysUntilDeadline = Math.ceil((contractDeadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
       const priority: 'low' | 'medium' | 'high' | 'urgent' =
-        daysUntilDeadline < 0 ? 'urgent' :
-          daysUntilDeadline <= 3 ? 'urgent' :
+        daysUntilDeadline <= 3 ? 'urgent' :
             daysUntilDeadline <= 7 ? 'high' : 'medium';
 
       // Check if notification already exists
@@ -106,8 +110,8 @@ export async function generateUserNotifications(userId: mongoose.Types.ObjectId)
         notificationsToCreate.push({
           user: userId,
           type: 'request',
-          title: 'Contract Agreement Request',
-          description: `${otherPartyName} has requested your approval for the ${contract.contractTitle}.`,
+          title: 'Action Required: Your Turn',
+          description: `${otherPartyName} has passed the pen. It is your turn to review the ${contract.contractTitle}.`,
           priority,
           status: 'pending',
           contractName: contract.contractTitle,
@@ -116,8 +120,7 @@ export async function generateUserNotifications(userId: mongoose.Types.ObjectId)
           sender: otherPartyName,
           senderAvatar: otherPartyName.substring(0, 2).toUpperCase(),
           actions: [
-            { label: 'Review', type: 'primary', action: 'review' },
-            { label: 'Decline', type: 'destructive', action: 'decline' },
+            { label: 'Review Now', type: 'primary', action: 'review' }
           ],
         });
       }
@@ -155,8 +158,8 @@ export async function generateUserNotifications(userId: mongoose.Types.ObjectId)
             contract: contract._id,
             dueDate: contractDeadline,
             actions: [
-              { label: 'Renew', type: 'primary', action: 'renew' },
-              { label: 'Archive', type: 'secondary', action: 'archive' },
+              { label: 'View Contract', type: 'primary', action: 'view' },
+              { label: 'Archive', type: 'secondary', action: 'archive' }
             ],
           });
         }
@@ -165,94 +168,46 @@ export async function generateUserNotifications(userId: mongoose.Types.ObjectId)
 
     // 3. Payment notifications from finance data
     const finance = financeMap.get(contract._id.toString());
-    if (finance) {
-      // Check for upcoming payment milestones
-      for (const milestone of finance.milestones || []) {
-        if (!milestone || milestone.isPaid) continue;
-        if (!milestone.dueDate || !milestone.amount) continue;
+    if (finance && finance.dueAmount > 0) {
+      const daysUntilDue = Math.ceil((contractDeadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
-        const milestoneDueDate = new Date(milestone.dueDate);
-        const daysUntilDue = Math.ceil((milestoneDueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+      // Check if notification already exists for this milestone
+      const existingNotification = await Notification.findOne({
+        user: userId,
+        contract: contract._id,
+        type: 'payment',
+        amount: finance.dueAmount
+      });
 
-        if (daysUntilDue <= 30 && daysUntilDue >= -7) {
-          const priority: 'low' | 'medium' | 'high' | 'urgent' =
-            daysUntilDue < 0 ? 'urgent' :
-              daysUntilDue <= 3 ? 'urgent' :
-                daysUntilDue <= 7 ? 'high' : 'medium';
-
-          const status: 'pending' | 'approved' | 'rejected' | 'completed' | 'overdue' =
-            daysUntilDue < 0 ? 'overdue' : 'pending';
-
-          // Check if notification already exists for this milestone
-          const existingNotification = await Notification.findOne({
-            user: userId,
-            contract: contract._id,
-            type: 'payment',
-            amount: milestone.amount,
-            dueDate: milestoneDueDate
-          });
-
-          if (!existingNotification) {
-            notificationsToCreate.push({
-              user: userId,
-              type: 'payment',
-              title: daysUntilDue < 0 ? 'Payment Overdue' : 'Payment Due Soon',
-              description: daysUntilDue < 0
-                ? `Payment of $${milestone.amount.toLocaleString()} for the ${contract.contractTitle} is ${Math.abs(daysUntilDue)} day${Math.abs(daysUntilDue) !== 1 ? 's' : ''} overdue.`
-                : `Payment of $${milestone.amount.toLocaleString()} for the ${contract.contractTitle} is due in ${daysUntilDue} day${daysUntilDue !== 1 ? 's' : ''}.`,
-              priority,
-              status,
-              contractName: contract.contractTitle,
-              contractId: contract.contractId,
-              contract: contract._id,
-              amount: milestone.amount,
-              dueDate: milestoneDueDate,
-              actions: [
-                { label: 'Pay Now', type: 'primary', action: 'pay' },
-                { label: daysUntilDue < 0 ? 'Contact Support' : 'View Details', type: 'secondary', action: daysUntilDue < 0 ? 'support' : 'view' },
-              ],
-            });
-          }
-        }
-      }
-
-      // Overall payment status alerts
-      if (finance.paymentStatus === 'overdue' && finance.dueAmount > 0) {
-        const existingNotification = await Notification.findOne({
+      if (!existingNotification && daysUntilDue <= 14) {
+        notificationsToCreate.push({
           user: userId,
+          type: 'payment',
+          title: daysUntilDue < 0 ? 'Payment Overdue' : 'Payment Due Soon',
+          description: daysUntilDue < 0
+            ? `Payment of $${finance.dueAmount.toLocaleString()} for the ${contract.contractTitle} is ${Math.abs(daysUntilDue)} day${Math.abs(daysUntilDue) !== 1 ? 's' : ''} overdue.`
+            : `Payment of $${finance.dueAmount.toLocaleString()} for the ${contract.contractTitle} is due in ${daysUntilDue} day${daysUntilDue !== 1 ? 's' : ''}.`,
+          priority: daysUntilDue < 0 ? 'urgent' : 'high',
+          status: daysUntilDue < 0 ? 'overdue' : 'pending',
+          contractName: contract.contractTitle,
+          contractId: contract.contractId,
           contract: contract._id,
-          type: 'alert',
-          title: 'Payment Overdue',
-          status: 'overdue'
+          amount: finance.dueAmount,
+          dueDate: contractDeadline,
+          actions: [
+            { label: 'Pay Now', type: 'primary', action: 'pay' },
+            { label: 'View Details', type: 'secondary', action: 'view' }
+          ],
         });
-
-        if (!existingNotification) {
-          notificationsToCreate.push({
-            user: userId,
-            type: 'alert',
-            title: 'Payment Overdue',
-            description: `Outstanding payment of $${finance.dueAmount.toLocaleString()} for the ${contract.contractTitle} requires immediate attention.`,
-            priority: 'urgent',
-            status: 'overdue',
-            contractName: contract.contractTitle,
-            contractId: contract.contractId,
-            contract: contract._id,
-            amount: finance.dueAmount,
-            actions: [
-              { label: 'Pay Now', type: 'primary', action: 'pay' },
-              { label: 'Contact Support', type: 'secondary', action: 'support' },
-            ],
-          });
-        }
       }
     }
 
     // 4. Contract status updates (completed contracts)
     if (contract.contractStatus === 'completed') {
-      const completedDate = new Date(contract.deadline);
+      const completedDate = new Date(contract.deadline); // assuming deadline becomes completion date
       const daysSinceCompletion = Math.ceil((now.getTime() - completedDate.getTime()) / (1000 * 60 * 60 * 24));
 
-      if (daysSinceCompletion <= 7) {
+      if (daysSinceCompletion >= 0 && daysSinceCompletion <= 7) {
         const existingNotification = await Notification.findOne({
           user: userId,
           contract: contract._id,

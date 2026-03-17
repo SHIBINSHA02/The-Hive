@@ -9,7 +9,7 @@ import remarkGfm from "remark-gfm";
 import ReactDiffViewer from 'react-diff-viewer-continued';
 import { Contract, Financial } from "@/types/contract";
 import type { ConversationType } from "@/types/conversation";
-import { Bot, Send, X, MessageSquare, Sparkles, Mail, Loader2, Camera, Edit3, Save } from "lucide-react";
+import { Bot, Send, X, MessageSquare, Sparkles, Mail, Loader2, Camera, Edit3, Save, ShieldAlert } from "lucide-react";
 
 interface ContractDetailsResponse {
   contract: Contract;
@@ -37,8 +37,6 @@ export default function ContractDetailsPage() {
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [isSendingInvite, setIsSendingInvite] = useState(false);
-  const [inviteError, setInviteError] = useState("");
-  const [isLocking, setIsLocking] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
   const [isAgreeing, setIsAgreeing] = useState(false);
 
@@ -180,7 +178,6 @@ export default function ContractDetailsPage() {
     }
 
     setIsSendingInvite(true);
-    setInviteError("");
 
     try {
       const res = await fetch(`/api/contracts/${contractId}/invite`, {
@@ -200,20 +197,6 @@ export default function ContractDetailsPage() {
       alert(err.message || "Something went wrong sending the invite.");
     } finally {
       setIsSendingInvite(false);
-    }
-  };
-
-  const handleLock = async () => {
-    try {
-      setIsLocking(true);
-      const res = await fetch(`/api/contracts/${contractId}/lock`, { method: "POST" });
-      if (!res.ok) throw new Error("Failed to lock contract");
-      const result = await res.json();
-      setData(prev => prev ? { ...prev, contractStatus: result.status } as Contract : null);
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setIsLocking(false);
     }
   };
 
@@ -253,6 +236,45 @@ export default function ContractDetailsPage() {
       alert(err.message);
     } finally {
       setIsSigning(false);
+    }
+  };
+
+  const handleTerminate = async () => {
+    if (!window.confirm("Are you sure you want to terminate this contract? This action cannot be undone.")) return;
+    try {
+      const res = await fetch(`/api/contracts/${contractId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contractStatus: "terminated" })
+      });
+      if (!res.ok) throw new Error("Failed to terminate contract");
+      const updated = await res.json();
+      setData(updated as Contract);
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleRenew = async () => {
+    if (!window.confirm("Are you sure you want to renew? This will reset signatures and return the contract to draft status for renegotiation.")) return;
+    try {
+      const res = await fetch(`/api/contracts/${contractId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          contractStatus: "draft",
+          ownerAgreed: false,
+          partyBAgreed: false,
+          ownerSigned: false,
+          partyBSigned: false,
+          progress: 0
+        })
+      });
+      if (!res.ok) throw new Error("Failed to renew contract");
+      const updated = await res.json();
+      setData(updated as Contract);
+    } catch (err: any) {
+      alert(err.message);
     }
   };
 
@@ -427,9 +449,37 @@ export default function ContractDetailsPage() {
             )}
 
             {data.contractStatus === "active" && (
-              <div className="bg-green-500/80 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg">
-                <Sparkles className="w-5 h-5" />
-                Contract Active & Signed
+              <div className="flex items-center gap-3">
+                <div className="bg-green-500/80 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg">
+                  <Sparkles className="w-5 h-5" />
+                  Contract Active & Signed
+                </div>
+                
+                {/* LECTURE: Only the Owner can terminate or renew an active contract */}
+                {viewerRole === "owner" && (
+                   <>
+                     <button 
+                        onClick={handleRenew} 
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-semibold transition-all shadow-lg flex items-center gap-2"
+                     >
+                        Renew
+                     </button>
+                     <button 
+                        onClick={handleTerminate} 
+                        className="bg-red-600 hover:bg-red-500 text-white px-5 py-2.5 rounded-lg font-semibold transition-all shadow-lg flex items-center gap-2"
+                     >
+                        Terminate
+                     </button>
+                   </>
+                )}
+              </div>
+            )}
+
+            {/* LECTURE: The badge for when a contract is officially dead */}
+            {data.contractStatus === "terminated" && (
+              <div className="bg-red-900/80 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg">
+                <X className="w-5 h-5" />
+                Contract Terminated
               </div>
             )}
           </div>
@@ -488,6 +538,14 @@ export default function ContractDetailsPage() {
           </button>
 
           <Link
+            href={`/dashboard/mycontracts/${encodeURIComponent(contractId)}/riskdetect`}
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
+          >
+            <ShieldAlert size={16} />
+            Risk Detection
+          </Link>
+
+          <Link
             href={`/dashboard/mycontracts/${encodeURIComponent(contractId)}/conversation`}
             className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
@@ -496,6 +554,27 @@ export default function ContractDetailsPage() {
           </Link>
         </div>
       </div>
+
+      {/* Finance Section */}
+      {finance && (
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
+          <h2 className="font-semibold text-lg">Finance</h2>
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div>
+              <p className="text-sm text-gray-600">Total Amount</p>
+              <p className="font-bold text-xl">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.totalAmount)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Paid Amount</p>
+              <p className="font-bold text-xl text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.paidAmount)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Due Amount</p>
+              <p className="font-bold text-xl text-orange-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.dueAmount)}</p>
+            </div>
+          </div>
+        </div>
+      )}        
 
       {/* Clauses Section */}
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">

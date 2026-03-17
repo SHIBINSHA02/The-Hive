@@ -1,6 +1,6 @@
 <div align="center">
   <img src="public/noWhiteBG.svg" alt="The Hive Logo" width="200" height="200" />
-  <h1>The Hive</h1>
+  
   <p><strong>A Modern Next.js Full-Stack Application for Contract Lifecycle Management</strong></p>
 </div>
 
