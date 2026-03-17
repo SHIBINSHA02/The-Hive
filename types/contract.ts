@@ -33,6 +33,8 @@ export interface Contract {
   // Derived for the logged-in viewer (list/detail views)
   viewerRole?: "client" | "contractor";
   counterpartyName?: string;
+  currentTurn?: "owner" | "partyB";
+  versionHistory?: { contentSnapshot: string; updatedAt: Date }[];
 }
 
 export interface FinanceMilestone {

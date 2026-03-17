@@ -30,6 +30,7 @@
     "pdf-parse": "^2.4.5",
     "promises": "^0.2.5",
     "react": "^19.2.3",
+    "react-diff-viewer-continued": "^4.2.0",
     "react-dom": "^19.2.3",
     "react-icons": "^5.5.0",
     "react-markdown": "^10.1.0",
@@ -38,7 +39,8 @@
     "tailwind-merge": "^3.4.0",
     "tailwind-scrollbar-hide": "^4.0.0",
     "timers": "^0.1.1",
-    "tls": "^0.0.1"
+    "tls": "^0.0.1",
+    "unpdf": "^1.4.0"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

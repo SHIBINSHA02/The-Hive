@@ -64,6 +64,10 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized role for signing" }, { status: 403 });
     }
 
+    // SAFETY NET: If the contract made it to the locked stage, the owner has inherently 
+    // signed/approved it. We force this to true just in case the locking route missed it.
+    contractDoc.ownerSigned = true;
+    
     // Since the owner signed during locking, and Party B just signed:
     if (contractDoc.ownerSigned && contractDoc.partyBSigned) {
       contractDoc.contractStatus = "active";

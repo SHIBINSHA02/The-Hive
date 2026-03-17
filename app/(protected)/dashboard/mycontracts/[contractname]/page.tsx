@@ -6,14 +6,16 @@ import Image from "next/image";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import ReactDiffViewer from 'react-diff-viewer-continued';
 import { Contract, Financial } from "@/types/contract";
 import type { ConversationType } from "@/types/conversation";
-import { Bot, Send, X, MessageSquare, Sparkles, Mail, Loader2, Camera, ShieldAlert } from "lucide-react"; // <-- Added ShieldAlert
+import { Bot, Send, X, MessageSquare, Sparkles, Mail, Loader2, Camera, Edit3, Save, ShieldAlert } from "lucide-react";
 
 interface ContractDetailsResponse {
   contract: Contract;
+  versionHistory?: { contentSnapshot: string; updatedAt: Date }[];
   finance: Financial | null;
-  role: "client" | "contractor" | "owner"; // Added owner just in case
+  role: "client" | "contractor" | "owner"; 
 }
 
 export default function ContractDetailsPage() {
@@ -32,15 +34,22 @@ export default function ContractDetailsPage() {
   // ==========================================
   // PHASE 2: NEGOTIATION MODULE STATES
   // ==========================================
-  // These states control the "Send for Review" modal and data submission.
   const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [isSendingInvite, setIsSendingInvite] = useState(false);
-  const [inviteError, setInviteError] = useState("");
-  const [isLocking, setIsLocking] = useState(false);
   const [isSigning, setIsSigning] = useState(false);
   const [isAgreeing, setIsAgreeing] = useState(false);
 
+  // ==========================================
+  // LECTURE: NEW EDITING STATE VARIABLES
+  // ==========================================
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState("");
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  
+  // ADD THIS LINE: Tracks if the user is looking at the diff viewer
+  const [showDiff, setShowDiff] = useState(false);
+  
   // --- AI CHAT STATES ---
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState("");
@@ -116,18 +125,43 @@ export default function ContractDetailsPage() {
   };
 
   // ==========================================
-  // PHASE 2: INVITE SUBMISSION LOGIC
+  // LECTURE: EDITING LOGIC HANDLERS
   // ==========================================
-  /**
-   * Instantly sends the invite using the email already captured during the draft creation.
-   * This flips the contract status from "draft" to "sent_for_review".
-   */
+  const handleEditToggle = () => {
+    setEditContent(data?.contractContent || "");
+    setIsEditing(true);
+  };
+
+  const handleSaveEdit = async () => {
+    try {
+      setIsSavingEdit(true);
+      const res = await fetch(`/api/contracts/${contractId}`, { 
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contractContent: editContent })
+      });
+      
+      if (!res.ok) throw new Error("Failed to save changes");
+      
+      const updated = await res.json();
+      setData(updated as Contract);
+      setIsEditing(false); 
+      setIsAgreeing(false); 
+      
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
+
+  // ==========================================
+  // INVITE & STATUS LOGIC
+  // ==========================================
   const handleSendInvite = async () => {
-    // Determine the email to use: priority to what's already saved
     const emailToUse = data?.partyB_Email || inviteEmail;
 
     if (!emailToUse || !emailToUse.includes("@")) {
-      // Fallback if somehow the email didn't save, just prompt
       const fallbackEmail = window.prompt("Please enter the counterparty's email to send the review request:");
       if (!fallbackEmail || !fallbackEmail.includes("@")) {
         alert("Valid email is required to send the contract for review.");
@@ -135,11 +169,8 @@ export default function ContractDetailsPage() {
       }
       setInviteEmail(fallbackEmail);
       return; 
-      // The state update will trigger re-render, user will have to click again or we can just continue:
-      // Actually, better to just proceed with fallbackEmail
     }
 
-    // Use fallbackEmail if emailToUse wasn't valid but fallback was
     const finalEmail = (emailToUse && emailToUse.includes("@")) ? emailToUse : inviteEmail;
 
     if (!window.confirm(`Are you sure you want to send this contract to ${finalEmail} for review?`)) {
@@ -147,7 +178,6 @@ export default function ContractDetailsPage() {
     }
 
     setIsSendingInvite(true);
-    setInviteError("");
 
     try {
       const res = await fetch(`/api/contracts/${contractId}/invite`, {
@@ -161,27 +191,12 @@ export default function ContractDetailsPage() {
         throw new Error(errData.error || "Failed to send invite");
       }
 
-      // Success! Update local state to reflect the new status
-      setData(prev => prev ? { ...prev, contractStatus: "sent_for_review" } as Contract : null);
+      setData(prev => prev ? { ...prev, contractStatus: "sent_for_review",currentTurn: "partyB" } as Contract : null);
       
     } catch (err: any) {
       alert(err.message || "Something went wrong sending the invite.");
     } finally {
       setIsSendingInvite(false);
-    }
-  };
-
-  const handleLock = async () => {
-    try {
-      setIsLocking(true);
-      const res = await fetch(`/api/contracts/${contractId}/lock`, { method: "POST" });
-      if (!res.ok) throw new Error("Failed to lock contract");
-      const result = await res.json();
-      setData(prev => prev ? { ...prev, contractStatus: result.status } as Contract : null);
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setIsLocking(false);
     }
   };
 
@@ -224,13 +239,48 @@ export default function ContractDetailsPage() {
     }
   };
 
+  const handleTerminate = async () => {
+    if (!window.confirm("Are you sure you want to terminate this contract? This action cannot be undone.")) return;
+    try {
+      const res = await fetch(`/api/contracts/${contractId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contractStatus: "terminated" })
+      });
+      if (!res.ok) throw new Error("Failed to terminate contract");
+      const updated = await res.json();
+      setData(updated as Contract);
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleRenew = async () => {
+    if (!window.confirm("Are you sure you want to renew? This will reset signatures and return the contract to draft status for renegotiation.")) return;
+    try {
+      const res = await fetch(`/api/contracts/${contractId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          contractStatus: "draft",
+          ownerAgreed: false,
+          partyBAgreed: false,
+          ownerSigned: false,
+          partyBSigned: false,
+          progress: 0
+        })
+      });
+      if (!res.ok) throw new Error("Failed to renew contract");
+      const updated = await res.json();
+      setData(updated as Contract);
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   if (loading) return <div className="p-6 text-lg font-semibold">Loading contract…</div>;
   if (error) return <div className="p-6 text-red-600 font-semibold">Error: {error}</div>;
   if (!data) return <div className="p-6">No contract found</div>;
-
-  // Determine if we should show the "Send for Review" button.
-  // We only show it if the contract is still in the initial drafting phase.
-  const canSendForReview = data.contractStatus === "draft" || data.contractStatus === "pending";
 
   return (
     <div className="w-full lg:px-6 px-0 lg:py-6 py-0 space-y-6 relative">
@@ -327,6 +377,24 @@ export default function ContractDetailsPage() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3">
+            {/* LECTURE: "Edit Contract" toggle for Party A. Only visible when not locked. */}
+            {(data.contractStatus === "in_negotiation" || data.contractStatus === "draft" || data.contractStatus === "sent_for_review") && !isEditing && (
+                data.currentTurn === "owner" ? (
+                  <button
+                    onClick={handleEditToggle}
+                    className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-4 py-2.5 rounded-lg font-semibold border border-white/50 flex items-center gap-2 transition-all shadow-lg"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                    Edit Contract
+                  </button>
+                ) : (
+                  <div className="bg-white/20 backdrop-blur-md text-white px-4 py-2.5 rounded-lg font-semibold border border-white/50 flex items-center gap-2">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Counterparty is Editing...
+                  </div>
+                )
+            )}
+
             {data.contractStatus === "draft" && viewerRole === "owner" && (
               <button
                 onClick={handleSendInvite}
@@ -343,8 +411,10 @@ export default function ContractDetailsPage() {
                 {((viewerRole === "owner" && !data.ownerAgreed) || (viewerRole !== "owner" && !data.partyBAgreed)) ? (
                   <button
                     onClick={handleAgree}
-                    disabled={isAgreeing}
-                    className="bg-amber-600 hover:bg-amber-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
+                    disabled={isAgreeing || isEditing} // Disable agreeing while they are editing!
+                    className={`px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105 ${
+                        isEditing ? "bg-gray-400 text-gray-200 cursor-not-allowed" : "bg-amber-600 hover:bg-amber-500 text-white"
+                    }`}
                   >
                     {isAgreeing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
                     Agree to Content
@@ -379,9 +449,37 @@ export default function ContractDetailsPage() {
             )}
 
             {data.contractStatus === "active" && (
-              <div className="bg-green-500/80 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg">
-                <Sparkles className="w-5 h-5" />
-                Contract Active & Signed
+              <div className="flex items-center gap-3">
+                <div className="bg-green-500/80 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg">
+                  <Sparkles className="w-5 h-5" />
+                  Contract Active & Signed
+                </div>
+                
+                {/* LECTURE: Only the Owner can terminate or renew an active contract */}
+                {viewerRole === "owner" && (
+                   <>
+                     <button 
+                        onClick={handleRenew} 
+                        className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-semibold transition-all shadow-lg flex items-center gap-2"
+                     >
+                        Renew
+                     </button>
+                     <button 
+                        onClick={handleTerminate} 
+                        className="bg-red-600 hover:bg-red-500 text-white px-5 py-2.5 rounded-lg font-semibold transition-all shadow-lg flex items-center gap-2"
+                     >
+                        Terminate
+                     </button>
+                   </>
+                )}
+              </div>
+            )}
+
+            {/* LECTURE: The badge for when a contract is officially dead */}
+            {data.contractStatus === "terminated" && (
+              <div className="bg-red-900/80 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg">
+                <X className="w-5 h-5" />
+                Contract Terminated
               </div>
             )}
           </div>
@@ -457,6 +555,27 @@ export default function ContractDetailsPage() {
         </div>
       </div>
 
+      {/* Finance Section */}
+      {finance && (
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
+          <h2 className="font-semibold text-lg">Finance</h2>
+          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div>
+              <p className="text-sm text-gray-600">Total Amount</p>
+              <p className="font-bold text-xl">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.totalAmount)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Paid Amount</p>
+              <p className="font-bold text-xl text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.paidAmount)}</p>
+            </div>
+            <div>
+              <p className="text-sm text-gray-600">Due Amount</p>
+              <p className="font-bold text-xl text-orange-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.dueAmount)}</p>
+            </div>
+          </div>
+        </div>
+      )}        
+
       {/* Clauses Section */}
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
         <h2 className="font-semibold text-lg">Clauses</h2>
@@ -467,19 +586,83 @@ export default function ContractDetailsPage() {
         </ul>
       </div>
 
-      {/* Full Document Section */}
-      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
-        <h2 className="font-semibold text-lg">Contract Document</h2>
-        <div className="prose max-w-none mt-3">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>{data.contractContent || ""}</ReactMarkdown>
+      {/* ========================================== */}
+      {/* LECTURE: FULL DOCUMENT SECTION WITH DIFF VIEWER */}
+      {/* ========================================== */}
+      <div className="rounded-xl border border-gray-200 bg-white p-5 shadow overflow-hidden">
+        <div className="flex justify-between items-center border-b border-gray-100 pb-3">
+            <div className="flex items-center gap-4">
+              <h2 className="font-semibold text-lg">Contract Document</h2>
+              
+              {/* The Diff Viewer Toggle Switch (Only shows if there is history!) */}
+              {data.versionHistory && data.versionHistory.length > 0 && !isEditing && (
+                <div className="flex bg-gray-100 p-1 rounded-lg">
+                  <button 
+                    onClick={() => setShowDiff(false)}
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${!showDiff ? "bg-white shadow text-black" : "text-gray-500 hover:text-black"}`}
+                  >
+                    Current Version
+                  </button>
+                  <button 
+                    onClick={() => setShowDiff(true)}
+                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${showDiff ? "bg-white shadow text-black" : "text-gray-500 hover:text-black"}`}
+                  >
+                    View Changes
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {isEditing && (
+                <div className="flex gap-2 animate-in fade-in zoom-in duration-200">
+                    <button 
+                        onClick={() => setIsEditing(false)}
+                        className="px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
+                    >
+                        Cancel
+                    </button>
+                    <button 
+                        onClick={handleSaveEdit}
+                        disabled={isSavingEdit || editContent === data.contractContent}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:bg-blue-400"
+                    >
+                        {isSavingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        Save Proposed Changes
+                    </button>
+                </div>
+            )}
+        </div>
+        
+        <div className="mt-4">
+          {isEditing ? (
+              <textarea
+                  value={editContent}
+                  onChange={(e) => setEditContent(e.target.value)}
+                  className="w-full min-h-[500px] p-4 text-sm font-mono bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
+                  placeholder="Type your contract edits here..."
+              />
+          ) : showDiff && data.versionHistory && data.versionHistory.length > 0 ? (
+              // LECTURE: The Diff Viewer!
+              // It grabs the LAST item in the versionHistory array (the snapshot taken right before the current edit)
+              <div className="border border-gray-200 rounded-lg overflow-hidden max-h-[600px] overflow-y-auto">
+                <ReactDiffViewer
+                  oldValue={data.versionHistory[data.versionHistory.length - 1].contentSnapshot}
+                  newValue={data.contractContent || ""}
+                  splitView={true}
+                  useDarkTheme={false}
+                  leftTitle="Previous Version"
+                  rightTitle="Proposed Changes"
+                />
+              </div>
+          ) : (
+              <div className="prose max-w-none">
+                <ReactMarkdown remarkPlugins={[remarkGfm]}>{data.contractContent || ""}</ReactMarkdown>
+              </div>
+          )}
         </div>
       </div>
 
-      {/* ========================================== */}
-      {/* PHASE 2: INVITE LOGIC IS NOW MODAL-LESS    */}
-      {/* ========================================== */}
-
-      {/* --- AI CHAT SIDEBAR (Existing Code) --- */}
+      {/* --- AI CHAT SIDEBAR --- */}
       {isChatOpen && (
         <div className="fixed inset-y-0 right-0 w-full sm:w-96 bg-white shadow-2xl z-50 flex flex-col border-l border-gray-200 animate-in slide-in-from-right duration-300">
           <div className="p-4 border-b flex items-center justify-between bg-gray-50">
