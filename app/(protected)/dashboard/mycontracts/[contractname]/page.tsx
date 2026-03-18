@@ -284,6 +284,16 @@ export default function ContractDetailsPage() {
 
   return (
     <div className="w-full lg:px-6 px-0 lg:py-6 py-0 space-y-6 relative">
+      
+      {/* 🚨 X-RAY DEBUGGER: DELETE THIS BEFORE PRESENTATION 🚨 */}
+      <div className="bg-red-100 border-2 border-red-500 p-4 rounded-lg mb-6 text-red-900 font-mono text-sm z-50">
+        <p><strong>Raw Status:</strong> {JSON.stringify(data?.contractStatus)}</p>
+        <p><strong>Viewer Role:</strong> {JSON.stringify(viewerRole)}</p>
+        <p><strong>Current Turn:</strong> {JSON.stringify(data?.currentTurn)}</p>
+        <p><strong>Status is Draft?:</strong> {JSON.stringify(data?.contractStatus === "draft")}</p>
+        <p><strong>Role is Owner?:</strong> {JSON.stringify(viewerRole === "owner")}</p>
+      </div>
+
       {/* Header */}
       <div className="relative w-full h-56 rounded-2xl overflow-hidden shadow flex flex-col justify-end group/bg">
         {data.bgImageUrl ? (

@@ -35,6 +35,12 @@ export default function RequestContractDetailsPage() {
   const [isCancelling, setIsCancelling] = useState(false);
 
   // ==========================================
+  // PHASE 2: MISSING INVITE STATES ADDED HERE
+  // ==========================================
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [isSendingInvite, setIsSendingInvite] = useState(false);
+
+  // ==========================================
   // LECTURE: NEW EDITING STATE VARIABLES
   // ==========================================
   const [isEditing, setIsEditing] = useState(false);
@@ -149,6 +155,52 @@ export default function RequestContractDetailsPage() {
     }
   };
 
+  // ==========================================
+  // INVITE LOGIC (Send for Review)
+  // ==========================================
+  const handleSendInvite = async () => {
+    const emailToUse = data?.partyB_Email || inviteEmail;
+
+    if (!emailToUse || !emailToUse.includes("@")) {
+      const fallbackEmail = window.prompt("Please enter the counterparty's email to send the review request:");
+      if (!fallbackEmail || !fallbackEmail.includes("@")) {
+        alert("Valid email is required to send the contract for review.");
+        return;
+      }
+      setInviteEmail(fallbackEmail);
+      return; 
+    }
+
+    const finalEmail = (emailToUse && emailToUse.includes("@")) ? emailToUse : inviteEmail;
+
+    if (!window.confirm(`Are you sure you want to send this contract to ${finalEmail} for review?`)) {
+      return;
+    }
+
+    setIsSendingInvite(true);
+
+    try {
+      const res = await fetch(`/api/contracts/${contractId}/invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: finalEmail }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to send invite");
+      }
+
+      // Automatically update UI to "sent_for_review" without refreshing
+      setData(prev => prev ? { ...prev, contractStatus: "sent_for_review", currentTurn: "partyB" } as Contract : null);
+      
+    } catch (err: any) {
+      alert(err.message || "Something went wrong sending the invite.");
+    } finally {
+      setIsSendingInvite(false);
+    }
+  };
+
   // --- EXISTING ACTION HANDLERS ---
   const handleAgree = async () => {
     try {
@@ -221,6 +273,13 @@ export default function RequestContractDetailsPage() {
 
   return (
     <div className="w-full lg:px-6 px-0 lg:py-6 py-0 space-y-6 relative">
+      {/* 🚨 X-RAY DEBUGGER 🚨 */}
+      <div className="bg-red-100 border-2 border-red-500 p-4 rounded-lg mb-6 text-red-900 font-mono text-sm z-50">
+        <p><strong>Raw Status:</strong> {JSON.stringify(data?.contractStatus)}</p>
+        <p><strong>Viewer Role:</strong> {JSON.stringify(viewerRole)}</p>
+        <p><strong>Status is Draft?:</strong> {JSON.stringify(data?.contractStatus === "draft")}</p>
+        <p><strong>Role is Owner?:</strong> {JSON.stringify(viewerRole === "owner")}</p>
+      </div>
       {/* Header */}
       <div className="relative w-full h-56 rounded-2xl overflow-hidden shadow flex flex-col justify-end group/bg">
         {data.bgImageUrl ? (
@@ -314,6 +373,19 @@ export default function RequestContractDetailsPage() {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3">
+            
+            {/* THE MISSING SEND FOR REVIEW BUTTON */}
+            {data.contractStatus === "draft" && viewerRole === "owner" && (
+              <button
+                onClick={handleSendInvite}
+                disabled={isSendingInvite}
+                className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
+              >
+                {isSendingInvite ? <Loader2 className="w-5 h-5 animate-spin" /> : <Mail className="w-5 h-5" />}
+                Send for Review
+              </button>
+            )}
+
             {/* LECTURE: "Suggest Edits" toggle. Only visible if it is Party B's turn! */}
             {(data.contractStatus === "in_negotiation" || data.contractStatus === "sent_for_review") && !isEditing && (
               data.currentTurn === "partyB" ? (
@@ -349,6 +421,7 @@ export default function RequestContractDetailsPage() {
                         </button>
                     )}
                     
+                    {/* THIS IS YOUR EXISTING DISCARD/CANCEL BUTTON */}
                     {viewerRole === "owner" && (
                         <button
                             onClick={handleCancel}

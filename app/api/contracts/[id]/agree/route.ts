@@ -52,6 +52,14 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized role for agreement" }, { status: 403 });
     }
 
+    // ==========================================
+    // THE FIX: State Machine Transition
+    // ==========================================
+    // If both parties have now agreed, lock the contract for signatures.
+    if (contractDoc.ownerAgreed && contractDoc.partyBAgreed) {
+      contractDoc.contractStatus = "locked";
+    }
+
     await contractDoc.save();
 
     return NextResponse.json({

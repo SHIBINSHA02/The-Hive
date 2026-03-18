@@ -31,7 +31,7 @@ export interface Contract {
   contractorName?: string;
 
   // Derived for the logged-in viewer (list/detail views)
-  viewerRole?: "client" | "contractor";
+  viewerRole?: "client" | "contractor" | "owner" | "partyB";
   counterpartyName?: string;
   currentTurn?: "owner" | "partyB";
   versionHistory?: { contentSnapshot: string; updatedAt: Date }[];
