@@ -372,9 +372,9 @@ export default function RequestContractDetailsPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             
-            {/* THE MISSING SEND FOR REVIEW BUTTON */}
+            {/* PHASE 1: DRAFT (Owner Only) */}
             {data.contractStatus === "draft" && viewerRole === "owner" && (
               <button
                 onClick={handleSendInvite}
@@ -386,58 +386,48 @@ export default function RequestContractDetailsPage() {
               </button>
             )}
 
-            {/* LECTURE: "Suggest Edits" toggle. Only visible if it is Party B's turn! */}
+            {/* PHASE 2: NEGOTIATION & AGREEMENT */}
             {(data.contractStatus === "in_negotiation" || data.contractStatus === "sent_for_review") && !isEditing && (
-              data.currentTurn === "partyB" ? (
-                <button
-                  onClick={handleEditToggle}
-                  className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-4 py-2.5 rounded-lg font-semibold border border-white/50 flex items-center gap-2 transition-all shadow-lg"
-                >
-                  <Edit3 className="w-4 h-4" />
-                  Suggest Edits
-                </button>
-              ) : (
-                <div className="bg-white/20 backdrop-blur-md text-white px-4 py-2.5 rounded-lg font-semibold border border-white/50 flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Owner is Editing...
-                </div>
-              )
-            )}
-
-            {(data.contractStatus === "in_negotiation" || data.contractStatus === "sent_for_review" || data.contractStatus === "draft") && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
+                
+                {/* CONDITION A: If YOU have NOT agreed yet */}
                 {((viewerRole === "owner" && !data.ownerAgreed) || (viewerRole !== "owner" && !data.partyBAgreed)) ? (
-                  <div className="flex items-center gap-3">
-                    {data.contractStatus !== "draft" && (
-                        <button
-                            onClick={handleAgree}
-                            disabled={isAgreeing || isEditing} // Can't agree while editing!
-                            className={`px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105 ${
-                              isEditing ? "bg-gray-400 text-gray-200 cursor-not-allowed" : "bg-amber-600 hover:bg-amber-500 text-white"
-                            }`}
-                        >
-                            {isAgreeing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-                            Agree to Content
-                        </button>
+                  <>
+                    {/* The Pen (Strict Mutual Exclusion) */}
+                    {((viewerRole === "owner" && data.currentTurn === "owner") || (viewerRole !== "owner" && data.currentTurn === "partyB")) ? (
+                      <button
+                        onClick={handleEditToggle}
+                        className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-4 py-2.5 rounded-lg font-semibold border border-white/50 flex items-center gap-2 transition-all shadow-lg"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                        Suggest Edits
+                      </button>
+                    ) : (
+                      <div className="bg-white/20 backdrop-blur-md text-white px-4 py-2.5 rounded-lg font-semibold border border-white/50 flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        {viewerRole === "owner" ? "Counterparty is Reviewing..." : "Owner is Editing..."}
+                      </div>
                     )}
-                    
-                    {/* THIS IS YOUR EXISTING DISCARD/CANCEL BUTTON */}
-                    {viewerRole === "owner" && (
-                        <button
-                            onClick={handleCancel}
-                            disabled={isCancelling}
-                            className="bg-red-600/20 hover:bg-red-600/40 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold border border-red-500/50 flex items-center gap-2 transition-all"
-                        >
-                            {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
-                            {data.contractStatus === "draft" ? "Discard Draft" : "Cancel Request"}
-                        </button>
-                    )}
-                  </div>
+
+                    {/* Agree Button */}
+                    <button
+                        onClick={handleAgree}
+                        disabled={isAgreeing || isEditing}
+                        className={`px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105 ${
+                          isEditing ? "bg-gray-400 text-gray-200 cursor-not-allowed" : "bg-amber-600 hover:bg-amber-500 text-white"
+                        }`}
+                    >
+                        {isAgreeing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                        Agree to Content
+                    </button>
+                  </>
                 ) : (
+                  
+                  /* CONDITION B: If YOU HAVE agreed, you wait for the other person */
                   <div className="flex items-center gap-3">
                     <div className="bg-white/20 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2">
                         <Loader2 className="w-5 h-5 animate-spin" />
-                        {viewerRole === "owner" ? (data.partyBAgreed ? "Waiting for locking" : "Waiting for Counterparty") : (data.ownerAgreed ? "Waiting for locking" : "Waiting for Owner")}
+                        Waiting for Counterparty to Agree...
                     </div>
                     <button
                         onClick={handleCancel}
@@ -447,24 +437,27 @@ export default function RequestContractDetailsPage() {
                         {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
                         Rescind Agreement
                     </button>
-                    {viewerRole === "owner" && (
-                        <button
-                            onClick={handleCancel}
-                            disabled={isCancelling}
-                            className="bg-red-600/20 hover:bg-red-600/40 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold border border-red-500/50 flex items-center gap-2 transition-all"
-                        >
-                            {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
-                            Cancel Request
-                        </button>
-                    )}
                   </div>
+                )}
+                
+                {/* Global Cancel Request (Owner Only) */}
+                {viewerRole === "owner" && (
+                    <button
+                        onClick={handleCancel}
+                        disabled={isCancelling}
+                        className="bg-red-600/20 hover:bg-red-600/40 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold border border-red-500/50 flex items-center gap-2 transition-all"
+                    >
+                        {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
+                        Cancel Request
+                    </button>
                 )}
               </div>
             )}
 
+            {/* PHASE 3: DIGITAL SIGNATURES */}
             {data.contractStatus === "locked" && (
               <>
-                {viewerRole !== "owner" && !data.partyBSigned ? (
+                {((viewerRole === "owner" && !data.ownerSigned) || (viewerRole !== "owner" && !data.partyBSigned)) ? (
                   <div className="flex items-center gap-3">
                     <button
                         onClick={handleSign}
@@ -474,21 +467,6 @@ export default function RequestContractDetailsPage() {
                         {isSigning ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
                         Sign Contract
                     </button>
-                    <button
-                        onClick={handleCancel}
-                        disabled={isCancelling}
-                        className="bg-red-600/20 hover:bg-red-600/40 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold border border-red-500/50 flex items-center gap-2 transition-all"
-                    >
-                        {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
-                        Unlock & Negotiate
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3">
-                     <div className="bg-white/20 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2">
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        {viewerRole === "owner" ? "Awaiting Counterparty Signature" : "Contract Signed, Activating..."}
-                    </div>
                     {viewerRole === "owner" && (
                         <button
                             onClick={handleCancel}
@@ -499,6 +477,13 @@ export default function RequestContractDetailsPage() {
                             Unlock & Negotiate
                         </button>
                     )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                     <div className="bg-white/20 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Awaiting Counterparty Signature...
+                    </div>
                   </div>
                 )}
               </>
