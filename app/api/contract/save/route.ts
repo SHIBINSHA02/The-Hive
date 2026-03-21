@@ -8,8 +8,9 @@ import Contract from "@/db/models/Contract";
 import User from "@/db/models/User";
 import ClientProfile from "@/db/models/ClientProfile";
 import ContractProfile from "@/db/models/ContractProfile";
+import Financial from "@/db/models/Finance";
 import { getContractLogic } from "@/lib/contract-templates/logic-registry";
-import { connectDB } from "@/lib/db"; // ✅ FIX 1: Corrected import name
+import { connectDB } from "@/lib/db";
 
 export async function POST(req: NextRequest) {
   try {
@@ -77,10 +78,9 @@ export async function POST(req: NextRequest) {
      */
 
     // 7. Create the Contract Document
-    // We map your Form Data to the exact Schema fields you shared
     const newContract = await Contract.create({
       ownerId: userId,
-      contractId: uuidv4(), // Unique readable ID
+      contractId: uuidv4(), 
 
       // Basic Info
       contractTitle: formData.AGREEMENT_TITLE,
@@ -90,14 +90,14 @@ export async function POST(req: NextRequest) {
       startDate: new Date(formData.START_DATE),
       deadline: new Date(formData.END_DATE),
 
-      companyName: formData.PARTY_B_NAME || "", // "Other Company" name
+      companyName: formData.PARTY_B_NAME || "", 
       companyLogoUrl: formData.COMPANY_LOGO || "",
       bgImageUrl: formData.BACKGROUND_IMAGE || "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=800&auto=format&fit=crop",
 
       // Relationships
       client: clientId,
       contractor: contractorId,
-      partyB_Email: formData.PARTY_B_EMAIL, // Newly added to save the collected email
+      partyB_Email: formData.PARTY_B_EMAIL, 
 
       // The Core Content
       contractContent: finalContent,
@@ -113,6 +113,65 @@ export async function POST(req: NextRequest) {
         `Notice Method: ${formData.NOTICE_METHOD}`
       ] as string[]
     });
+
+    // ==========================================
+    // PHASE 1: Auto-Generate Finance & Milestones
+    // ==========================================
+    const paymentAmount = parseFloat(formData.PAYMENT_AMOUNT) || 0;
+
+    if (paymentAmount > 0) {
+      let parsedMilestones: any[] = [];
+
+      // Try to parse the Markdown table from Step 3
+      if (formData.PAYMENT_SCHEDULE) {
+        const lines = formData.PAYMENT_SCHEDULE.split("\n");
+        for (const line of lines) {
+          // Skip headers and empty lines
+          if (line.includes("|") && !line.includes("---") && !line.includes("Date | Amount")) {
+            const parts = line.split("|").map((p: string) => p.trim()).filter(Boolean);
+            if (parts.length >= 2) {
+              const dateRaw = parts[0];
+              // Extract just the numbers from strings like "500.00 USD"
+              const amountRaw = parseFloat(parts[1].replace(/[^0-9.]/g, '')) || 0;
+              
+              if (amountRaw > 0) {
+                parsedMilestones.push({
+                  title: `Installment due ${dateRaw}`,
+                  amount: amountRaw,
+                  dueDate: new Date(dateRaw),
+                  isPaid: false
+                });
+              }
+            }
+          }
+        }
+      }
+
+      // Fallback: If no schedule was created, make one lump-sum milestone
+      if (parsedMilestones.length === 0) {
+        parsedMilestones.push({
+          title: "Full Contract Payment",
+          amount: paymentAmount,
+          dueDate: new Date(formData.END_DATE || Date.now()),
+          isPaid: false
+        });
+      }
+
+      // Create the Financial ledger in the database
+      await Financial.create({
+        financialId: uuidv4(),
+        contract: newContract._id,
+        client: clientId, 
+        contractor: contractorId,
+        totalAmount: paymentAmount,
+        dueAmount: paymentAmount, // Initially, everything is due
+        paidAmount: 0,
+        currency: formData.PAYMENT_CURRENCY || "USD",
+        paymentStatus: "not_started",
+        milestones: parsedMilestones
+      });
+    }
+    // ==========================================
 
     return NextResponse.json({
       success: true,

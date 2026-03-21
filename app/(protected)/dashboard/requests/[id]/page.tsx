@@ -34,6 +34,28 @@ export default function RequestContractDetailsPage() {
   const [isSigning, setIsSigning] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
+  // --- FINANCE STATES ---
+  const [isPaying, setIsPaying] = useState<number | null>(null);
+
+  const handlePayMilestone = async (milestoneIndex: number) => {
+    setIsPaying(milestoneIndex);
+    try {
+      const res = await fetch(`/api/contracts/${contractId}/finance/pay`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ milestoneIndex })
+      });
+      
+      if (!res.ok) throw new Error("Payment update failed");
+      
+      const updatedFinance = await res.json();
+      setFinance(updatedFinance); // Instantly updates UI numbers!
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsPaying(null);
+    }
+  };
   // ==========================================
   // PHASE 2: MISSING INVITE STATES ADDED HERE
   // ==========================================
@@ -555,21 +577,75 @@ export default function RequestContractDetailsPage() {
       {/* Finance Section */}
       {finance && (
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
-          <h2 className="font-semibold text-lg">Finance</h2>
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div>
-              <p className="text-sm text-gray-600">Total Amount</p>
-              <p className="font-bold text-xl">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.totalAmount)}</p>
+          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+            <h2 className="font-semibold text-lg text-gray-900">Financial Ledger</h2>
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${
+                finance.paymentStatus === "completed" ? "bg-green-100 text-green-700" : 
+                finance.paymentStatus === "partial" ? "bg-amber-100 text-amber-700" : 
+                "bg-gray-100 text-gray-600"
+            }`}>
+                {finance.paymentStatus.replace("_", " ")}
+            </span>
+          </div>
+
+          {/* Top Summary */}
+          <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+              <p className="text-xs font-medium text-gray-500 uppercase">Total Amount</p>
+              <p className="font-bold text-2xl text-gray-900 mt-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.totalAmount)}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Paid Amount</p>
-              <p className="font-bold text-xl text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.paidAmount)}</p>
+            <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+              <p className="text-xs font-medium text-green-600 uppercase">Paid Amount</p>
+              <p className="font-bold text-2xl text-green-700 mt-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.paidAmount)}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Due Amount</p>
-              <p className="font-bold text-xl text-orange-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.dueAmount)}</p>
+            <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
+              <p className="text-xs font-medium text-amber-600 uppercase">Due Amount</p>
+              <p className="font-bold text-2xl text-amber-700 mt-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.dueAmount)}</p>
             </div>
           </div>
+
+          {/* Milestones List */}
+          {/* Milestones List */}
+          {finance.milestones && finance.milestones.length > 0 && (
+            <div className="mt-8">
+              <h3 className="font-medium text-gray-900 mb-4">Payment Schedule</h3>
+              <div className="space-y-3">
+                {finance.milestones.map((milestone, idx) => (
+                  <div key={idx} className={`flex flex-wrap items-center justify-between p-4 border rounded-lg transition-colors ${milestone.isPaid ? 'bg-gray-50 border-gray-200' : 'bg-white border-blue-100 hover:border-blue-300 shadow-sm'}`}>
+                    <div>
+                      <p className={`font-medium text-sm ${milestone.isPaid ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
+                        {milestone.title || `Installment ${idx + 1}`}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">Due: {new Date(milestone.dueDate).toDateString()}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className={`font-semibold ${milestone.isPaid ? 'text-gray-400' : 'text-gray-900'}`}>
+                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(milestone.amount)}
+                      </span>
+                      
+                      {milestone.isPaid ? (
+                        <span className="bg-green-100 text-green-700 text-xs px-3 py-1.5 rounded-full font-bold flex items-center gap-1">
+                          Paid
+                        </span>
+                      ) : data.contractStatus === "active" ? (
+                        <button 
+                          onClick={() => handlePayMilestone(idx)}
+                          disabled={isPaying === idx}
+                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-1.5 rounded-md font-bold transition-all shadow shadow-blue-200 hover:shadow-md disabled:bg-blue-400"
+                        >
+                          {isPaying === idx ? "Processing..." : "Mark as Paid"}
+                        </button>
+                      ) : (
+                        <span className="text-[11px] text-amber-600 font-medium bg-amber-50 px-2.5 py-1 rounded border border-amber-200">
+                          Awaiting Signatures
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
