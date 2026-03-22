@@ -120,31 +120,36 @@ export function LivePreview() {
       <div ref={scrollContainerRef} className="flex-1 overflow-y-auto p-4 sm:p-8 flex justify-center custom-scrollbar scroll-smooth">
         
         {!hasData ? (
-          <div className="flex flex-col items-center justify-center text-center py-20 w-full max-w-[210mm] border-2 border-dashed border-gray-300 rounded-xl bg-gray-50/50">
-            <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center mb-3 shadow-sm border border-gray-100">
-              <svg className="w-6 h-6 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+          <div className="flex flex-col items-center justify-center text-center py-20 w-full max-w-[210mm] border border-slate-200 rounded-2xl bg-white shadow-[0_4px_20px_rgba(0,0,0,0.03)] animate-pulse">
+            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-6 border border-slate-100">
+               <svg className="w-8 h-8 text-slate-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
               </svg>
             </div>
-            <p className="text-gray-400 text-sm italic">
-              Waiting for data... <br /> Fill out the forms on the left to build the document.
+            <h3 className="text-slate-900 font-bold tracking-tight text-lg mb-2">Ready to Draft</h3>
+            <p className="text-slate-400 text-sm max-w-[240px] leading-relaxed mx-auto italic">
+              Begin typing in the forms to watch your professional instrument take shape here.
             </p>
           </div>
         ) : (
-          <div 
-            className="bg-white shadow-2xl ring-1 ring-gray-900/5 w-full max-w-[210mm] min-h-[297mm] p-[15mm] sm:p-[20mm] text-black font-serif transition-all duration-500 animate-in fade-in zoom-in-95 relative"
-            style={{ 
-              backgroundImage: formData.BACKGROUND_IMAGE ? `url(${formData.BACKGROUND_IMAGE})` : undefined,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundColor: formData.BACKGROUND_IMAGE ? 'rgba(255, 255, 255, 0.85)' : 'white',
-              backgroundBlendMode: 'overlay',
-            }}
-          >
+          <div className="relative w-full max-w-[210mm] min-h-[min(800px,calc(100vh-200px))] bg-white shadow-[0_10px_40px_rgba(0,0,0,0.04)] border border-slate-200 rounded-sm p-8 sm:p-14 animate-in fade-in zoom-in-95 duration-500 overflow-hidden group">
+            
+            {/* PAPER DECOR - Top left corner fold feeling */}
+            <div className="absolute top-0 right-0 w-24 h-24 bg-linear-to-bl from-slate-50 to-transparent opacity-50 pointer-events-none" />
+            
             <div 
-              className="prose prose-sm sm:prose-base max-w-none text-gray-800"
+              className="prose prose-slate prose-sm sm:prose-base max-w-none text-slate-800 font-serif leading-relaxed"
               dangerouslySetInnerHTML={{ __html: liveHtmlPreview }} 
             />
+
+            {/* LIVE INDICATOR */}
+            <div className="absolute bottom-4 right-6 flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+               <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+               </span>
+               <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Live Draft</span>
+            </div>
           </div>
         )}
       </div>

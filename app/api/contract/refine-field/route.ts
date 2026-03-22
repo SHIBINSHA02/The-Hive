@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getContractLogic } from "@/lib/contract-templates/logic-registry";
-import { createCustomAIClient } from "@/lib/contract-templates/service-agreement/customAiClient"; 
+import { createGeminiClient } from "@/lib/contract-templates/service-agreement/geminiClient";
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,12 +26,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Invalid contract type" }, { status: 400 });
     }
 
-    // 3. (Optional) Check API Key if your deployed model requires it, else omit
-    // Initialize Client (Uses custom deployed model)
-    const customAIClient = createCustomAIClient();
-
+    // 3. Initialize Gemini AI Client
+    const geminiClient = createGeminiClient(process.env.GEMINI_API_KEY!);
+    
     // 4. Execute the dynamic AI logic mapped from the registry
-    const refinedResult = await templateLogic.aiFill(customAIClient, {
+    const refinedResult = await templateLogic.aiFill(geminiClient, {
       userValues: { [fieldKey]: fieldValue },
       keysToRefine: [fieldKey],
     });

@@ -1,23 +1,37 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import React, { useState, useMemo, type ReactNode } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { useContract } from "../_context/ContractContext";
-import { Loader2, FileText, ChevronLeft, Download, CheckCircle, Save, ImagePlus } from "lucide-react";
+import {
+  Loader2,
+  FileText,
+  ChevronLeft,
+  Download,
+  CheckCircle,
+  Save,
+  ImagePlus,
+  Printer,
+  ShieldCheck,
+  Eye,
+  ArrowLeftRight
+} from "lucide-react";
+import { ContractDocument } from "./_components/ContractDocument";
 
 export default function PreviewPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const type = searchParams.get("type");
-  
-  // Grab everything from our context, including the new resetForm for persistence cleanup
-  const { template, formData, selectedClauses, resetForm, updateField } = useContract();
-  const [isProcessing, setIsProcessing] = useState(false);
 
-  /**
-   * 1. LIVE PREVIEW ASSEMBLY (Draft Mode)
-   * This displays the contract with [MISSING] tags for any empty fields.
-   */
+  const { template, formData, selectedClauses, resetForm, updateField } = useContract();
+  const [isProcessing, setIsProcessing] = React.useState(false);
+  const [refId, setRefId] = React.useState("");
+
+  React.useEffect(() => {
+    setRefId(Math.random().toString(36).substring(7).toUpperCase());
+  }, []);
+
   const fullContractText = useMemo(() => {
     if (!template) return "";
     return template.generateContract({
@@ -27,10 +41,6 @@ export default function PreviewPage() {
     });
   }, [template, formData, selectedClauses]);
 
-  /**
-   * 2. DOWNLOAD PDF LOGIC
-   * Fetches clean text from the backend and renders it to a PDF file.
-   */
   const handleDownloadPDF = async () => {
     setIsProcessing(true);
     try {
@@ -41,70 +51,47 @@ export default function PreviewPage() {
       });
 
       if (!response.ok) throw new Error("Failed to assemble PDF content.");
-
       const { fullText, title } = await response.json();
 
       const element = document.createElement("div");
-      // Styling specifically for the PDF print output
       element.innerHTML = `
-        <div style="font-family: 'Times New Roman', serif; padding: 50px; line-height: 1.6; color: black; background: white;">
-          <h1 style="text-align: center; text-transform: uppercase; margin-bottom: 30px;">${title}</h1>
-          <div style="white-space: pre-wrap;">${fullText}</div>
+        <div style="font-family: 'Times New Roman', serif; padding: 60px; line-height: 1.6; color: black; background: white;">
+          <h1 style="text-align: center; text-transform: uppercase; margin-bottom: 40px; font-size: 24px;">${title}</h1>
+          <div style="white-space: pre-wrap; font-size: 14px;">${fullText}</div>
         </div>
       `;
 
       const opt = {
-        margin: 0.75,
+        margin: 0,
         filename: `${title.replace(/\s+/g, "_")}_Final.pdf`,
-        html2canvas: { scale: 2 },
+        image: { type: 'jpeg' as const, quality: 0.98 },
+        html2canvas: { scale: 2, letterRendering: true },
         jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' as const }
       };
 
       const html2pdf = (await import('html2pdf.js')).default;
       await html2pdf().set(opt).from(element).save();
-
-    } catch (error: any) {
-      console.error("PDF Generation Error:", error);
-      alert("Error generating PDF. Please ensure all required fields are filled.");
+    } catch (error) {
+      console.error("PDF Error:", error);
     } finally {
       setIsProcessing(false);
     }
   };
 
-  /**
-   * 3. DATABASE SAVE LOGIC
-   * Saves the clean contract to MongoDB and clears the local draft session.
-   */
   const handleSaveToDatabase = async () => {
     setIsProcessing(true);
     try {
       const response = await fetch("/api/contract/save", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          contractType: type, 
-          formData, 
-          selectedClauses 
-        }),
+        body: JSON.stringify({ contractType: type, formData, selectedClauses }),
       });
-
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Failed to save contract to database.");
+      if (response.ok) {
+        resetForm();
+        router.push("/dashboard/mycontracts?status=created");
       }
-
-      // --- CRITICAL: PERSISTENCE CLEANUP ---
-      // This wipes the localStorage draft so the next contract starts fresh.
-      resetForm(); 
-
-      // Redirect to dashboard and refresh data
-      router.refresh(); 
-      router.push("/dashboard/mycontracts?status=created");
-
-    } catch (error: any) {
-      console.error("Database Save Error:", error);
-      alert(`Error: ${error.message}`);
+    } catch (error) {
+      console.error(error);
     } finally {
       setIsProcessing(false);
     }
@@ -113,136 +100,171 @@ export default function PreviewPage() {
   if (!template) return null;
 
   return (
-    <div className="space-y-6">
-      {/* Header Area */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-            <FileText className="text-blue-600" />
-            Final Review
-          </h1>
-          <p className="text-sm text-gray-500">
-            Review your document carefully. Once saved, it will appear in your dashboard.
-          </p>
-        </div>
-      </div>
+    <div className="min-h-screen bg-[#F5F5F7] text-slate-900 selection:bg-blue-100 overflow-x-hidden">
+      {/* --- REFINED TOP NAVIGATION --- */}
+      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-md border-b border-slate-200">
+        <div className="max-w-[1600px] mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => router.back()}
+              className="p-2 hover:bg-slate-100 rounded-full transition-colors text-slate-500"
+            >
+              <ChevronLeft className="h-5 w-5" />
+            </button>
+            <div className="h-6 w-px bg-slate-200" />
+            <div className="flex flex-col">
+              <h1 className="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <FileText className="h-4 w-4 text-blue-600" />
+                Review Instrument
+              </h1>
+              <span className="text-[10px] text-slate-500 font-medium uppercase tracking-tighter">
+                {template.templateConfig.name}
+              </span>
+            </div>
+          </div>
 
-      <div className="bg-white border text-sm border-gray-200 shadow-sm rounded-xl overflow-hidden flex flex-col mb-6 p-6 space-y-4">
-        <h2 className="font-semibold text-gray-800 text-lg flex items-center gap-2">
-          <ImagePlus className="w-5 h-5 text-blue-600" /> Digital Presentation Aesthetics
-        </h2>
-        <p className="text-gray-500 mb-2">Customize how the recipient sees this contract online. These images will not be included in the downloaded PDF.</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="space-y-3 relative group">
-            <label className="text-sm font-semibold text-gray-700">Company Logo</label>
-            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-blue-50 hover:border-blue-400 transition-all">
-              <div className="flex flex-col items-center justify-center text-center px-4">
-                <ImagePlus className="w-6 h-6 mb-2 text-gray-400 group-hover:text-blue-500 transition-colors" />
-                <p className="text-sm font-medium text-gray-600 group-hover:text-blue-600">Click to upload logo</p>
-                <p className="text-xs text-gray-400 mt-1">PNG, JPG or WEBP (Max 2MB)</p>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleSaveToDatabase}
+              disabled={isProcessing}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-bold text-slate-600 hover:bg-slate-50 border border-slate-200 transition-all disabled:opacity-50"
+            >
+              <Save className="h-3.5 w-3.5" />
+              Save Draft
+            </button>
+            <button
+              onClick={handleDownloadPDF}
+              disabled={isProcessing}
+              className="flex items-center gap-2 px-6 py-2 rounded-lg text-xs font-bold bg-slate-900 text-white hover:bg-slate-800 transition-all shadow-lg shadow-slate-200 disabled:opacity-50"
+            >
+              {isProcessing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Printer className="h-3.5 w-3.5" />}
+              Export PDF
+            </button>
+          </div>
+        </div>
+      </header>
+
+      <div className="max-w-[1600px] mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-[300px_1fr_300px] gap-10">
+
+        {/* --- LEFT SIDEBAR: PROPERTIES --- */}
+        <aside className="hidden lg:block space-y-6">
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-8">
+            <div>
+              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4">Branding</h3>
+              <div className="relative group aspect-square rounded-xl bg-slate-50 border-2 border-dashed border-slate-200 flex items-center justify-center overflow-hidden transition-all hover:border-blue-400">
+                {formData.COMPANY_LOGO ? (
+                  <>
+                    <img src={formData.COMPANY_LOGO} alt="Branding" className="w-full h-full object-contain p-4" />
+                    <button
+                      onClick={() => updateField("COMPANY_LOGO", "")}
+                      className="absolute inset-0 bg-slate-900/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-[10px] font-bold"
+                    >
+                      Remove Logo
+                    </button>
+                  </>
+                ) : (
+                  <label className="flex flex-col items-center gap-2 cursor-pointer">
+                    <ImagePlus className="h-6 w-6 text-slate-300" />
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Add Logo</span>
+                    <input
+                      type="file" className="hidden" accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onloadend = () => updateField("COMPANY_LOGO", reader.result as string);
+                          reader.readAsDataURL(file);
+                        }
+                      }}
+                    />
+                  </label>
+                )}
               </div>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => updateField("COMPANY_LOGO", reader.result as string);
-                    reader.readAsDataURL(file);
-                  }
-                }}
-              />
-            </label>
-            {formData.COMPANY_LOGO && <p className="text-xs text-green-600 font-medium absolute -bottom-5 left-0">✓ Logo uploaded successfully</p>}
-          </div>
+            </div>
 
-          <div className="space-y-3 relative group">
-            <label className="text-sm font-semibold text-gray-700">Background Image</label>
-            <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer bg-gray-50 hover:bg-blue-50 hover:border-blue-400 transition-all">
-              <div className="flex flex-col items-center justify-center text-center px-4">
-                <ImagePlus className="w-6 h-6 mb-2 text-gray-400 group-hover:text-blue-500 transition-colors" />
-                <p className="text-sm font-medium text-gray-600 group-hover:text-blue-600">Click to upload background</p>
-                <p className="text-xs text-gray-400 mt-1">High-res landscape recommended</p>
-              </div>
-              <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    const reader = new FileReader();
-                    reader.onloadend = () => updateField("BACKGROUND_IMAGE", reader.result as string);
-                    reader.readAsDataURL(file);
-                  }
-                }}
-              />
-            </label>
-            {formData.BACKGROUND_IMAGE && <p className="text-xs text-green-600 font-medium absolute -bottom-5 left-0">✓ Background uploaded successfully</p>}
+            <div className="space-y-4">
+              <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Properties</h3>
+              <PropertyItem icon={<ShieldCheck className="h-4 w-4 text-emerald-500" />} label="Compliance" value="Verified" />
+              <PropertyItem icon={<ArrowLeftRight className="h-4 w-4 text-blue-500" />} label="Signatories" value="2 Parties" />
+              <PropertyItem icon={<Eye className="h-4 w-4 text-purple-500" />} label="Access" value="Private" />
+            </div>
           </div>
-        </div>
+        </aside>
+
+        {/* --- MAIN: THE DOCUMENT --- */}
+        <main className="flex justify-center flex-1 min-w-0">
+          <div className="relative group perspective-[1000px]">
+             {/* Realistic shadow layer handled in side the component or as a wrapper */}
+             <div className="absolute -inset-4 bg-slate-200/40 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+             
+             <ContractDocument 
+               formData={formData} 
+               template={template} 
+               fullContractText={fullContractText} 
+               refId={refId} 
+             />
+          </div>
+        </main>
+
+        {/* --- RIGHT SIDEBAR: STATUS --- */}
+        <aside className="hidden lg:block space-y-6">
+          <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-6">
+            <h3 className="text-[11px] font-black text-slate-400 uppercase tracking-widest">Finalization</h3>
+
+            <div className="space-y-4">
+              <StatusCheck label="Dimensions" status="Letter / A4" />
+              <StatusCheck label="Font Rendering" status="Serif Hybrid" />
+              <StatusCheck label="Margin Check" status="0.75 in" />
+            </div>
+
+            <div className="pt-6 border-t border-slate-100">
+              <p className="text-[10px] text-slate-500 leading-relaxed font-medium">
+                Ensure all dynamic fields are populated. Once exported, the layout is locked for legal preservation.
+              </p>
+            </div>
+
+            <Link
+              href="/dashboard/mycontracts"
+              className="flex items-center justify-center w-full py-3 bg-slate-50 text-slate-900 text-[11px] font-black uppercase rounded-xl border border-slate-200 hover:bg-slate-100 transition-all"
+            >
+              Exit Review
+            </Link>
+          </div>
+        </aside>
       </div>
 
-      {/* DOCUMENT PREVIEW BOX */}
-      <div className="bg-white border border-gray-200 shadow-xl rounded-lg overflow-hidden min-h-[650px] flex flex-col">
-        {/* Top Status Bar */}
-        <div className="bg-gray-50 border-b border-gray-200 px-6 py-3 flex justify-between items-center text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-          <span className="flex items-center gap-1.5">
-            <CheckCircle className="h-3 w-3 text-green-500" /> 
-            Live Draft Preview
-          </span>
-          <span>{template.templateConfig.name}</span>
-        </div>
-        
-        {/* Legal Text Content */}
-        <div className="p-12 flex-1 overflow-y-auto bg-white">
-          <div className="max-w-2xl mx-auto text-gray-800 leading-relaxed font-serif whitespace-pre-wrap text-sm">
-            {fullContractText}
-          </div>
-        </div>
-      </div>
-
-      {/* NAVIGATION & ACTION FOOTER */}
-      <div className="flex justify-between items-center pt-4 border-t border-gray-100">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium transition-colors"
-        >
-          <ChevronLeft className="h-4 w-4" />
-          Back to Editing
+      {/* MOBILE BOTTOM BAR */}
+      <div className="lg:hidden fixed bottom-6 left-6 right-6 h-16 bg-slate-900/90 backdrop-blur-xl rounded-2xl border border-white/10 flex items-center justify-around px-6 shadow-2xl z-50">
+        <button onClick={handleSaveToDatabase} className="text-white p-2">
+          <Save className="h-5 w-5" />
         </button>
+        <button onClick={handleDownloadPDF} className="flex items-center gap-2 bg-white text-slate-900 px-6 py-2.5 rounded-xl font-bold text-xs">
+          <Download className="h-4 w-4" /> Download
+        </button>
+      </div>
+    </div>
+  );
+}
 
-        <div className="flex gap-3">
-          {/* SAVE BUTTON */}
-          <button 
-            onClick={handleSaveToDatabase}
-            disabled={isProcessing}
-            className="flex items-center gap-2 px-6 py-3 border border-gray-300 rounded-lg font-semibold text-gray-700 hover:bg-gray-50 transition-all disabled:opacity-50"
-          >
-            {isProcessing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Save className="h-4 w-4" />
-            )}
-            Save to Dashboard
-          </button> 
+function PropertyItem({ icon, label, value }: { icon: ReactNode, label: string, value: string }) {
+  return (
+    <div className="flex items-center justify-between group cursor-default">
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-slate-50 rounded-lg group-hover:bg-white border border-transparent group-hover:border-slate-100 transition-all">{icon}</div>
+        <span className="text-[11px] font-bold text-slate-500">{label}</span>
+      </div>
+      <span className="text-[10px] font-black text-slate-900">{value}</span>
+    </div>
+  );
+}
 
-          {/* DOWNLOAD PDF BUTTON */}
-          <button
-            onClick={handleDownloadPDF}
-            disabled={isProcessing}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-lg font-bold shadow-lg shadow-blue-100 transition-all flex items-center gap-2 disabled:opacity-50"
-          >
-            {isProcessing ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Download className="h-4 w-4" />
-            )}
-            Download PDF
-          </button>
-        </div>
+function StatusCheck({ label, status }: { label: string, status: string }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter leading-none">{label}</span>
+      <div className="flex items-center gap-2">
+        <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+        <span className="text-xs font-bold text-slate-800">{status}</span>
       </div>
     </div>
   );

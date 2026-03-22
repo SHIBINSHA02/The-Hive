@@ -82,6 +82,7 @@ export default function CreateContractLayout({
   const type = searchParams.get("type") as ContractType | null;
 
   const isSelectionPage = pathname.endsWith("/create-contract"); 
+  const isPreviewPage = pathname.endsWith("/preview");
 
   if (isSelectionPage) {
     return <>{children}</>;
@@ -122,22 +123,24 @@ export default function CreateContractLayout({
           <StepNavigation type={type} pathname={pathname} />
 
           {/* MAIN SPLIT-SCREEN ENGINE */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+          <div className={`grid grid-cols-1 ${!isPreviewPage ? "lg:grid-cols-2" : ""} gap-8 items-start`}>
             
             {/* LEFT COLUMN: The Active Step Page */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 min-h-[500px]">
+            <div className={`bg-white rounded-2xl shadow-sm border border-gray-200 p-8 min-h-[500px] ${isPreviewPage ? "lg:col-span-1" : ""}`}>
               {children}
             </div>
 
             {/* RIGHT COLUMN: The Sticky Live Preview */}
-            <aside className="sticky top-10">
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 max-h-[80vh] overflow-y-auto custom-scrollbar">
-                <LivePreview />
-              </div>
-              <p className="mt-4 text-center text-[11px] text-gray-400 italic">
-                Secure Session Active • Data Persisted
-              </p>
-            </aside>
+            {!isPreviewPage && (
+              <aside className="sticky top-10">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 max-h-[80vh] overflow-y-auto custom-scrollbar">
+                  <LivePreview />
+                </div>
+                <p className="mt-4 text-center text-[11px] text-gray-400 italic">
+                  Secure Session Active • Data Persisted
+                </p>
+              </aside>
+            )}
 
           </div>
         </div>

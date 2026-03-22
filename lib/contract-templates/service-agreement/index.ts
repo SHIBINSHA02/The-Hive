@@ -55,7 +55,7 @@ export { optionalClauses } from "./clauses/optional";
 export { validatePlaceholders } from "./validatePlaceholders";
 export { aiFillPlaceholders } from "./aiFillPlaceholders";
 export { generateContract, getUsedPlaceholders } from "./generator";
-export { createCustomAIClient } from "./customAiClient";
+export { createGeminiClient } from "./geminiClient";
 
 // ============================================
 // TEMPLATE CONFIGURATION
