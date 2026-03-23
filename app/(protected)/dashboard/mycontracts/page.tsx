@@ -58,6 +58,23 @@ export default function ContractPage() {
     return matchesSearch;
   });
 
+  // Categorized Groups
+  const drafts = filteredContracts.filter(c => c.contractStatus === "draft");
+  const inNegotiation = filteredContracts.filter(c => 
+    ["sent_for_review", "in_negotiation", "locked"].includes(c.contractStatus)
+  );
+  const onProgress = filteredContracts.filter(c => c.contractStatus === "active");
+  const otherDocuments = filteredContracts.filter(c => 
+    !["draft", "sent_for_review", "in_negotiation", "locked", "active"].includes(c.contractStatus)
+  );
+
+  const sections = [
+    { title: "Draft Contracts", data: drafts, color: "text-blue-600" },
+    { title: "In Negotiation", data: inNegotiation, color: "text-blue-600" },
+    { title: "On Progress", data: onProgress, color: "text-blue-600" },
+    { title: "Other Documents", data: otherDocuments, color: "text-blue-600" },
+  ];
+
   // Loading State
   if (loading) {
     return (
@@ -160,33 +177,54 @@ export default function ContractPage() {
           </div>
         </div>
 
-        {/* ---------- CONTRACT GRID ---------- */}
-        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 min-h-[60vh]">
-          {filteredContracts.map((contract, index) => (
-            <div
-              key={contract._id}
-              className="animate-in fade-in slide-in-from-bottom-4 duration-500"
-              style={{ animationDelay: `${index * 80}ms` }}
-            >
-              <Link 
-                  href={`/dashboard/mycontracts/${contract._id}`}
-                className="block"
+        {/* ---------- CONTRACT SECTIONS ---------- */}
+        <div className="space-y-12 min-h-[60vh]">
+          {sections.map((section) => (
+            section.data.length > 0 && (
+              <div 
+                key={section.title} 
+                className="space-y-6 sm:space-y-8 bg-gradient-to-br from-blue-100 to-blue-50  backdrop-blur-[2px] border border-blue-300 rounded-3xl p-6 sm:p-10 shadow-sm transition-all duration-300 "
               >
-                <ContractCard
-                  id={contract._id} // ⬅️ ADDED ID HERE
-                  companyName={contract.companyName}
-                  companyLogo={contract.companyLogoUrl || ""}
-                  title={contract.contractTitle}
-                  description={contract.description || contract.summary || ""}
-                  startDate={new Date(contract.startDate).toDateString()}
-                  deadline={new Date(contract.deadline).toDateString()}
-                  progress={contract.progress || 0}
-                  backgroundImage={contract.bgImageUrl || ""}
-                  viewerRole={contract.viewerRole}
-                  counterpartyName={contract.counterpartyName}
-                />
-              </Link>
-            </div>
+                <div className="flex items-center gap-4">
+                  <h2 className={`text-xl sm:text-22xl font-bold ${section.color}`}>
+                    {section.title}
+                  </h2>
+                  <div className="h-px flex-1 bg-gray-200" />
+                  <span className="text-sm font-medium text-gray-400 bg-white px-2 rounded-full border border-gray-300 shadow-sm">
+                    {section.data.length}
+                  </span>
+                </div>
+
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3">
+                  {section.data.map((contract, index) => (
+                    <div
+                      key={contract._id}
+                      className="animate-in fade-in slide-in-from-bottom-4 duration-500"
+                      style={{ animationDelay: `${index * 80}ms` }}
+                    >
+                      <Link 
+                        href={`/dashboard/mycontracts/${contract._id}`}
+                        className="block"
+                      >
+                        <ContractCard
+                          id={contract._id}
+                          companyName={contract.companyName}
+                          companyLogo={contract.companyLogoUrl || ""}
+                          title={contract.contractTitle}
+                          description={contract.description || contract.summary || ""}
+                          startDate={new Date(contract.startDate).toDateString()}
+                          deadline={new Date(contract.deadline).toDateString()}
+                          progress={contract.progress || 0}
+                          backgroundImage={contract.bgImageUrl || ""}
+                          viewerRole={contract.viewerRole}
+                          counterpartyName={contract.counterpartyName}
+                        />
+                      </Link>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
           ))}
         </div>
 
