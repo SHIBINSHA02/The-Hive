@@ -203,7 +203,14 @@ export default function ContractPage() {
                       style={{ animationDelay: `${index * 80}ms` }}
                     >
                       <Link 
-                        href={`/dashboard/mycontracts/${contract._id}`}
+                        href={(() => {
+                          const status = contract.contractStatus;
+                          if (status === "draft") return `/dashboard/mycontracts/draft/${contract._id}`;
+                          if (["sent_for_review", "in_negotiation", "locked"].includes(status)) 
+                            return `/dashboard/mycontracts/negotiate/${contract._id}`;
+                          if (status === "active") return `/dashboard/mycontracts/onprogress/${contract._id}`;
+                          return `/dashboard/mycontracts/other/${contract._id}`;
+                        })()}
                         className="block"
                       >
                         <ContractCard

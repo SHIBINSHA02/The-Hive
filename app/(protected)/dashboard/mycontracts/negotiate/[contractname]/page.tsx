@@ -9,52 +9,40 @@ import remarkGfm from "remark-gfm";
 import ReactDiffViewer from 'react-diff-viewer-continued';
 import { Contract, Financial } from "@/types/contract";
 import type { ConversationType } from "@/types/conversation";
-import { Bot, Send, X, MessageSquare, Sparkles, Mail, Loader2, Camera, Edit3, Save, ShieldAlert } from "lucide-react";
+import { Bot, Send, X, MessageSquare, Sparkles, Loader2, Camera, Edit3, Save, ArrowLeft } from "lucide-react";
 
 interface ContractDetailsResponse {
   contract: Contract;
   versionHistory?: { contentSnapshot: string; updatedAt: Date }[];
   finance: Financial | null;
-  role: "client" | "contractor" | "owner"; 
+  role: "client" | "contractor" | "owner" | "partyB";
 }
 
-export default function ContractDetailsPage() {
+export default function NegotiateContractDetailsPage() {
   const { contractname } = useParams();
   const contractId = decodeURIComponent(contractname as string);
 
   const [data, setData] = useState<Contract | null>(null);
   const [finance, setFinance] = useState<Financial | null>(null);
   const [conversationPreview, setConversationPreview] = useState<ConversationType | null>(null);
-
-  const [viewerRole, setViewerRole] = useState<"client" | "contractor" | "owner" | null>(null);
+  const [viewerRole, setViewerRole] = useState<"client" | "contractor" | "owner" | "partyB" | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // ==========================================
-  // PHASE 2: NEGOTIATION MODULE STATES
-  // ==========================================
-  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [isSendingInvite, setIsSendingInvite] = useState(false);
-  const [isSigning, setIsSigning] = useState(false);
   const [isAgreeing, setIsAgreeing] = useState(false);
+  const [isSigning, setIsSigning] = useState(false);
+  const [isCancelling, setIsCancelling] = useState(false);
 
-  // ==========================================
-  // LECTURE: NEW EDITING STATE VARIABLES
-  // ==========================================
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
   const [isSavingEdit, setIsSavingEdit] = useState(false);
-  
-  // ADD THIS LINE: Tracks if the user is looking at the diff viewer
   const [showDiff, setShowDiff] = useState(false);
-  
-  // --- AI CHAT STATES ---
+
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [chatMessages, setChatMessages] = useState<{ role: "user" | "bot"; text: string }[]>([
-    { role: "bot", text: "Hi! I'm your Hive Assistant. Ask me anything about this contract's clauses, deadlines, or payments." }
+    { role: "bot", text: "Hi! I'm your Hive Assistant. Ask me anything about this contract negotiation." }
   ]);
   const [isTyping, setIsTyping] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
@@ -98,7 +86,6 @@ export default function ContractDetailsPage() {
       .catch(() => { });
   }, [contractId, data]);
 
-  // --- CHAT HANDLER ---
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
 
@@ -124,9 +111,6 @@ export default function ContractDetailsPage() {
     }
   };
 
-  // ==========================================
-  // LECTURE: EDITING LOGIC HANDLERS
-  // ==========================================
   const handleEditToggle = () => {
     setEditContent(data?.contractContent || "");
     setIsEditing(true);
@@ -146,57 +130,12 @@ export default function ContractDetailsPage() {
       const updated = await res.json();
       setData(updated as Contract);
       setIsEditing(false); 
-      setIsAgreeing(false); 
+      setIsAgreeing(false);
       
     } catch (err: any) {
       alert(err.message);
     } finally {
       setIsSavingEdit(false);
-    }
-  };
-
-  // ==========================================
-  // INVITE & STATUS LOGIC
-  // ==========================================
-  const handleSendInvite = async () => {
-    const emailToUse = data?.partyB_Email || inviteEmail;
-
-    if (!emailToUse || !emailToUse.includes("@")) {
-      const fallbackEmail = window.prompt("Please enter the counterparty's email to send the review request:");
-      if (!fallbackEmail || !fallbackEmail.includes("@")) {
-        alert("Valid email is required to send the contract for review.");
-        return;
-      }
-      setInviteEmail(fallbackEmail);
-      return; 
-    }
-
-    const finalEmail = (emailToUse && emailToUse.includes("@")) ? emailToUse : inviteEmail;
-
-    if (!window.confirm(`Are you sure you want to send this contract to ${finalEmail} for review?`)) {
-      return;
-    }
-
-    setIsSendingInvite(true);
-
-    try {
-      const res = await fetch(`/api/contracts/${contractId}/invite`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: finalEmail }),
-      });
-
-      if (!res.ok) {
-        const errData = await res.json();
-        throw new Error(errData.error || "Failed to send invite");
-      }
-
-      setData(prev => prev ? { ...prev, contractStatus: "sent_for_review",currentTurn: "partyB" } as Contract : null);
-      
-    } catch (err: any) {
-      alert(err.message || "Something went wrong sending the invite.");
-    } finally {
-      setIsSendingInvite(false);
     }
   };
 
@@ -239,46 +178,33 @@ export default function ContractDetailsPage() {
     }
   };
 
-  const handleTerminate = async () => {
-    if (!window.confirm("Are you sure you want to terminate this contract? This action cannot be undone.")) return;
+  const handleCancel = async () => {
     try {
-      const res = await fetch(`/api/contracts/${contractId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contractStatus: "terminated" })
-      });
-      if (!res.ok) throw new Error("Failed to terminate contract");
-      const updated = await res.json();
-      setData(updated as Contract);
+      setIsCancelling(true);
+      const res = await fetch(`/api/contracts/${contractId}/cancel`, { method: "POST" });
+      if (!res.ok) {
+          const errorData = await res.json();
+          throw new Error(errorData.error || "Failed to cancel request");
+      }
+      const result = await res.json();
+      setData(prev => prev ? { 
+        ...prev, 
+        contractStatus: result.status,
+        ownerAgreed: result.ownerAgreed,
+        partyBAgreed: result.partyBAgreed,
+      } as Contract : null);
     } catch (err: any) {
       alert(err.message);
+    } finally {
+      setIsCancelling(false);
     }
   };
 
-  const handleRenew = async () => {
-    if (!window.confirm("Are you sure you want to renew? This will reset signatures and return the contract to draft status for renegotiation.")) return;
-    try {
-      const res = await fetch(`/api/contracts/${contractId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          contractStatus: "draft",
-          ownerAgreed: false,
-          partyBAgreed: false,
-          ownerSigned: false,
-          partyBSigned: false,
-          progress: 0
-        })
-      });
-      if (!res.ok) throw new Error("Failed to renew contract");
-      const updated = await res.json();
-      setData(updated as Contract);
-    } catch (err: any) {
-      alert(err.message);
-    }
-  };
-
-  if (loading) return <div className="p-6 text-lg font-semibold">Loading contract…</div>;
+  if (loading) return (
+    <div className="flex items-center justify-center p-12">
+      <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
+    </div>
+  );
   if (error) return <div className="p-6 text-red-600 font-semibold">Error: {error}</div>;
   if (!data) return <div className="p-6">No contract found</div>;
 
@@ -291,11 +217,10 @@ export default function ContractDetailsPage() {
         ) : (
           <div className="absolute inset-0 bg-gray-200" />
         )}
-        
-        {/* Background Edit Button (Owner Only) */}
+
         {viewerRole === "owner" && (
           <label className="absolute top-4 right-4 z-50 bg-black/70 hover:bg-black/90 backdrop-blur-md text-white px-3 py-2 rounded-lg cursor-pointer transition-all flex items-center gap-2 text-sm font-bold shadow-2xl border border-white/20">
-            <Camera className="w-5 h-5 text-blue-400" /> 
+            <Camera className="w-5 h-5 text-blue-400" />
             <span>Change Background</span>
             <input 
               type="file" 
@@ -327,6 +252,13 @@ export default function ContractDetailsPage() {
 
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent p-6 flex items-end justify-between text-white">
           <div>
+            <Link 
+              href="/dashboard/mycontracts"
+              className="flex items-center gap-2 text-sm font-medium text-white/70 hover:text-white transition-colors mb-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Contracts
+            </Link>
             <h1 className="text-3xl font-bold">{data.contractTitle}</h1>
             <div className="flex items-center gap-3 mt-2 relative group/logo">
               {data.companyLogoUrl ? (
@@ -338,8 +270,7 @@ export default function ContractDetailsPage() {
                   <span className="text-sm font-bold">{data.companyName.charAt(0)}</span>
                 </div>
               )}
-              
-              {/* Logo Edit Button (Owner Only) */}
+
               {viewerRole === "owner" && (
                 <label className="absolute -top-3 -left-3 z-50 bg-blue-600 hover:bg-blue-500 text-white p-1.5 rounded-full cursor-pointer transition-all shadow-xl border-2 border-white">
                   <Camera className="w-4 h-4" />
@@ -375,54 +306,64 @@ export default function ContractDetailsPage() {
             </div>
           </div>
 
-          {/* Action Buttons */}
           <div className="flex items-center gap-3">
-            {/* LECTURE: "Edit Contract" toggle for Party A. Only visible when not locked. */}
-            {(data.contractStatus === "in_negotiation" || data.contractStatus === "draft" || data.contractStatus === "sent_for_review") && !isEditing && (
-                data.currentTurn === "owner" ? (
-                  <button
-                    onClick={handleEditToggle}
-                    className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-4 py-2.5 rounded-lg font-semibold border border-white/50 flex items-center gap-2 transition-all shadow-lg"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                    Edit Contract
-                  </button>
-                ) : (
-                  <div className="bg-white/20 backdrop-blur-md text-white px-4 py-2.5 rounded-lg font-semibold border border-white/50 flex items-center gap-2">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Counterparty is Editing...
-                  </div>
-                )
-            )}
-
-            {data.contractStatus === "draft" && viewerRole === "owner" && (
-              <button
-                onClick={handleSendInvite}
-                disabled={isSendingInvite}
-                className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
-              >
-                {isSendingInvite ? <Loader2 className="w-5 h-5 animate-spin" /> : <Mail className="w-5 h-5" />}
-                Send to Counterparty
-              </button>
+            {(data.contractStatus === "in_negotiation" || data.contractStatus === "sent_for_review") && !isEditing && (
+              data.currentTurn === "partyB" ? (
+                <button
+                  onClick={handleEditToggle}
+                  className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-4 py-2.5 rounded-lg font-semibold border border-white/50 flex items-center gap-2 transition-all shadow-lg"
+                >
+                  <Edit3 className="w-4 h-4" />
+                  Suggest Edits
+                </button>
+              ) : (
+                <div className="bg-white/20 backdrop-blur-md text-white px-4 py-2.5 rounded-lg font-semibold border border-white/50 flex items-center gap-2">
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  Owner is Editing...
+                </div>
+              )
             )}
 
             {(data.contractStatus === "in_negotiation" || data.contractStatus === "sent_for_review") && (
               <div className="flex items-center gap-2">
                 {((viewerRole === "owner" && !data.ownerAgreed) || (viewerRole !== "owner" && !data.partyBAgreed)) ? (
-                  <button
-                    onClick={handleAgree}
-                    disabled={isAgreeing || isEditing} // Disable agreeing while they are editing!
-                    className={`px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105 ${
-                        isEditing ? "bg-gray-400 text-gray-200 cursor-not-allowed" : "bg-amber-600 hover:bg-amber-500 text-white"
-                    }`}
-                  >
-                    {isAgreeing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-                    Agree to Content
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleAgree}
+                        disabled={isAgreeing || isEditing}
+                        className={`px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105 ${
+                          isEditing ? "bg-gray-400 text-gray-200 cursor-not-allowed" : "bg-amber-600 hover:bg-amber-500 text-white"
+                        }`}
+                    >
+                        {isAgreeing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                        Agree to Content
+                    </button>
+                    
+                    {viewerRole === "owner" && (
+                        <button
+                            onClick={handleCancel}
+                            disabled={isCancelling}
+                            className="bg-red-600/20 hover:bg-red-600/40 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold border border-red-500/50 flex items-center gap-2 transition-all"
+                        >
+                            {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
+                            Cancel Request
+                        </button>
+                    )}
+                  </div>
                 ) : (
-                  <div className="bg-white/20 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    Waiting for Counterparty
+                  <div className="flex items-center gap-3">
+                    <div className="bg-white/20 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        {viewerRole === "owner" ? (data.partyBAgreed ? "Waiting for locking" : "Waiting for Counterparty") : (data.ownerAgreed ? "Waiting for locking" : "Waiting for Owner")}
+                    </div>
+                    <button
+                        onClick={handleCancel}
+                        disabled={isCancelling}
+                        className="bg-red-600/20 hover:bg-red-600/40 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold border border-red-500/50 flex items-center gap-2 transition-all"
+                    >
+                        {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
+                        Rescind Agreement
+                    </button>
                   </div>
                 )}
               </div>
@@ -431,56 +372,43 @@ export default function ContractDetailsPage() {
             {data.contractStatus === "locked" && (
               <>
                 {viewerRole !== "owner" && !data.partyBSigned ? (
-                  <button
-                    onClick={handleSign}
-                    disabled={isSigning}
-                    className="bg-green-600 hover:bg-green-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
-                  >
-                    {isSigning ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-                    Sign Contract
-                  </button>
+                  <div className="flex items-center gap-3">
+                    <button
+                        onClick={handleSign}
+                        disabled={isSigning}
+                        className="bg-green-600 hover:bg-green-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
+                    >
+                        {isSigning ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                        Sign Contract
+                    </button>
+                    <button
+                        onClick={handleCancel}
+                        disabled={isCancelling}
+                        className="bg-red-600/20 hover:bg-red-600/40 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold border border-red-500/50 flex items-center gap-2 transition-all"
+                    >
+                        {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
+                        Unlock & Negotiate
+                    </button>
+                  </div>
                 ) : (
-                  <div className="bg-white/20 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2">
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                    {viewerRole === "owner" ? "Awaiting Counterparty Signature" : "Contract Signed, Activating..."}
+                  <div className="flex items-center gap-3">
+                     <div className="bg-white/20 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        {viewerRole === "owner" ? "Awaiting Counterparty Signature" : "Contract Signed, Activating..."}
+                    </div>
+                    {viewerRole === "owner" && (
+                        <button
+                            onClick={handleCancel}
+                            disabled={isCancelling}
+                            className="bg-red-600/20 hover:bg-red-600/40 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold border border-red-500/50 flex items-center gap-2 transition-all"
+                        >
+                            {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
+                            Unlock & Negotiate
+                        </button>
+                    )}
                   </div>
                 )}
               </>
-            )}
-
-            {data.contractStatus === "active" && (
-              <div className="flex items-center gap-3">
-                <div className="bg-green-500/80 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg">
-                  <Sparkles className="w-5 h-5" />
-                  Contract Active & Signed
-                </div>
-                
-                {/* LECTURE: Only the Owner can terminate or renew an active contract */}
-                {viewerRole === "owner" && (
-                   <>
-                     <button 
-                        onClick={handleRenew} 
-                        className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-semibold transition-all shadow-lg flex items-center gap-2"
-                     >
-                        Renew
-                     </button>
-                     <button 
-                        onClick={handleTerminate} 
-                        className="bg-red-600 hover:bg-red-500 text-white px-5 py-2.5 rounded-lg font-semibold transition-all shadow-lg flex items-center gap-2"
-                     >
-                        Terminate
-                     </button>
-                   </>
-                )}
-              </div>
-            )}
-
-            {/* LECTURE: The badge for when a contract is officially dead */}
-            {data.contractStatus === "terminated" && (
-              <div className="bg-red-900/80 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-bold flex items-center gap-2 shadow-lg">
-                <X className="w-5 h-5" />
-                Contract Terminated
-              </div>
             )}
           </div>
         </div>
@@ -500,7 +428,6 @@ export default function ContractDetailsPage() {
                 {data.contractStatus.replace(/_/g, " ")}
               </span>
             </p>
-            <p><strong>Contract ID:</strong> {data.contractId}</p>
           </div>
         </div>
 
@@ -525,7 +452,7 @@ export default function ContractDetailsPage() {
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
         <h2 className="font-semibold text-lg">Communication</h2>
         <p className="mt-1 text-sm text-gray-600">
-          Professional communication with your {data.contractStatus === "active" ? "counterparty" : "client/contractor"}.
+          Professional communication with the contract owner.
         </p>
 
         <div className="mt-4 flex flex-wrap items-center gap-3">
@@ -533,20 +460,12 @@ export default function ContractDetailsPage() {
             onClick={() => setIsChatOpen(true)}
             className="inline-flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition-colors"
           >
-            <Sparkles size={16} />
+            <Bot size={16} />
             Ask AI Assistant
           </button>
 
           <Link
-            href={`/dashboard/mycontracts/${encodeURIComponent(contractId)}/riskdetect`}
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors shadow-sm"
-          >
-            <ShieldAlert size={16} />
-            Risk Detection
-          </Link>
-
-          <Link
-            href={`/dashboard/mycontracts/${encodeURIComponent(contractId)}/conversation`}
+            href={`/dashboard/mycontracts/negotiate/${encodeURIComponent(contractId)}/conversation`}
             className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             <MessageSquare size={16} />
@@ -574,7 +493,7 @@ export default function ContractDetailsPage() {
             </div>
           </div>
         </div>
-      )}        
+      )}
 
       {/* Clauses Section */}
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
@@ -586,15 +505,12 @@ export default function ContractDetailsPage() {
         </ul>
       </div>
 
-      {/* ========================================== */}
-      {/* LECTURE: FULL DOCUMENT SECTION WITH DIFF VIEWER */}
-      {/* ========================================== */}
+      {/* Full Document Section */}
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow overflow-hidden">
         <div className="flex justify-between items-center border-b border-gray-100 pb-3">
             <div className="flex items-center gap-4">
               <h2 className="font-semibold text-lg">Contract Document</h2>
               
-              {/* The Diff Viewer Toggle Switch (Only shows if there is history!) */}
               {data.versionHistory && data.versionHistory.length > 0 && !isEditing && (
                 <div className="flex bg-gray-100 p-1 rounded-lg">
                   <button 
@@ -642,8 +558,6 @@ export default function ContractDetailsPage() {
                   placeholder="Type your contract edits here..."
               />
           ) : showDiff && data.versionHistory && data.versionHistory.length > 0 ? (
-              // LECTURE: The Diff Viewer!
-              // It grabs the LAST item in the versionHistory array (the snapshot taken right before the current edit)
               <div className="border border-gray-200 rounded-lg overflow-hidden max-h-[600px] overflow-y-auto">
                 <ReactDiffViewer
                   oldValue={data.versionHistory[data.versionHistory.length - 1].contentSnapshot}
@@ -662,7 +576,7 @@ export default function ContractDetailsPage() {
         </div>
       </div>
 
-      {/* --- AI CHAT SIDEBAR --- */}
+      {/* AI Chat Sidebar */}
       {isChatOpen && (
         <div className="fixed inset-y-0 right-0 w-full sm:w-96 bg-white shadow-2xl z-50 flex flex-col border-l border-gray-200 animate-in slide-in-from-right duration-300">
           <div className="p-4 border-b flex items-center justify-between bg-gray-50">

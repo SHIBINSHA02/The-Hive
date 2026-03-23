@@ -188,3 +188,34 @@ export async function PATCH(
 
   return NextResponse.json(updated);
 }
+
+export async function DELETE(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
+
+  const { userId: clerkId } = await auth();
+  if (!clerkId)
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const result = await getContractAndRole(id, clerkId);
+  if (!result)
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+
+  // Only the owner can delete, and only while it's a draft
+  if (result.role !== "owner")
+    return NextResponse.json({ error: "Only the owner can delete a draft" }, { status: 403 });
+
+  if ((result.contract as any).contractStatus !== "draft")
+    return NextResponse.json({ error: "Only draft contracts can be deleted" }, { status: 403 });
+
+  await connectDB();
+  const internalId = result.contract._id;
+
+  // Delete associated financial record first
+  await Financial.deleteOne({ contract: internalId });
+  await Contract.findByIdAndDelete(internalId);
+
+  return NextResponse.json({ success: true });
+}

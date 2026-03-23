@@ -15,9 +15,17 @@ export default function ContractConversationPage() {
 
   // Determine back link base
   const isRequestPath = pathname.includes("/dashboard/requests/");
-  const backPath = isRequestPath 
-    ? `/dashboard/requests/${encodeURIComponent(contractId)}`
-    : `/dashboard/mycontracts/${encodeURIComponent(contractId)}`;
+  let backPath: string;
+  if (isRequestPath) {
+    backPath = `/dashboard/requests/${encodeURIComponent(contractId)}`;
+  } else {
+    // Extract the status segment from the pathname, e.g. /dashboard/mycontracts/draft/:id/conversation → draft
+    const mycontractsMatch = pathname.match(/\/dashboard\/mycontracts\/([^/]+)\//);
+    const statusSegment = mycontractsMatch ? mycontractsMatch[1] : null;
+    backPath = statusSegment
+      ? `/dashboard/mycontracts/${statusSegment}/${encodeURIComponent(contractId)}`
+      : `/dashboard/mycontracts`;
+  }
 
   const [conversation, setConversation] = useState<ConversationType | null>(null);
   const [contractTitle, setContractTitle] = useState<string>("");

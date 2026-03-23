@@ -84,7 +84,7 @@ const ContractCard = ({
   };
 
   return (
-    <div className="group relative overflow-hidden rounded-xl bg-white shadow-card transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1">
+    <div className="group relative overflow-hidden  shadow-2xl shadow-blue-200 rounded-xl bg-white  transition-all duration-300 hover:shadow-card-hover hover:-translate-y-1">
       
       {/* ⬅️ NEW: Download Button */}
       <button
