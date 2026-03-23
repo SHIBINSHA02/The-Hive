@@ -160,8 +160,12 @@ export async function POST(req: Request) {
 
     const body = await req.json();
 
+    // THE FIX: Explicitly inject the ownerId, initial status, and starting turn
     const contract = await Contract.create({
       ...body,
+      ownerId: clerkId,               // <--- Stamps you as the permanent Owner
+      contractStatus: "draft",        // <--- Forces the State Machine to start at Draft
+      currentTurn: "owner",           // <--- Gives you the edit pen first
       client: clientProfile._id
     });
 

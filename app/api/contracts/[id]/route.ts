@@ -7,6 +7,7 @@ import Contract from "@/db/models/Contract";
 import Financial from "@/db/models/Finance";
 import { getContractAndRole } from "@/lib/contractAuth";
 
+export const dynamic = "force-dynamic";
 export async function GET(
   req: Request,
   context: { params: Promise<{ id: string }> }
@@ -62,7 +63,9 @@ export async function GET(
       ? new Date((contract as any).deadline).toISOString()
       : new Date().toISOString(),
     progress: (contract as any).progress ?? 0,
-    contractStatus: (contract as any).contractStatus ?? "pending",
+    contractStatus: ((contract as any).contractStatus === "pending" || !(contract as any).contractStatus) 
+      ? "draft" 
+      : (contract as any).contractStatus,
     partyB_Email: (contract as any).partyB_Email,
     clauses: (contract as any).clauses ?? [],
     keypoints: (contract as any).keypoints ?? [],
