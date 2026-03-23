@@ -13,7 +13,7 @@ interface ContractCardProps {
   deadline: string;
   progress: number;
   backgroundImage: string;
-  viewerRole?: "client" | "contractor" | "owner";
+  viewerRole?: "client" | "contractor" | "owner" | "partyB";
   counterpartyName?: string;
 }
 
