@@ -34,6 +34,34 @@ export default function RequestContractDetailsPage() {
   const [isSigning, setIsSigning] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
 
+  // --- FINANCE STATES ---
+  const [isPaying, setIsPaying] = useState<number | null>(null);
+
+  const handlePayMilestone = async (milestoneIndex: number) => {
+    setIsPaying(milestoneIndex);
+    try {
+      const res = await fetch(`/api/contracts/${contractId}/finance/pay`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ milestoneIndex })
+      });
+      
+      if (!res.ok) throw new Error("Payment update failed");
+      
+      const updatedFinance = await res.json();
+      setFinance(updatedFinance); // Instantly updates UI numbers!
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsPaying(null);
+    }
+  };
+  // ==========================================
+  // PHASE 2: MISSING INVITE STATES ADDED HERE
+  // ==========================================
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [isSendingInvite, setIsSendingInvite] = useState(false);
+
   // ==========================================
   // LECTURE: NEW EDITING STATE VARIABLES
   // ==========================================
@@ -149,6 +177,52 @@ export default function RequestContractDetailsPage() {
     }
   };
 
+  // ==========================================
+  // INVITE LOGIC (Send for Review)
+  // ==========================================
+  const handleSendInvite = async () => {
+    const emailToUse = data?.partyB_Email || inviteEmail;
+
+    if (!emailToUse || !emailToUse.includes("@")) {
+      const fallbackEmail = window.prompt("Please enter the counterparty's email to send the review request:");
+      if (!fallbackEmail || !fallbackEmail.includes("@")) {
+        alert("Valid email is required to send the contract for review.");
+        return;
+      }
+      setInviteEmail(fallbackEmail);
+      return; 
+    }
+
+    const finalEmail = (emailToUse && emailToUse.includes("@")) ? emailToUse : inviteEmail;
+
+    if (!window.confirm(`Are you sure you want to send this contract to ${finalEmail} for review?`)) {
+      return;
+    }
+
+    setIsSendingInvite(true);
+
+    try {
+      const res = await fetch(`/api/contracts/${contractId}/invite`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: finalEmail }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to send invite");
+      }
+
+      // Automatically update UI to "sent_for_review" without refreshing
+      setData(prev => prev ? { ...prev, contractStatus: "sent_for_review", currentTurn: "partyB" } as Contract : null);
+      
+    } catch (err: any) {
+      alert(err.message || "Something went wrong sending the invite.");
+    } finally {
+      setIsSendingInvite(false);
+    }
+  };
+
   // --- EXISTING ACTION HANDLERS ---
   const handleAgree = async () => {
     try {
@@ -221,6 +295,13 @@ export default function RequestContractDetailsPage() {
 
   return (
     <div className="w-full lg:px-6 px-0 lg:py-6 py-0 space-y-6 relative">
+      {/* 🚨 X-RAY DEBUGGER 🚨 */}
+      <div className="bg-red-100 border-2 border-red-500 p-4 rounded-lg mb-6 text-red-900 font-mono text-sm z-50">
+        <p><strong>Raw Status:</strong> {JSON.stringify(data?.contractStatus)}</p>
+        <p><strong>Viewer Role:</strong> {JSON.stringify(viewerRole)}</p>
+        <p><strong>Status is Draft?:</strong> {JSON.stringify(data?.contractStatus === "draft")}</p>
+        <p><strong>Role is Owner?:</strong> {JSON.stringify(viewerRole === "owner")}</p>
+      </div>
       {/* Header */}
       <div className="relative w-full h-56 rounded-2xl overflow-hidden shadow flex flex-col justify-end group/bg">
         {data.bgImageUrl ? (
@@ -313,58 +394,62 @@ export default function RequestContractDetailsPage() {
           </div>
 
           {/* Action Buttons */}
-          <div className="flex items-center gap-3">
-            {/* LECTURE: "Suggest Edits" toggle. Only visible if it is Party B's turn! */}
-            {(data.contractStatus === "in_negotiation" || data.contractStatus === "sent_for_review") && !isEditing && (
-              data.currentTurn === "partyB" ? (
-                <button
-                  onClick={handleEditToggle}
-                  className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-4 py-2.5 rounded-lg font-semibold border border-white/50 flex items-center gap-2 transition-all shadow-lg"
-                >
-                  <Edit3 className="w-4 h-4" />
-                  Suggest Edits
-                </button>
-              ) : (
-                <div className="bg-white/20 backdrop-blur-md text-white px-4 py-2.5 rounded-lg font-semibold border border-white/50 flex items-center gap-2">
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Owner is Editing...
-                </div>
-              )
+          <div className="flex flex-wrap items-center gap-3">
+            
+            {/* PHASE 1: DRAFT (Owner Only) */}
+            {data.contractStatus === "draft" && viewerRole === "owner" && (
+              <button
+                onClick={handleSendInvite}
+                disabled={isSendingInvite}
+                className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
+              >
+                {isSendingInvite ? <Loader2 className="w-5 h-5 animate-spin" /> : <Mail className="w-5 h-5" />}
+                Send for Review
+              </button>
             )}
 
-            {(data.contractStatus === "in_negotiation" || data.contractStatus === "sent_for_review" || data.contractStatus === "draft") && (
-              <div className="flex items-center gap-2">
+            {/* PHASE 2: NEGOTIATION & AGREEMENT */}
+            {(data.contractStatus === "in_negotiation" || data.contractStatus === "sent_for_review") && !isEditing && (
+              <div className="flex items-center gap-3">
+                
+                {/* CONDITION A: If YOU have NOT agreed yet */}
                 {((viewerRole === "owner" && !data.ownerAgreed) || (viewerRole !== "owner" && !data.partyBAgreed)) ? (
-                  <div className="flex items-center gap-3">
-                    {data.contractStatus !== "draft" && (
-                        <button
-                            onClick={handleAgree}
-                            disabled={isAgreeing || isEditing} // Can't agree while editing!
-                            className={`px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105 ${
-                              isEditing ? "bg-gray-400 text-gray-200 cursor-not-allowed" : "bg-amber-600 hover:bg-amber-500 text-white"
-                            }`}
-                        >
-                            {isAgreeing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
-                            Agree to Content
-                        </button>
+                  <>
+                    {/* The Pen (Strict Mutual Exclusion) */}
+                    {((viewerRole === "owner" && data.currentTurn === "owner") || (viewerRole !== "owner" && data.currentTurn === "partyB")) ? (
+                      <button
+                        onClick={handleEditToggle}
+                        className="bg-white/20 hover:bg-white/30 backdrop-blur-md text-white px-4 py-2.5 rounded-lg font-semibold border border-white/50 flex items-center gap-2 transition-all shadow-lg"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                        Suggest Edits
+                      </button>
+                    ) : (
+                      <div className="bg-white/20 backdrop-blur-md text-white px-4 py-2.5 rounded-lg font-semibold border border-white/50 flex items-center gap-2">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        {viewerRole === "owner" ? "Counterparty is Reviewing..." : "Owner is Editing..."}
+                      </div>
                     )}
-                    
-                    {viewerRole === "owner" && (
-                        <button
-                            onClick={handleCancel}
-                            disabled={isCancelling}
-                            className="bg-red-600/20 hover:bg-red-600/40 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold border border-red-500/50 flex items-center gap-2 transition-all"
-                        >
-                            {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
-                            {data.contractStatus === "draft" ? "Discard Draft" : "Cancel Request"}
-                        </button>
-                    )}
-                  </div>
+
+                    {/* Agree Button */}
+                    <button
+                        onClick={handleAgree}
+                        disabled={isAgreeing || isEditing}
+                        className={`px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105 ${
+                          isEditing ? "bg-gray-400 text-gray-200 cursor-not-allowed" : "bg-amber-600 hover:bg-amber-500 text-white"
+                        }`}
+                    >
+                        {isAgreeing ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
+                        Agree to Content
+                    </button>
+                  </>
                 ) : (
+                  
+                  /* CONDITION B: If YOU HAVE agreed, you wait for the other person */
                   <div className="flex items-center gap-3">
                     <div className="bg-white/20 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2">
                         <Loader2 className="w-5 h-5 animate-spin" />
-                        {viewerRole === "owner" ? (data.partyBAgreed ? "Waiting for locking" : "Waiting for Counterparty") : (data.ownerAgreed ? "Waiting for locking" : "Waiting for Owner")}
+                        Waiting for Counterparty to Agree...
                     </div>
                     <button
                         onClick={handleCancel}
@@ -374,24 +459,27 @@ export default function RequestContractDetailsPage() {
                         {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
                         Rescind Agreement
                     </button>
-                    {viewerRole === "owner" && (
-                        <button
-                            onClick={handleCancel}
-                            disabled={isCancelling}
-                            className="bg-red-600/20 hover:bg-red-600/40 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold border border-red-500/50 flex items-center gap-2 transition-all"
-                        >
-                            {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
-                            Cancel Request
-                        </button>
-                    )}
                   </div>
+                )}
+                
+                {/* Global Cancel Request (Owner Only) */}
+                {viewerRole === "owner" && (
+                    <button
+                        onClick={handleCancel}
+                        disabled={isCancelling}
+                        className="bg-red-600/20 hover:bg-red-600/40 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold border border-red-500/50 flex items-center gap-2 transition-all"
+                    >
+                        {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
+                        Cancel Request
+                    </button>
                 )}
               </div>
             )}
 
+            {/* PHASE 3: DIGITAL SIGNATURES */}
             {data.contractStatus === "locked" && (
               <>
-                {viewerRole !== "owner" && !data.partyBSigned ? (
+                {((viewerRole === "owner" && !data.ownerSigned) || (viewerRole !== "owner" && !data.partyBSigned)) ? (
                   <div className="flex items-center gap-3">
                     <button
                         onClick={handleSign}
@@ -401,21 +489,6 @@ export default function RequestContractDetailsPage() {
                         {isSigning ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-5 h-5" />}
                         Sign Contract
                     </button>
-                    <button
-                        onClick={handleCancel}
-                        disabled={isCancelling}
-                        className="bg-red-600/20 hover:bg-red-600/40 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold border border-red-500/50 flex items-center gap-2 transition-all"
-                    >
-                        {isCancelling ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
-                        Unlock & Negotiate
-                    </button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-3">
-                     <div className="bg-white/20 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2">
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        {viewerRole === "owner" ? "Awaiting Counterparty Signature" : "Contract Signed, Activating..."}
-                    </div>
                     {viewerRole === "owner" && (
                         <button
                             onClick={handleCancel}
@@ -426,6 +499,13 @@ export default function RequestContractDetailsPage() {
                             Unlock & Negotiate
                         </button>
                     )}
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-3">
+                     <div className="bg-white/20 backdrop-blur-md text-white px-5 py-2.5 rounded-lg font-semibold flex items-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        Awaiting Counterparty Signature...
+                    </div>
                   </div>
                 )}
               </>
@@ -497,21 +577,75 @@ export default function RequestContractDetailsPage() {
       {/* Finance Section */}
       {finance && (
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
-          <h2 className="font-semibold text-lg">Finance</h2>
-          <div className="mt-4 grid grid-cols-1 sm:grid-cols-3 gap-6">
-            <div>
-              <p className="text-sm text-gray-600">Total Amount</p>
-              <p className="font-bold text-xl">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.totalAmount)}</p>
+          <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+            <h2 className="font-semibold text-lg text-gray-900">Financial Ledger</h2>
+            <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${
+                finance.paymentStatus === "completed" ? "bg-green-100 text-green-700" : 
+                finance.paymentStatus === "partial" ? "bg-amber-100 text-amber-700" : 
+                "bg-gray-100 text-gray-600"
+            }`}>
+                {finance.paymentStatus.replace("_", " ")}
+            </span>
+          </div>
+
+          {/* Top Summary */}
+          <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-6">
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
+              <p className="text-xs font-medium text-gray-500 uppercase">Total Amount</p>
+              <p className="font-bold text-2xl text-gray-900 mt-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.totalAmount)}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Paid Amount</p>
-              <p className="font-bold text-xl text-green-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.paidAmount)}</p>
+            <div className="bg-green-50 p-4 rounded-lg border border-green-100">
+              <p className="text-xs font-medium text-green-600 uppercase">Paid Amount</p>
+              <p className="font-bold text-2xl text-green-700 mt-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.paidAmount)}</p>
             </div>
-            <div>
-              <p className="text-sm text-gray-600">Due Amount</p>
-              <p className="font-bold text-xl text-orange-600">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.dueAmount)}</p>
+            <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
+              <p className="text-xs font-medium text-amber-600 uppercase">Due Amount</p>
+              <p className="font-bold text-2xl text-amber-700 mt-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.dueAmount)}</p>
             </div>
           </div>
+
+          {/* Milestones List */}
+          {/* Milestones List */}
+          {finance.milestones && finance.milestones.length > 0 && (
+            <div className="mt-8">
+              <h3 className="font-medium text-gray-900 mb-4">Payment Schedule</h3>
+              <div className="space-y-3">
+                {finance.milestones.map((milestone, idx) => (
+                  <div key={idx} className={`flex flex-wrap items-center justify-between p-4 border rounded-lg transition-colors ${milestone.isPaid ? 'bg-gray-50 border-gray-200' : 'bg-white border-blue-100 hover:border-blue-300 shadow-sm'}`}>
+                    <div>
+                      <p className={`font-medium text-sm ${milestone.isPaid ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
+                        {milestone.title || `Installment ${idx + 1}`}
+                      </p>
+                      <p className="text-xs text-gray-500 mt-1">Due: {new Date(milestone.dueDate).toDateString()}</p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span className={`font-semibold ${milestone.isPaid ? 'text-gray-400' : 'text-gray-900'}`}>
+                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(milestone.amount)}
+                      </span>
+                      
+                      {milestone.isPaid ? (
+                        <span className="bg-green-100 text-green-700 text-xs px-3 py-1.5 rounded-full font-bold flex items-center gap-1">
+                          Paid
+                        </span>
+                      ) : data.contractStatus === "active" ? (
+                        <button 
+                          onClick={() => handlePayMilestone(idx)}
+                          disabled={isPaying === idx}
+                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-1.5 rounded-md font-bold transition-all shadow shadow-blue-200 hover:shadow-md disabled:bg-blue-400"
+                        >
+                          {isPaying === idx ? "Processing..." : "Mark as Paid"}
+                        </button>
+                      ) : (
+                        <span className="text-[11px] text-amber-600 font-medium bg-amber-50 px-2.5 py-1 rounded border border-amber-200">
+                          Awaiting Signatures
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 

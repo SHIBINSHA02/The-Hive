@@ -94,7 +94,7 @@ export async function getContractAndRole(contractId: string, clerkId: string) {
     contract.contractor &&
     contract.contractor._id?.toString() === contractorProfile._id.toString();
 
-  const isOwner = contract.ownerId === clerkId;
+  const isOwner = contract.ownerId && String(contract.ownerId) === String(clerkId);
   
   const isPartyB = 
     (contract.partyB_ClerkId && contract.partyB_ClerkId === clerkId) || 
