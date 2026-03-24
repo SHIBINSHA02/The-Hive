@@ -107,5 +107,9 @@ export async function POST(
     ContractConversation as { findOne: (q: object) => { lean: () => { exec: () => Promise<unknown> } } }
   ).findOne({ contractId: canonicalId }).lean().exec();
   const normalized = normalizeConversation(updated as Parameters<typeof normalizeConversation>[0]);
-  return NextResponse.json(normalized);
+  return NextResponse.json({
+    ...normalized,
+    viewerRole: result.role,
+    viewerProfileId: result.senderProfileId
+  });
 }

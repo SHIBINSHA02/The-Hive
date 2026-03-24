@@ -69,7 +69,11 @@ export async function GET(
     }
 
     const normalized = normalizeConversation(conversation as { threads?: unknown[]; messages?: unknown[] });
-    return NextResponse.json(normalized);
+    return NextResponse.json({
+      ...normalized,
+      viewerRole: result.role,
+      viewerProfileId: result.senderProfileId
+    });
 
   } catch (error: any) {
     console.error("DEBUG: Conversation API GET Error:", error);

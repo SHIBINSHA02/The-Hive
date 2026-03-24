@@ -28,6 +28,7 @@ export default function ContractConversationPage() {
   }
 
   const [conversation, setConversation] = useState<ConversationType | null>(null);
+  const [viewerInfo, setViewerInfo] = useState<{ role: string; senderProfileId: string } | null>(null);
   const [contractTitle, setContractTitle] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -36,6 +37,13 @@ export default function ContractConversationPage() {
   const [showNewThread, setShowNewThread] = useState(false);
   const [replyMessage, setReplyMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  // For real-time "Undo" button visibility updates
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const interval = setInterval(() => setTick(t => t + 1), 30000); 
+    return () => clearInterval(interval);
+  }, []);
 
   const selectedThread = conversation?.threads?.find(
     (t) => t._id === selectedThreadId
@@ -52,6 +60,10 @@ export default function ContractConversationPage() {
       }
       const data = await res.json();
       setConversation(data);
+      setViewerInfo({
+        role: data.viewerRole,
+        senderProfileId: data.viewerProfileId
+      });
       if (data.threads?.length && !selectedThreadId)
         setSelectedThreadId(data.threads[0]._id);
     } catch (e) {
@@ -92,6 +104,10 @@ export default function ContractConversationPage() {
       if (!res.ok) throw new Error("Failed to create thread");
       const data = await res.json();
       setConversation(data);
+      setViewerInfo({
+        role: data.viewerRole,
+        senderProfileId: data.viewerProfileId
+      });
       const newThread = data.threads?.find((t: ConversationThread) => t.subject === subject);
       if (newThread) setSelectedThreadId(newThread._id);
       setNewSubject("");
@@ -120,12 +136,62 @@ export default function ContractConversationPage() {
       if (!res.ok) throw new Error("Failed to send message");
       const data = await res.json();
       setConversation(data);
+      setViewerInfo({
+        role: data.viewerRole,
+        senderProfileId: data.viewerProfileId
+      });
       setReplyMessage("");
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to send message");
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleUndoMessage = async (messageId: string) => {
+    if (!selectedThreadId || submitting) return;
+    if (!confirm("Are you sure you want to undo this message?")) return;
+    
+    setSubmitting(true);
+    try {
+      const res = await fetch(
+        `/api/contracts/${contractId}/conversation/threads/${selectedThreadId}/messages/${messageId}`,
+        {
+          method: "DELETE",
+        }
+      );
+      if (!res.ok) {
+        const errJson = await res.json();
+        throw new Error(errJson.error || "Failed to undo message");
+      }
+      const data = await res.json();
+      setConversation(data);
+      setViewerInfo({
+        role: data.viewerRole,
+        senderProfileId: data.viewerProfileId
+      });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to undo message");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const formatTime = (dateStr?: string) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    return new Intl.DateTimeFormat('en-US', {
+        hour: 'numeric',
+        minute: 'numeric',
+        hour12: true
+    }).format(date);
+  };
+
+  const canUndo = (msg: any) => {
+    if (!msg.createdAt || !viewerInfo || msg.senderId !== viewerInfo.senderProfileId) return false;
+    const createdAt = new Date(msg.createdAt);
+    const diff = Date.now() - createdAt.getTime();
+    return diff < 120 * 1000; // 2 minutes
   };
 
   if (loading)
@@ -254,7 +320,7 @@ export default function ContractConversationPage() {
                       className={`flex ${msg.senderRole === "system" ? "justify-center" : (msg.senderRole === "client" || msg.senderRole === "owner") ? "justify-start" : "justify-end"}`}
                     >
                       <div
-                        className={`max-w-[80%] rounded-lg px-3 py-2 text-sm ${
+                        className={`max-w-[80%] rounded-lg px-3 py-2 text-sm relative group ${
                           msg.senderRole === "system"
                             ? "bg-gray-100 text-gray-600"
                             : (msg.senderRole === "client" || msg.senderRole === "owner")
@@ -262,10 +328,24 @@ export default function ContractConversationPage() {
                             : "bg-blue-600 text-white"
                         }`}
                       >
-                        <span className="text-xs font-medium opacity-80 capitalize">
-                          {msg.senderRole}
-                        </span>
-                        <p className="mt-0.5 whitespace-pre-wrap">{msg.message}</p>
+                        <div className="flex items-center justify-between gap-4">
+                            <span className="text-[10px] font-bold opacity-70 uppercase tracking-tighter">
+                                {msg.senderRole}
+                            </span>
+                            <span className="text-[10px] opacity-70">
+                                {formatTime(msg.createdAt)}
+                            </span>
+                        </div>
+                        <p className="mt-0.5 whitespace-pre-wrap leading-tight">{msg.message}</p>
+                        
+                        {canUndo(msg) && (
+                            <button
+                                onClick={() => handleUndoMessage(msg._id!)}
+                                className="absolute -top-2 -right-2 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
+                            >
+                                Undo
+                            </button>
+                        )}
                       </div>
                     </div>
                   ))

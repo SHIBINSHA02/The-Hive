@@ -7,8 +7,7 @@ import Link from "next/link";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Contract, Financial } from "@/types/contract";
-import type { ConversationType } from "@/types/conversation";
-import { Bot, Send, X, MessageSquare, Sparkles, Loader2, Camera, ArrowLeft } from "lucide-react";
+import { Bot, Send, X, Sparkles, Loader2, Camera, ArrowLeft } from "lucide-react";
 
 interface ContractDetailsResponse {
   contract: Contract;
@@ -23,7 +22,6 @@ export default function OtherContractDetailsPage() {
 
   const [data, setData] = useState<Contract | null>(null);
   const [finance, setFinance] = useState<Financial | null>(null);
-  const [conversationPreview, setConversationPreview] = useState<ConversationType | null>(null);
   const [viewerRole, setViewerRole] = useState<"client" | "contractor" | "owner" | "partyB" | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -68,13 +66,6 @@ export default function OtherContractDetailsPage() {
     fetchContract();
   }, [contractId]);
 
-  useEffect(() => {
-    if (!contractId || !data) return;
-    fetch(`/api/contracts/${contractId}/conversation`, { cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((conv) => conv && setConversationPreview(conv))
-      .catch(() => { });
-  }, [contractId, data]);
 
   const handleSendMessage = async () => {
     if (!chatInput.trim()) return;
@@ -193,13 +184,6 @@ export default function OtherContractDetailsPage() {
             Ask AI Assistant
           </button>
 
-          <Link
-            href={`/dashboard/mycontracts/other/${encodeURIComponent(contractId)}/conversation`}
-            className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-          >
-            <MessageSquare size={16} />
-            {conversationPreview ? "View Human Conversation" : "Open Conversation"}
-          </Link>
         </div>
       </div>
 
