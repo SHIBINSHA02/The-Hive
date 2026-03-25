@@ -156,6 +156,10 @@ export default function ContractDetailsView({
                 {data.contractStatus.replace(/_/g, " ")}
               </span>
             </p>
+            <div className="pt-2 border-t border-gray-100 mt-2 space-y-1">
+              <p className="text-xs text-gray-500"><strong>Creator Email:</strong> {data.ownerEmail || "N/A"}</p>
+              <p className="text-xs text-gray-500"><strong>Counterparty Email:</strong> {data.partyB_Email || "N/A"}</p>
+            </div>
           </div>
         </div>
 

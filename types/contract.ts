@@ -25,6 +25,7 @@ export interface Contract {
   ownerAgreed: boolean;
   partyBAgreed: boolean;
   partyB_Email?: string; // Captured email for sending invitations
+  ownerEmail?: string;    // Email of the contract owner (fetched from Clerk/User DB)
 
   // Populated by API in some views
   clientName?: string;

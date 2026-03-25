@@ -5,6 +5,7 @@ import mongoose from "mongoose";
 import { connectDB } from "@/lib/db";
 import Contract from "@/db/models/Contract";
 import Financial from "@/db/models/Finance";
+import User from "@/db/models/User";
 import { getContractAndRole } from "@/lib/contractAuth";
 
 export const dynamic = "force-dynamic";
@@ -79,13 +80,19 @@ export async function GET(
     versionHistory: (contract as any).versionHistory ?? [],
     clientName,
     contractorName,
-    viewerRole: role,
     counterpartyName,
+  };
+
+  // FETCH OWNER EMAIL
+  const ownerUser = await User.findOne({ clerkId: (contract as any).ownerId });
+  const finalContract = {
+    ...formattedContract,
+    ownerEmail: ownerUser?.email || "Unknown",
   };
 
   const finance = await Financial.findOne({ contract: contract._id });
 
-  return NextResponse.json({ contract: formattedContract, finance, role });
+  return NextResponse.json({ contract: finalContract, finance, role });
 }
 
 export async function PUT(
