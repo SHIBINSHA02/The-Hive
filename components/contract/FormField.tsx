@@ -128,6 +128,7 @@ export function FormField({ fieldKey }: FormFieldProps) {
           <textarea
             value={value}
             onChange={(e) => updateField(fieldKey, e.target.value)}
+            onFocus={() => window.dispatchEvent(new CustomEvent("field-focus", { detail: fieldKey }))}
             rows={4}
             className={inputBaseStyle}
             placeholder={config.placeholder}
@@ -138,6 +139,7 @@ export function FormField({ fieldKey }: FormFieldProps) {
             <input
               type="file"
               accept="image/*"
+              onFocus={() => window.dispatchEvent(new CustomEvent("field-focus", { detail: fieldKey }))}
               className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
               disabled={isDisabled}
               onChange={(e) => {
@@ -160,6 +162,7 @@ export function FormField({ fieldKey }: FormFieldProps) {
             type={config.type === "date" ? "date" : "text"}
             value={value}
             onChange={(e) => updateField(fieldKey, e.target.value)}
+            onFocus={() => window.dispatchEvent(new CustomEvent("field-focus", { detail: fieldKey }))}
             className={inputBaseStyle}
             placeholder={config.placeholder}
             disabled={isDisabled}
