@@ -154,12 +154,14 @@ export async function PATCH(
     updateDoc.$set.ownerAgreed = false;
     updateDoc.$set.partyBAgreed = false;
     
-    // NEW: Shift the status to negotiation mode so both parties can participate
-    updateDoc.$set.contractStatus = "in_negotiation"; 
-
-    // 2. MUTUAL EXCLUSION: Pass the "pen" to the other party
-    const isOwner = exists.role === "owner";
-    updateDoc.$set.currentTurn = isOwner ? "partyB" : "owner";
+    // NEW: Shift the status to negotiation mode ONLY if it is not already a draft
+    // In draft mode, the owner retains the "pen" and the status stays as draft.
+    if (existingContract.contractStatus !== "draft") {
+        updateDoc.$set.contractStatus = "in_negotiation"; 
+        // 2. MUTUAL EXCLUSION: Pass the "pen" to the other party
+        const isOwner = exists.role === "owner";
+        updateDoc.$set.currentTurn = isOwner ? "partyB" : "owner";
+    }
 
     // 3. Create the snapshot of the OLD text
     updateDoc.$push = {

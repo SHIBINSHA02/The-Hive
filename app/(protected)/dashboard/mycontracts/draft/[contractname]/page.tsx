@@ -8,7 +8,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import ReactDiffViewer from 'react-diff-viewer-continued';
 import { Contract, Financial } from "@/types/contract";
-import { Bot, Send, X, Sparkles, Loader2, Camera, Edit3, Save, ArrowLeft, ShieldAlert } from "lucide-react";
+import { Bot, Send, X, Sparkles, Loader2, Camera, Edit3, Save, ArrowLeft, ShieldAlert, Mail, Trash2 } from "lucide-react";
 
 interface ContractDetailsResponse {
   contract: Contract;
@@ -33,10 +33,8 @@ export default function DraftContractDetailsPage() {
   const [isSigning, setIsSigning] = useState(false);
   const [isCancelling, setIsCancelling] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [isSendingInvite, setIsSendingInvite] = useState(false);
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [editContent, setEditContent] = useState("");
-  const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [showDiff, setShowDiff] = useState(false);
 
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -104,92 +102,34 @@ export default function DraftContractDetailsPage() {
     }
   };
 
-  const handleEditToggle = () => {
-    setEditContent(data?.contractContent || "");
-    setIsEditing(true);
-  };
+  const handleSendInvite = async () => {
+    if (!data?.partyB_Email || !data.partyB_Email.includes("@")) {
+      alert("Please set a valid counterparty email in the 'Edit Draft' page first.");
+      return;
+    }
 
-  const handleSaveEdit = async () => {
+    if (!window.confirm(`Are you sure you want to send this contract to ${data.partyB_Email} for review?`)) {
+      return;
+    }
+
+    setIsSendingInvite(true);
     try {
-      setIsSavingEdit(true);
-      const res = await fetch(`/api/contracts/${contractId}`, { 
-        method: "PATCH",
+      const res = await fetch(`/api/contracts/${contractId}/invite`, {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contractContent: editContent })
+        body: JSON.stringify({ email: data.partyB_Email }),
       });
-      
-      if (!res.ok) throw new Error("Failed to save changes");
-      
-      const updated = await res.json();
-      setData(updated as Contract);
-      setIsEditing(false); 
-      setIsAgreeing(false);
-      
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setIsSavingEdit(false);
-    }
-  };
 
-  const handleAgree = async () => {
-    try {
-      setIsAgreeing(true);
-      const res = await fetch(`/api/contracts/${contractId}/agree`, { method: "POST" });
-      if (!res.ok) throw new Error("Failed to record agreement");
-      const result = await res.json();
-      setData(prev => prev ? { 
-        ...prev, 
-        contractStatus: result.status,
-        ownerAgreed: result.ownerAgreed,
-        partyBAgreed: result.partyBAgreed
-      } as Contract : null);
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setIsAgreeing(false);
-    }
-  };
-
-  const handleSign = async () => {
-    try {
-      setIsSigning(true);
-      const res = await fetch(`/api/contracts/${contractId}/sign`, { method: "POST" });
-      if (!res.ok) throw new Error("Failed to sign contract");
-      const result = await res.json();
-      setData(prev => prev ? { 
-        ...prev, 
-        contractStatus: result.status,
-        ownerSigned: result.ownerSigned,
-        partyBSigned: result.partyBSigned,
-        progress: result.status === "active" ? 100 : prev.progress
-      } as Contract : null);
-    } catch (err: any) {
-      alert(err.message);
-    } finally {
-      setIsSigning(false);
-    }
-  };
-
-  const handleCancel = async () => {
-    try {
-      setIsCancelling(true);
-      const res = await fetch(`/api/contracts/${contractId}/cancel`, { method: "POST" });
       if (!res.ok) {
-          const errorData = await res.json();
-          throw new Error(errorData.error || "Failed to cancel request");
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to send invite");
       }
-      const result = await res.json();
-      setData(prev => prev ? { 
-        ...prev, 
-        contractStatus: result.status,
-        ownerAgreed: result.ownerAgreed,
-        partyBAgreed: result.partyBAgreed,
-      } as Contract : null);
+
+      router.push(`/dashboard/requests/${contractId}`);
     } catch (err: any) {
-      alert(err.message);
+      alert(err.message || "Something went wrong sending the invite.");
     } finally {
-      setIsCancelling(false);
+      setIsSendingInvite(false);
     }
   };
 
@@ -316,22 +256,40 @@ export default function DraftContractDetailsPage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             {viewerRole === "owner" && (
-              <button
-                onClick={handleDelete}
-                disabled={isDeleting}
-                className="bg-red-600/80 hover:bg-red-600 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all"
-              >
-                {isDeleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <X className="w-5 h-5" />}
-                Delete Draft
-              </button>
+              <>
+                <Link
+                  href={`/dashboard/mycontracts/draft/${encodeURIComponent(contractId)}/edit`}
+                  className="bg-blue-600 hover:bg-blue-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
+                >
+                  <Edit3 className="w-5 h-5" />
+                  Edit Draft
+                </Link>
+
+                <button
+                  onClick={handleSendInvite}
+                  disabled={isSendingInvite}
+                  className="bg-amber-600 hover:bg-amber-500 text-white px-5 py-2.5 rounded-lg font-semibold shadow-lg flex items-center gap-2 transition-all transform hover:scale-105"
+                >
+                  {isSendingInvite ? <Loader2 className="w-5 h-5 animate-spin" /> : <Mail className="w-5 h-5" />}
+                  Send for Review
+                </button>
+
+                <button
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  className="bg-white/10 hover:bg-red-600/20 text-white/70 hover:text-white px-4 py-2.5 rounded-lg font-semibold border border-white/20 hover:border-red-500 transition-all flex items-center gap-2"
+                >
+                  {isDeleting ? <Loader2 className="w-5 h-5 animate-spin" /> : <Trash2 className="w-5 h-5" />}
+                  Delete
+                </button>
+              </>
             )}
           </div>
         </div>
       </div>
 
-      {/* Summary & Progress */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
           <h2 className="font-semibold text-lg">Summary</h2>
@@ -365,7 +323,6 @@ export default function DraftContractDetailsPage() {
         </div>
       </div>
 
-      {/* Communication Section */}
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
         <h2 className="font-semibold text-lg">Communication</h2>
         <p className="mt-1 text-sm text-gray-600">
@@ -381,7 +338,6 @@ export default function DraftContractDetailsPage() {
             Ask AI Assistant
           </button>
 
-
           <Link
             href={`/dashboard/mycontracts/draft/${encodeURIComponent(contractId)}/riskdetect`}
             className="inline-flex items-center gap-2 rounded-lg border border-blue-600 text-blue-600 bg-blue-100 px-4 py-2 text-sm font-medium hover:bg-blue-200 transition-colors"
@@ -392,7 +348,6 @@ export default function DraftContractDetailsPage() {
         </div>
       </div>
 
-      {/* Finance Section */}
       {finance && (
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
           <h2 className="font-semibold text-lg">Finance</h2>
@@ -413,7 +368,6 @@ export default function DraftContractDetailsPage() {
         </div>
       )}
 
-      {/* Clauses Section */}
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
         <h2 className="font-semibold text-lg">Clauses</h2>
         <ul className="list-disc ml-6 mt-2 text-gray-700">
@@ -423,78 +377,50 @@ export default function DraftContractDetailsPage() {
         </ul>
       </div>
 
-      {/* Full Document Section */}
       <div className="rounded-xl border border-gray-200 bg-white p-5 shadow overflow-hidden">
         <div className="flex justify-between items-center border-b border-gray-100 pb-3">
-            <div className="flex items-center gap-4">
-              <h2 className="font-semibold text-lg">Contract Document</h2>
-              
-              {data.versionHistory && data.versionHistory.length > 0 && !isEditing && (
-                <div className="flex bg-gray-100 p-1 rounded-lg">
-                  <button 
-                    onClick={() => setShowDiff(false)}
-                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${!showDiff ? "bg-white shadow text-black" : "text-gray-500 hover:text-black"}`}
-                  >
-                    Current Version
-                  </button>
-                  <button 
-                    onClick={() => setShowDiff(true)}
-                    className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${showDiff ? "bg-white shadow text-black" : "text-gray-500 hover:text-black"}`}
-                  >
-                    View Changes
-                  </button>
-                </div>
-              )}
-            </div>
+          <div className="flex items-center gap-4">
+            <h2 className="font-semibold text-lg">Contract Document</h2>
 
-            {isEditing && (
-                <div className="flex gap-2 animate-in fade-in zoom-in duration-200">
-                    <button 
-                        onClick={() => setIsEditing(false)}
-                        className="px-3 py-1.5 text-sm font-semibold text-gray-600 hover:bg-gray-100 rounded-md transition-colors"
-                    >
-                        Cancel
-                    </button>
-                    <button 
-                        onClick={handleSaveEdit}
-                        disabled={isSavingEdit || editContent === data.contractContent}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors disabled:bg-blue-400"
-                    >
-                        {isSavingEdit ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                        Save Proposed Changes
-                    </button>
-                </div>
+            {data.versionHistory && data.versionHistory.length > 0 && (
+              <div className="flex bg-gray-100 p-1 rounded-lg">
+                <button
+                  onClick={() => setShowDiff(false)}
+                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${!showDiff ? "bg-white shadow text-black" : "text-gray-500 hover:text-black"}`}
+                >
+                  Current Version
+                </button>
+                <button
+                  onClick={() => setShowDiff(true)}
+                  className={`px-3 py-1 text-xs font-semibold rounded-md transition-all ${showDiff ? "bg-white shadow text-black" : "text-gray-500 hover:text-black"}`}
+                >
+                  View Changes
+                </button>
+              </div>
             )}
+          </div>
         </div>
-        
+
         <div className="mt-4">
-          {isEditing ? (
-              <textarea
-                  value={editContent}
-                  onChange={(e) => setEditContent(e.target.value)}
-                  className="w-full min-h-[500px] p-4 text-sm font-mono bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all outline-none"
-                  placeholder="Type your contract edits here..."
+          {showDiff && data.versionHistory && data.versionHistory.length > 0 ? (
+            <div className="border border-gray-200 rounded-lg overflow-hidden max-h-[600px] overflow-y-auto">
+              <ReactDiffViewer
+                oldValue={data.versionHistory[data.versionHistory.length - 1].contentSnapshot}
+                newValue={data.contractContent || ""}
+                splitView={true}
+                useDarkTheme={false}
+                leftTitle="Previous Version"
+                rightTitle="Proposed Changes"
               />
-          ) : showDiff && data.versionHistory && data.versionHistory.length > 0 ? (
-              <div className="border border-gray-200 rounded-lg overflow-hidden max-h-[600px] overflow-y-auto">
-                <ReactDiffViewer
-                  oldValue={data.versionHistory[data.versionHistory.length - 1].contentSnapshot}
-                  newValue={data.contractContent || ""}
-                  splitView={true}
-                  useDarkTheme={false}
-                  leftTitle="Previous Version"
-                  rightTitle="Proposed Changes"
-                />
-              </div>
+            </div>
           ) : (
-              <div className="prose max-w-none">
-                <ReactMarkdown remarkPlugins={[remarkGfm]}>{data.contractContent || ""}</ReactMarkdown>
-              </div>
+            <div className="prose max-w-none">
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{data.contractContent || ""}</ReactMarkdown>
+            </div>
           )}
         </div>
       </div>
 
-      {/* AI Chat Sidebar */}
       {isChatOpen && (
         <div className="fixed inset-y-0 right-0 w-full sm:w-96 bg-white shadow-2xl z-50 flex flex-col border-l border-gray-200 animate-in slide-in-from-right duration-300">
           <div className="p-4 border-b flex items-center justify-between bg-gray-50">
