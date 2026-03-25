@@ -58,6 +58,15 @@ export async function POST(
     // If both parties have now agreed, lock the contract for signatures.
     if (contractDoc.ownerAgreed && contractDoc.partyBAgreed) {
       contractDoc.contractStatus = "locked";
+      
+      // LECTURE: SAVE THE FINAL AGREED VERSION SNAPSHOT
+      // This ensures we have a permanent record of what both parties exactly signed off on.
+      contractDoc.versionHistory.push({
+        updatedBy: "SYSTEM_AGREEMENT", // Or clerkId if we want to attribute to the final clicker
+        updatedAt: new Date(),
+        contentSnapshot: contractDoc.contractContent || "",
+        action: "accepted"
+      });
     }
 
     await contractDoc.save();
