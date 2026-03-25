@@ -86,9 +86,9 @@ export default function NegotiationPage() {
       const result = await res.json();
       await fetchData();
       
-      if (result.status === "locked") {
-        alert("Both parties have agreed! The contract is now locked for signing.");
-        router.push(`/dashboard/mycontracts/negotiate/${encodeURIComponent(contractId)}`);
+      if (result.status === "active") {
+        alert("Both parties have agreed! The contract is now In Progress.");
+        router.push(`/dashboard/mycontracts/onprogress/${encodeURIComponent(contractId)}`);
       } else {
         alert("Your agreement has been recorded. Waiting for the other party to agree.");
       }

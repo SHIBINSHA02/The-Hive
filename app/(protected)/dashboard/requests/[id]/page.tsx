@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import ContractDetailsView from "@/components/contract/ContractDetailsView";
 import { Contract, Financial } from "@/types/contract";
@@ -9,6 +9,7 @@ import { Loader2, Mail, Edit3, Sparkles, X, Camera, Save } from "lucide-react";
 
 export default function RequestContractDetailsPage() {
   const { id } = useParams();
+  const router = useRouter();
   const contractId = decodeURIComponent(id as string);
 
   const [data, setData] = useState<Contract | null>(null);
@@ -138,8 +139,13 @@ export default function RequestContractDetailsPage() {
     try {
       setIsAgreeing(true);
       const res = await fetch(`/api/contracts/${contractId}/agree`, { method: "POST" });
-      if (!res.ok) throw new Error("Failed to record agreement");
-      await fetchData();
+      const result = await res.json();
+      if (result.status === "active") {
+        alert("Both parties have agreed! The contract is now In Progress.");
+        router.push(`/dashboard/mycontracts/onprogress/${encodeURIComponent(contractId)}`);
+      } else {
+        await fetchData();
+      }
     } catch (err: any) {
       alert(err.message);
     } finally {

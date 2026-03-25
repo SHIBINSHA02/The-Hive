@@ -55,14 +55,16 @@ export async function POST(
     // ==========================================
     // THE FIX: State Machine Transition
     // ==========================================
-    // If both parties have now agreed, lock the contract for signatures.
+    // If both parties have now agreed, activate the contract (In Progress).
     if (contractDoc.ownerAgreed && contractDoc.partyBAgreed) {
-      contractDoc.contractStatus = "locked";
+      contractDoc.contractStatus = "active";
+      contractDoc.ownerSigned = true;
+      contractDoc.partyBSigned = true;
+      contractDoc.progress = 100; // Finalized for execution
       
-      // LECTURE: SAVE THE FINAL AGREED VERSION SNAPSHOT
-      // This ensures we have a permanent record of what both parties exactly signed off on.
+      // SAVE THE FINAL AGREED VERSION SNAPSHOT
       contractDoc.versionHistory.push({
-        updatedBy: "SYSTEM_AGREEMENT", // Or clerkId if we want to attribute to the final clicker
+        updatedBy: "SYSTEM_AGREEMENT",
         updatedAt: new Date(),
         contentSnapshot: contractDoc.contractContent || "",
         action: "accepted"
