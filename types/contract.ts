@@ -14,7 +14,7 @@ export interface Contract {
   deadline: string;
 
   progress: number;
-  contractStatus: "pending" | "active" | "completed" | string;
+  contractStatus: "draft" | "sent_for_review" | "in_negotiation" | "locked" | "active" | "completed" | "terminated" | string;
 
   clauses?: string[];
   keypoints?: string[];

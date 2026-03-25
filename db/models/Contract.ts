@@ -33,7 +33,7 @@ export interface IContract extends Document {
   
   // --- UPDATED: Expanded Status Enum ---
   // Replaced the simple 3 statuses with a strict 6-step state machine
-  contractStatus: "draft" | "sent_for_review" | "in_negotiation" | "locked" | "active" | "completed";
+  contractStatus: "draft" | "sent_for_review" | "in_negotiation" | "locked" | "active" | "completed" | "terminated";
   
   embeddings: number[];
   createdAt: Date;
@@ -79,7 +79,7 @@ const ContractSchema = new Schema<IContract>(
     // The default is now "draft". It moves through these steps sequentially.
     contractStatus: {
       type: String,
-      enum: ["draft", "sent_for_review", "in_negotiation", "locked", "active", "completed"],
+      enum: ["draft", "sent_for_review", "in_negotiation", "locked", "active", "completed", "terminated"],
       default: "draft",
     },
     

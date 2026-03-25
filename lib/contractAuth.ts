@@ -61,6 +61,7 @@ export async function getContractAndRole(contractId: string, clerkId: string) {
   type ContractLean = {
     _id: mongoose.Types.ObjectId;
     ownerId?: string;
+    contractTitle?: string;
     partyB_Email?: string;
     partyB_ClerkId?: string;
     client?: { _id: { toString: () => string } } | null;

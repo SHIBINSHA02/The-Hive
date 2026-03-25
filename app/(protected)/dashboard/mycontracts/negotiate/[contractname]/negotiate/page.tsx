@@ -23,6 +23,7 @@ export default function NegotiationPage() {
   const [showDiff, setShowDiff] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAgreeing, setIsAgreeing] = useState(false);
+  const [isTerminating, setIsTerminating] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -105,6 +106,27 @@ export default function NegotiationPage() {
     }
   };
 
+  const handleTerminate = async () => {
+    if (!data) return;
+    if (!confirm("Are you sure you want to terminate this negotiation? This will revert the contract to a non-negotiable state for the other party.")) return;
+
+    try {
+      setIsTerminating(true);
+      const res = await fetch(`/api/contracts/${contractId}/terminate`, {
+        method: "POST"
+      });
+
+      if (!res.ok) throw new Error("Failed to terminate negotiation");
+
+      alert("Negotiation terminated successfully.");
+      router.push("/dashboard/mycontracts");
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsTerminating(false);
+    }
+  };
+
   if (loading) return (
     <div className="flex flex-col items-center justify-center p-20 space-y-4">
       <Loader2 className="h-10 w-10 text-blue-600 animate-spin" />
@@ -168,8 +190,10 @@ export default function NegotiationPage() {
         onPropose={handlePropose}
         onAgree={handleAgree}
         onCancel={handleDiscard}
+        onTerminate={handleTerminate}
         isSubmitting={isSubmitting}
         isAgreeing={isAgreeing}
+        isTerminating={isTerminating}
       />
 
       <div className="grid grid-cols-1 gap-6">

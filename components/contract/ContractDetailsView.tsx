@@ -103,6 +103,15 @@ export default function ContractDetailsView({
 
   return (
     <div className="w-full lg:px-6 px-0 lg:py-6 py-0 space-y-6 relative">
+      {data.contractStatus === "terminated" && (
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 shadow-sm animate-in fade-in slide-in-from-top-4">
+          <ShieldAlert className="w-5 h-5 text-red-600" />
+          <div>
+            <p className="text-sm font-bold">Negotiation Terminated</p>
+            <p className="text-xs opacity-90">This negotiation has been terminated by the counterparty or the owner. No further edits can be made.</p>
+          </div>
+        </div>
+      )}
       <div className="relative w-full h-56 rounded-2xl overflow-hidden shadow flex flex-col justify-end group/bg">
         {data.bgImageUrl ? (
           <Image src={data.bgImageUrl} alt="Background" fill className="object-cover" />

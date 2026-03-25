@@ -9,8 +9,10 @@ interface NegotiationControlsProps {
   onPropose: () => void;
   onAgree: () => void;
   onCancel: () => void;
+  onTerminate: () => void;
   isSubmitting: boolean;
   isAgreeing: boolean;
+  isTerminating: boolean;
 }
 
 export default function NegotiationControls({
@@ -19,8 +21,10 @@ export default function NegotiationControls({
   onPropose,
   onAgree,
   onCancel,
+  onTerminate,
   isSubmitting,
-  isAgreeing
+  isAgreeing,
+  isTerminating
 }: NegotiationControlsProps) {
   const isOwner = contract.viewerRole === "owner";
   const isMyTurn = contract.currentTurn === (isOwner ? "owner" : "partyB");
@@ -100,6 +104,15 @@ export default function NegotiationControls({
                 Editing is disabled while it's the other party's turn.
             </div>
         )}
+
+        <button
+          onClick={onTerminate}
+          disabled={isTerminating}
+          className="flex items-center gap-2 px-4 py-2 text-red-600 border border-red-200 rounded-lg text-sm font-medium hover:bg-red-50 transition-all ml-auto"
+        >
+          {isTerminating ? <Loader2 size={16} className="animate-spin" /> : <X size={16} />}
+          Terminate Negotiation
+        </button>
       </div>
     </div>
   );
