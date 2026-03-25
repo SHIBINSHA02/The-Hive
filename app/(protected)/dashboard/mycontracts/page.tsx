@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { Plus, Filter, LayoutGrid, List, Search } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Plus, Filter, LayoutGrid, List, Search, Bot, Send, X, Sparkles } from "lucide-react";
 import ContractCard from "@/components/dashboard/ContractCard";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import Link from "next/link";
 import { Contract } from "@/types/contract";
 import { useRouter } from "next/navigation";
@@ -19,6 +21,43 @@ export default function ContractPage() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  // Chatbot State
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatInput, setChatInput] = useState("");
+  const [chatMessages, setChatMessages] = useState<{ role: "user" | "bot"; text: string }[]>([
+    { role: "bot", text: "Hi! I'm your Hive Assistant. Ask me anything about your contracts." }
+  ]);
+  const [isTyping, setIsTyping] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages, isTyping]);
+
+  const handleSendMessage = async () => {
+    if (!chatInput.trim()) return;
+
+    const userMsg = chatInput;
+    setChatInput("");
+    setChatMessages(prev => [...prev, { role: "user", text: userMsg }]);
+    setIsTyping(true);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        body: JSON.stringify({
+          prompt: userMsg,
+        }),
+      });
+      const result = await response.json();
+      setChatMessages(prev => [...prev, { role: "bot", text: result.text }]);
+    } catch (err) {
+      setChatMessages(prev => [...prev, { role: "bot", text: "Error connecting to AI. Please try again." }]);
+    } finally {
+      setIsTyping(false);
+    }
+  };
 
   // Fetch contracts
   useEffect(() => {
@@ -131,6 +170,15 @@ export default function ContractPage() {
             >
               <Plus className="mr-2 h-4 w-4" />
               Create Contract
+            </button>
+
+            {/* AI Assistant Button */}
+            <button
+              onClick={() => setIsChatOpen(true)}
+              className="inline-flex items-center justify-center rounded-md bg-black px-4 py-2 text-sm font-medium text-white shadow hover:bg-gray-800 transition-all duration-300"
+            >
+              <Sparkles className="mr-2 h-4 w-4" />
+              Ask AI Assistant
             </button>
 
             {/* Filters */}
@@ -258,6 +306,53 @@ export default function ContractPage() {
           </div>
         )}
       </div>
+
+      {isChatOpen && (
+        <div className="fixed inset-y-0 right-0 w-full sm:w-96 bg-white shadow-2xl z-50 flex flex-col border-l border-gray-200 animate-in slide-in-from-right duration-300">
+          <div className="p-4 border-b flex items-center justify-between bg-gray-50">
+            <div className="flex items-center gap-2 text-blue-600">
+              <Bot size={20} />
+              <span className="font-bold">Hive AI</span>
+            </div>
+            <button onClick={() => setIsChatOpen(false)} className="p-1 hover:bg-gray-200 rounded-full">
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {chatMessages.map((m, i) => (
+              <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
+                <div className={`max-w-[85%] px-4 py-2 rounded-2xl text-sm shadow-sm ${m.role === "user" ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-800"
+                  }`}>
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{m.text}</ReactMarkdown>
+                </div>
+              </div>
+            ))}
+            {isTyping && <div className="text-xs text-gray-400 animate-pulse">Assistant is thinking...</div>}
+            <div ref={chatEndRef} />
+          </div>
+
+          <div className="p-4 border-t bg-white">
+            <div className="flex gap-2">
+              <input
+                type="text"
+                value={chatInput}
+                onChange={(e) => setChatInput(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                placeholder="Ask about your contracts..."
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button 
+                onClick={handleSendMessage} 
+                disabled={isTyping || !chatInput.trim()} 
+                className="bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors"
+              >
+                <Send size={18} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

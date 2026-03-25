@@ -3,7 +3,7 @@ import Contract from "@/db/models/Contract";
 
 export const handleChatLogic = async (
     prompt: string,
-    userId: string,
+    accessConditions: Record<string, unknown>[],
     contractId?: string
 ): Promise<string> => {
 
@@ -46,13 +46,15 @@ export const handleChatLogic = async (
 
         if (contractId) {
             // Direct fetch when we know the contract — avoids cross-contract leakage
-            // since Atlas $vectorSearch filter requires the field to be declared in the index
-            const contract = await Contract.findOne({ contractId }).select(
-                "contractId contractTitle contractContent summary"
-            );
+            // Securely checks if user has access to this specific `contractId`
+            const contract = await Contract.findOne({ 
+                contractId, 
+                $or: accessConditions 
+            }).select("contractId contractTitle contractContent summary");
+            
             if (contract) docs = [contract];
         } else {
-            // Global vector search (no specific contract)
+            // Global vector search scoped to the user's contracts ONLY
             docs = await Contract.aggregate([
                 {
                     $vectorSearch: {
@@ -60,8 +62,16 @@ export const handleChatLogic = async (
                         path: "embeddings",
                         queryVector: queryVector,
                         numCandidates: 100,
-                        limit: 3,
+                        limit: 20, // Increased candidate limit before filtering
                     },
+                },
+                {
+                    $match: {
+                        $or: accessConditions
+                    }
+                },
+                {
+                    $limit: 3 // Restrict context size
                 },
                 {
                     $project: {
