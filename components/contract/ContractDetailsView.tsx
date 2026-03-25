@@ -26,6 +26,8 @@ interface ContractDetailsViewProps {
   setShowDiff?: (show: boolean) => void;
   onPayMilestone?: (index: number) => Promise<void>;
   isPaying?: number | null;
+  onFinanceChange?: (finance: any) => void;
+  tempFinance?: Financial | null;
 }
 
 export default function ContractDetailsView({ 
@@ -43,7 +45,9 @@ export default function ContractDetailsView({
   showDiff = false,
   setShowDiff,
   onPayMilestone,
-  isPaying = null
+  isPaying = null,
+  onFinanceChange,
+  tempFinance
 }: ContractDetailsViewProps) {
   const [conversationPreview, setConversationPreview] = useState<ConversationType | null>(null);
 
@@ -93,13 +97,6 @@ export default function ContractDetailsView({
     }
   };
 
-  const isStarted = data.contractStatus === "active" || data.contractStatus === "completed";
-  const totalMilestones = finance?.milestones?.length || 0;
-  const paidMilestonesCount = finance?.milestones?.filter(m => m.isPaid).length || 0;
-  const financialProgress = totalMilestones > 0 ? Math.round((paidMilestonesCount / totalMilestones) * 100) : (data.progress || 0);
-  
-  const displayedProgress = isStarted ? ((finance && totalMilestones > 0) ? financialProgress : (data.progress || 0)) : 0;
-
   if (loading) return (
     <div className="flex items-center justify-center p-12">
       <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
@@ -107,6 +104,14 @@ export default function ContractDetailsView({
   );
   if (error) return <div className="p-6 text-red-600 font-semibold">Error: {error}</div>;
   if (!data) return <div className="p-6">No contract found</div>;
+
+  const activeFinance = tempFinance || finance;
+  const isStarted = data.contractStatus === "active" || data.contractStatus === "completed";
+  const totalMilestones = activeFinance?.milestones?.length || 0;
+  const paidMilestonesCount = activeFinance?.milestones?.filter(m => m.isPaid).length || 0;
+  const financialProgress = totalMilestones > 0 ? Math.round((paidMilestonesCount / totalMilestones) * 100) : (data.progress || 0);
+
+  const displayedProgress = isStarted ? ((activeFinance && totalMilestones > 0) ? financialProgress : (data.progress || 0)) : 0;
 
   return (
     <div className="w-full lg:px-6 px-0 lg:py-6 py-0 space-y-6 relative">
@@ -222,74 +227,156 @@ export default function ContractDetailsView({
             <Landmark className="w-5 h-5 text-gray-400" />
           </div>
 
-          {finance ? (
+          {(activeFinance || isEditing) ? (
             <div className="flex-1 flex flex-col gap-4">
-              <div className="space-y-4">
-                <div className="flex justify-between items-end">
-                  <div>
-                    <p className="text-xs text-gray-500 uppercase font-medium">Total Value</p>
-                    <p className="text-2xl font-bold text-gray-900 leading-none mt-1">
-                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.totalAmount)}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-gray-500 uppercase font-medium">Paid</p>
-                    <p className="text-lg font-semibold text-blue-600 leading-none mt-1">
-                      {displayedProgress}%
-                    </p>
-                  </div>
-                </div>
-
-                <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                  <div 
-                    className="bg-blue-500 h-full rounded-full transition-all duration-500" 
-                    style={{ width: `${displayedProgress}%` }}
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-100">
-                    <p className="text-[10px] text-gray-500 uppercase font-bold mb-0.5">Paid to date</p>
-                    <p className="text-sm font-bold text-gray-900">
-                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD', maximumFractionDigits: 0 }).format(finance.paidAmount)}
-                    </p>
-                  </div>
-                  <div className="bg-blue-50 p-2.5 rounded-lg border border-blue-100">
-                    <p className="text-[10px] text-blue-600 uppercase font-bold mb-0.5">Remaining</p>
-                    <p className="text-sm font-bold text-blue-700">
-                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD', maximumFractionDigits: 0 }).format(finance.dueAmount)}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {finance.milestones && finance.milestones.length > 0 && (
-                <div className="mt-auto pt-4 border-t border-gray-100">
-                  {(() => {
-                    const nextMilestone = finance.milestones.find(m => !m.isPaid);
-                    if (!nextMilestone) return (
-                      <div className="flex items-center gap-2 text-green-600 text-xs font-semibold py-1">
-                        <CreditCard size={14} />
-                        All payments completed
+              {isEditing ? (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Total Amount</label>
+                      <div className="relative">
+                        <span className="absolute left-2 top-1.5 text-xs text-gray-400 font-bold">$</span>
+                        <input 
+                          type="number"
+                          value={activeFinance?.totalAmount || 0}
+                          onChange={(e) => onFinanceChange?.({ ...activeFinance, totalAmount: Number(e.target.value) })}
+                          className="w-full pl-5 pr-2 py-1.5 bg-gray-50 border border-gray-200 rounded text-sm font-bold focus:ring-1 focus:ring-blue-500 outline-none"
+                        />
                       </div>
-                    );
-                    return (
-                      <div className="space-y-1.5">
-                        <p className="text-[10px] text-gray-500 uppercase font-bold">Next Milestone</p>
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-gray-700 truncate max-w-[140px]">{nextMilestone.title || "Payment"}</span>
-                          <span className="text-xs font-extrabold text-blue-600">
-                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(nextMilestone.amount)}
-                          </span>
+                    </div>
+                    <div>
+                      <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Currency</label>
+                      <select 
+                        value={activeFinance?.currency || "USD"}
+                        onChange={(e) => onFinanceChange?.({ ...activeFinance, currency: e.target.value })}
+                        className="w-full px-2 py-1.5 bg-gray-50 border border-gray-200 rounded text-sm font-bold focus:ring-1 focus:ring-blue-500 outline-none"
+                      >
+                        <option value="USD">USD</option>
+                        <option value="EUR">EUR</option>
+                        <option value="GBP">GBP</option>
+                        <option value="INR">INR</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div className="pt-2 border-t border-gray-100 mt-2">
+                    <p className="text-[10px] text-blue-600 uppercase font-bold mb-2">Milestones Schedule</p>
+                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                      {activeFinance?.milestones?.map((m, idx) => (
+                        <div key={idx} className="flex gap-2 items-center bg-gray-50 p-2 rounded relative group">
+                          <input 
+                            type="text"
+                            value={m.title}
+                            onChange={(e) => {
+                              const newM = [...(activeFinance?.milestones || [])];
+                              newM[idx].title = e.target.value;
+                              onFinanceChange?.({ ...activeFinance, milestones: newM });
+                            }}
+                            placeholder="Milestone"
+                            className="flex-1 bg-transparent border-b border-gray-200 text-[11px] font-bold outline-none focus:border-blue-500"
+                          />
+                          <input 
+                            type="number"
+                            value={m.amount}
+                            onChange={(e) => {
+                              const newM = [...(activeFinance?.milestones || [])];
+                              newM[idx].amount = Number(e.target.value);
+                              onFinanceChange?.({ ...activeFinance, milestones: newM });
+                            }}
+                            className="w-16 bg-transparent border-b border-gray-200 text-[11px] font-bold outline-none focus:border-blue-500"
+                          />
+                          <button 
+                            onClick={() => {
+                              const newM = activeFinance?.milestones?.filter((_, i) => i !== idx);
+                              onFinanceChange?.({ ...activeFinance, milestones: newM });
+                            }}
+                            className="p-1 text-gray-400 hover:text-red-500"
+                          >
+                            <X size={12} />
+                          </button>
                         </div>
-                        <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
-                          <Calendar size={12} className="text-gray-400" />
-                          <span className="font-medium">Due: {new Date(nextMilestone.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                        </div>
-                      </div>
-                    );
-                  })()}
+                      ))}
+                      <button 
+                         onClick={() => {
+                           const newM = [...(activeFinance?.milestones || []), { title: "", amount: 0, dueDate: new Date().toISOString(), isPaid: false }];
+                           onFinanceChange?.({ ...activeFinance, milestones: newM });
+                         }}
+                         className="w-full py-1.5 border border-dashed border-blue-200 text-blue-600 text-[10px] font-bold rounded hover:bg-blue-50 transition-colors"
+                      >
+                        + Add Milestone
+                      </button>
+                    </div>
+                  </div>
                 </div>
+              ) : (
+                <>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <p className="text-xs text-gray-500 uppercase font-medium">Total Value</p>
+                        <p className="text-2xl font-bold text-gray-900 leading-none mt-1">
+                          {new Intl.NumberFormat('en-US', { style: 'currency', currency: activeFinance?.currency || 'USD' }).format(activeFinance?.totalAmount || 0)}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-gray-500 uppercase font-medium">Paid</p>
+                        <p className="text-lg font-semibold text-blue-600 leading-none mt-1">
+                          {displayedProgress}%
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                      <div 
+                        className="bg-blue-500 h-full rounded-full transition-all duration-500" 
+                        style={{ width: `${displayedProgress}%` }}
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold mb-0.5">Paid to date</p>
+                        <p className="text-sm font-bold text-gray-900">
+                          {new Intl.NumberFormat('en-US', { style: 'currency', currency: activeFinance?.currency || 'USD', maximumFractionDigits: 0 }).format(activeFinance?.paidAmount || 0)}
+                        </p>
+                      </div>
+                      <div className="bg-blue-50 p-2.5 rounded-lg border border-blue-100">
+                        <p className="text-[10px] text-blue-600 uppercase font-bold mb-0.5">Remaining</p>
+                        <p className="text-sm font-bold text-blue-700">
+                          {new Intl.NumberFormat('en-US', { style: 'currency', currency: activeFinance?.currency || 'USD', maximumFractionDigits: 0 }).format(activeFinance?.dueAmount || 0)}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {activeFinance?.milestones && activeFinance.milestones.length > 0 && (
+                    <div className="mt-auto pt-4 border-t border-gray-100">
+                      {(() => {
+                        const nextMilestone = activeFinance.milestones.find(m => !m.isPaid);
+                        if (!nextMilestone) return (
+                          <div className="flex items-center gap-2 text-green-600 text-xs font-semibold py-1">
+                            <CreditCard size={14} />
+                            All payments completed
+                          </div>
+                        );
+                        return (
+                          <div className="space-y-1.5">
+                            <p className="text-[10px] text-gray-500 uppercase font-bold">Next Milestone</p>
+                            <div className="flex items-center justify-between">
+                              <span className="text-xs font-bold text-gray-700 truncate max-w-[140px]">{nextMilestone.title || "Payment"}</span>
+                              <span className="text-xs font-extrabold text-blue-600">
+                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: activeFinance.currency || 'USD' }).format(nextMilestone.amount)}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                              <Calendar size={12} className="text-gray-400" />
+                              <span className="font-medium">Due: {new Date(nextMilestone.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
+                </>
               )}
             </div>
           ) : (
@@ -335,39 +422,39 @@ export default function ContractDetailsView({
         </div>
       </div>
 
-      {finance && (
+      {activeFinance && !isEditing && (
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
           <div className="flex items-center justify-between border-b border-gray-100 pb-4">
             <h2 className="font-semibold text-lg text-gray-900">Financial Ledger</h2>
             <span className={`px-3 py-1 rounded-full text-xs font-semibold uppercase tracking-wider ${
-                finance.paymentStatus === "completed" ? "bg-green-100 text-green-700" : 
-                finance.paymentStatus === "partial" ? "bg-amber-100 text-amber-700" : 
+                activeFinance.paymentStatus === "completed" ? "bg-green-100 text-green-700" : 
+                activeFinance.paymentStatus === "partial" ? "bg-amber-100 text-amber-700" : 
                 "bg-gray-100 text-gray-600"
             }`}>
-                {finance.paymentStatus.replace("_", " ")}
+                {activeFinance.paymentStatus?.replace("_", " ") || "Pending"}
             </span>
           </div>
 
           <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
               <p className="text-xs font-medium text-gray-500 uppercase">Total Amount</p>
-              <p className="font-bold text-2xl text-gray-900 mt-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.totalAmount)}</p>
+              <p className="font-bold text-2xl text-gray-900 mt-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: activeFinance.currency || 'USD' }).format(activeFinance.totalAmount)}</p>
             </div>
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
               <p className="text-xs font-medium text-blue-600 uppercase">Paid Amount</p>
-              <p className="font-bold text-2xl text-blue-700 mt-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.paidAmount)}</p>
+              <p className="font-bold text-2xl text-blue-700 mt-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: activeFinance.currency || 'USD' }).format(activeFinance.paidAmount)}</p>
             </div>
             <div className="bg-cyan-50 p-4 rounded-lg border border-cyan-100">
               <p className="text-xs font-medium text-cyan-600 uppercase">Due Amount</p>
-              <p className="font-bold text-2xl text-cyan-700 mt-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.dueAmount)}</p>
+              <p className="font-bold text-2xl text-cyan-700 mt-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: activeFinance.currency || 'USD' }).format(activeFinance.dueAmount)}</p>
             </div>
           </div>
 
-          {finance.milestones && finance.milestones.length > 0 && (
+          {activeFinance.milestones && activeFinance.milestones.length > 0 && (
             <div className="mt-8">
               <h3 className="font-medium text-gray-900 mb-4">Payment Schedule</h3>
               <div className="space-y-3">
-                {finance.milestones.map((milestone, idx) => (
+                {activeFinance.milestones.map((milestone, idx) => (
                   <div key={idx} className={`flex flex-wrap items-center justify-between p-4 border rounded-lg transition-colors ${milestone.isPaid ? 'bg-gray-50 border-gray-200' : 'bg-white border-blue-100 hover:border-blue-300 shadow-sm'}`}>
                     <div>
                       <p className={`font-medium text-sm ${milestone.isPaid ? 'text-gray-500 line-through' : 'text-gray-900'}`}>
@@ -377,7 +464,7 @@ export default function ContractDetailsView({
                     </div>
                     <div className="flex items-center gap-4">
                       <span className={`font-semibold ${milestone.isPaid ? 'text-gray-400' : 'text-gray-900'}`}>
-                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(milestone.amount)}
+                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: activeFinance.currency || 'USD' }).format(milestone.amount)}
                       </span>
                       
                       {milestone.isPaid ? (

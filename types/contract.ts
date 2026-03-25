@@ -25,6 +25,8 @@ export interface Contract {
   ownerAgreed: boolean;
   partyBAgreed: boolean;
   partyB_Email?: string; // Captured email for sending invitations
+  partyB_ClerkId?: string; // Authenticated Clerk ID of Party B
+  ownerId: string;       // Clerk ID of the contract owner
   ownerEmail?: string;    // Email of the contract owner (fetched from Clerk/User DB)
 
   // Populated by API in some views
@@ -35,7 +37,7 @@ export interface Contract {
   viewerRole?: "client" | "contractor" | "owner" | "partyB";
   counterpartyName?: string;
   currentTurn?: "owner" | "partyB";
-  versionHistory?: { contentSnapshot: string; updatedAt: Date }[];
+  versionHistory?: { contentSnapshot: string; updatedAt: Date; updatedBy?: string; action?: string }[];
 }
 
 export interface FinanceMilestone {

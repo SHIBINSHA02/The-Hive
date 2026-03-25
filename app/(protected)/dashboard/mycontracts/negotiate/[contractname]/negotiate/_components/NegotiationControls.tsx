@@ -9,9 +9,11 @@ interface NegotiationControlsProps {
   onPropose: () => void;
   onAgree: () => void;
   onCancel: () => void;
+  onReject: () => void;
   onTerminate: () => void;
   isSubmitting: boolean;
   isAgreeing: boolean;
+  isRejecting: boolean;
   isTerminating: boolean;
 }
 
@@ -21,15 +23,21 @@ export default function NegotiationControls({
   onPropose,
   onAgree,
   onCancel,
+  onReject,
   onTerminate,
   isSubmitting,
   isAgreeing,
+  isRejecting,
   isTerminating
 }: NegotiationControlsProps) {
   const isOwner = contract.viewerRole === "owner";
   const isMyTurn = contract.currentTurn === (isOwner ? "owner" : "partyB");
   const hasAgreed = isOwner ? contract.ownerAgreed : contract.partyBAgreed;
   const counterpartyAgreed = isOwner ? contract.partyBAgreed : contract.ownerAgreed;
+
+  // Check if there is a legit change request from the other side
+  const hasHistoryFromOthers = contract.versionHistory?.some(v => v.updatedBy !== (isOwner ? contract.ownerId : contract.partyB_ClerkId));
+  const hasCounterpartyProposal = hasHistoryFromOthers || (contract.contractStatus === "sent_for_review" && !isOwner);
 
   return (
     <div className="bg-white border rounded-xl p-4 shadow-sm space-y-4">
@@ -68,7 +76,7 @@ export default function NegotiationControls({
             <button
               onClick={onPropose}
               disabled={!isDirty || isSubmitting}
-              className="flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all"
+              className={`flex items-center gap-2 px-4 py-2 bg-black text-white rounded-lg text-sm font-medium hover:bg-gray-800 disabled:bg-gray-300 disabled:cursor-not-allowed transition-all ${!isDirty ? "opacity-40" : "opacity-100"}`}
             >
               {isSubmitting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
               Propose Changes
@@ -87,22 +95,50 @@ export default function NegotiationControls({
           </>
         )}
 
-        {!hasAgreed && !isDirty && (
-          <button
-            onClick={onAgree}
-            disabled={isAgreeing || isSubmitting}
-            className="flex items-center gap-2 px-4 py-2 border-2 border-blue-600 text-blue-600 rounded-lg text-sm font-bold hover:bg-blue-50 transition-all disabled:opacity-50"
-          >
-            {isAgreeing ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
-            Agree to Current Version
-          </button>
+        {isMyTurn && !hasAgreed && !isDirty && hasCounterpartyProposal && (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={onAgree}
+              disabled={isAgreeing || isSubmitting}
+              className="flex items-center gap-2 px-4 py-2 border-2 border-green-600 text-green-600 rounded-lg text-sm font-bold hover:bg-green-50 transition-all disabled:opacity-50 shadow-sm"
+            >
+              {isAgreeing ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} />}
+              Approve Changes
+            </button>
+
+            <button
+                onClick={onReject}
+                disabled={isRejecting || isSubmitting}
+                className="flex items-center gap-2 px-4 py-2 border border-red-200 text-red-600 rounded-lg text-sm font-medium hover:bg-red-50 transition-all disabled:opacity-50 shadow-sm"
+            >
+                {isRejecting ? <Loader2 size={16} className="animate-spin" /> : <X size={16} />}
+                Reject Changes
+            </button>
+          </div>
         )}
 
-        {!isMyTurn && !isDirty && (
+        {isMyTurn && !hasAgreed && !isDirty && !hasCounterpartyProposal && (
+           <div className="text-xs text-blue-600 bg-blue-50 px-3 py-2 rounded-lg border border-blue-100 italic">
+               Waiting for initial proposal or edits.
+           </div>
+        )}
+
+        {!isMyTurn && !isDirty && !hasAgreed && (
             <div className="flex items-center gap-2 text-xs text-amber-600 bg-amber-50 px-3 py-2 rounded-lg border border-amber-100 italic">
                 <AlertCircle size={14} />
                 Editing is disabled while it's the other party's turn.
             </div>
+        )}
+
+        {hasAgreed && !isMyTurn && (
+           <button
+                onClick={onReject}
+                disabled={isRejecting || isSubmitting}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-300 text-gray-700 bg-white rounded-lg text-sm font-medium hover:bg-gray-50 transition-all shadow-sm"
+            >
+                {isRejecting ? <Loader2 size={16} className="animate-spin" /> : <X size={16} />}
+                Withdraw Agreement
+            </button>
         )}
 
         <button

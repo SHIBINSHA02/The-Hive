@@ -21,8 +21,10 @@ export default function NegotiationPage() {
   // Negotiation Edit State
   const [editContent, setEditContent] = useState("");
   const [showDiff, setShowDiff] = useState(false);
+  const [localFinance, setLocalFinance] = useState<Financial | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAgreeing, setIsAgreeing] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
   const [isTerminating, setIsTerminating] = useState(false);
 
   const fetchData = useCallback(async () => {
@@ -37,7 +39,9 @@ export default function NegotiationPage() {
 
       const json = await res.json();
       setData(json.contract);
-      setFinance(json.finance ?? null);
+      const f = json.finance ?? null;
+      setFinance(f);
+      setLocalFinance(f);
       setEditContent(json.contract.contractContent || "");
     } catch (err: any) {
       setError(err.message || "Something went wrong");
@@ -57,7 +61,10 @@ export default function NegotiationPage() {
       const res = await fetch(`/api/contracts/${contractId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contractContent: editContent })
+        body: JSON.stringify({ 
+          contractContent: editContent,
+          finance: localFinance
+        })
       });
 
       if (!res.ok) throw new Error("Failed to propose changes");
@@ -99,9 +106,27 @@ export default function NegotiationPage() {
     }
   };
 
+  const handleReject = async () => {
+    if (!contractId) return;
+    setIsRejecting(true);
+    try {
+      const res = await fetch(`/api/contracts/${contractId}/reject`, { method: "POST" });
+      if (!res.ok) throw new Error("Failed to reject proposal");
+      
+      const json = await res.json();
+      alert(json.message || "Proposal rejected.");
+      await fetchData(); // Refresh
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setIsRejecting(false);
+    }
+  };
+
   const handleDiscard = () => {
     if (data) {
       setEditContent(data.contractContent || "");
+      setLocalFinance(finance);
       alert("Local changes discarded.");
     }
   };
@@ -150,7 +175,9 @@ export default function NegotiationPage() {
 
   const isOwner = data.viewerRole === "owner";
   const isMyTurn = data.currentTurn === (isOwner ? "owner" : "partyB");
-  const isDirty = editContent !== data.contractContent;
+  
+  const isFinanceDirty = JSON.stringify(localFinance) !== JSON.stringify(finance);
+  const isDirty = editContent !== data.contractContent || isFinanceDirty;
 
   return (
     <div className="max-w-7xl mx-auto p-4 md:p-6 lg:p-8 space-y-6">
@@ -190,9 +217,11 @@ export default function NegotiationPage() {
         onPropose={handlePropose}
         onAgree={handleAgree}
         onCancel={handleDiscard}
+        onReject={handleReject}
         onTerminate={handleTerminate}
         isSubmitting={isSubmitting}
         isAgreeing={isAgreeing}
+        isRejecting={isRejecting}
         isTerminating={isTerminating}
       />
 
@@ -201,6 +230,8 @@ export default function NegotiationPage() {
             contractId={contractId}
             data={data}
             finance={finance}
+            tempFinance={localFinance}
+            onFinanceChange={setLocalFinance}
             isEditing={isMyTurn}
             editContent={editContent}
             setEditContent={setEditContent}

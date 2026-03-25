@@ -30,7 +30,7 @@ export async function POST(
 
     const { role } = authResult;
     await connectDB();
-    const contractDoc = await Contract.findOne({ contractId: id });
+    const contractDoc = await Contract.findById(authResult.contract._id);
 
     if (!contractDoc) {
       return NextResponse.json({ error: "Contract not found" }, { status: 404 });

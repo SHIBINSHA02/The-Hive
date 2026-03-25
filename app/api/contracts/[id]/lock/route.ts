@@ -30,7 +30,7 @@ export async function POST(
 
     // Only allow locking if in appropriate state
     const currentStatus = authResult.contract;
-    const contractDoc = await Contract.findOne({ contractId: id });
+    const contractDoc = await Contract.findById(authResult.contract._id);
     
     if (!contractDoc) {
        return NextResponse.json({ error: "Contract not found" }, { status: 404 });
