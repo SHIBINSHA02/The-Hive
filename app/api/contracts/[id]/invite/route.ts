@@ -85,8 +85,23 @@ export async function POST(
       return NextResponse.json({ error: "Failed to update contract" }, { status: 500 });
     }
 
-    // 7. (Optional Future Step) Send actual email via Resend/SendGrid here!
-    // await sendInviteEmail(email, updatedContract.contractTitle, ...);
+    // TRIGGER NOTIFICATIONS
+    try {
+        const User = (await import("@/db/models/User")).default;
+        const { generateUserNotifications } = await import("@/lib/notificationService");
+        
+        // Notify the owner
+        const ownerDoc = await User.findOne({ clerkId: updatedContract.ownerId });
+        if (ownerDoc) await generateUserNotifications(ownerDoc._id as any);
+        
+        // Notify Party B if we have their clerk ID
+        if (updatedContract.partyB_ClerkId) {
+            const partyBDoc = await User.findOne({ clerkId: updatedContract.partyB_ClerkId });
+            if (partyBDoc) await generateUserNotifications(partyBDoc._id as any);
+        }
+    } catch (err) {
+        console.error("Failed to trigger notifications after invite", err);
+    }
 
     return NextResponse.json({
       message: "Invitation sent successfully",

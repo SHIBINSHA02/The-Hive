@@ -106,14 +106,16 @@ export default function RequestsPage() {
       {/* Request Cards Grid */}
       {displayedContracts.length > 0 ? (
         <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-5">
-          {displayedContracts.map((contract) => (
-            <RequestCard
-              key={contract.contractId || (contract as any)._id}
-              contract={contract}
-              isOutbox={activeTab === "outbox"}
-              onActionComplete={fetchRequests}
-            />
-          ))}
+          {displayedContracts
+            .filter(Boolean) // Critical Null Guard
+            .map((contract) => (
+              <RequestCard
+                key={contract.contractId || (contract as any)._id}
+                contract={contract}
+                isOutbox={activeTab === "outbox"}
+                onActionComplete={fetchRequests}
+              />
+            ))}
         </div>
       ) : (
         /* Empty State */

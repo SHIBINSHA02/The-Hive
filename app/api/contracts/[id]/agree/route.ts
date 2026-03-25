@@ -3,6 +3,8 @@ import { auth } from "@clerk/nextjs/server";
 import { connectDB } from "@/lib/db";
 import Contract from "@/db/models/Contract";
 import { getContractAndRole } from "@/lib/contractAuth";
+import User from "@/db/models/User";
+import { generateUserNotifications } from "@/lib/notificationService";
 
 /**
  * POST /api/contracts/[id]/agree
@@ -72,6 +74,19 @@ export async function POST(
     }
 
     await contractDoc.save();
+
+    // TRIGGER NOTIFICATIONS
+    try {
+        const ownerDoc = await User.findOne({ clerkId: contractDoc.ownerId });
+        if (ownerDoc) await generateUserNotifications(ownerDoc._id as any);
+        
+        if (contractDoc.partyB_ClerkId) {
+            const partyBDoc = await User.findOne({ clerkId: contractDoc.partyB_ClerkId });
+            if (partyBDoc) await generateUserNotifications(partyBDoc._id as any);
+        }
+    } catch (err) {
+        console.error("Failed to trigger notifications after agreement", err);
+    }
 
     return NextResponse.json({
       success: true,

@@ -29,7 +29,7 @@ const RequestCard: React.FC<RequestCardProps> = ({ contract, isOutbox, onActionC
     
     try {
       setIsCancelling(true);
-      const res = await fetch(`/api/contracts/${contract.contractId}/cancel`, { method: "POST" });
+      const res = await fetch(`/api/contracts/${contract?.contractId}/cancel`, { method: "POST" });
       if (!res.ok) throw new Error("Failed to cancel request");
       onActionComplete?.();
     } catch (err: any) {
@@ -44,10 +44,10 @@ const RequestCard: React.FC<RequestCardProps> = ({ contract, isOutbox, onActionC
 
       {/* Background Image */}
       <div className="relative h-28 overflow-hidden">
-        {contract.bgImageUrl && (
+        {contract?.bgImageUrl && (
           <Image
             src={contract.bgImageUrl}
-            alt={contract.contractTitle}
+            alt={contract.contractTitle || "Contract"}
             fill
             className="object-cover"
           />
@@ -60,16 +60,16 @@ const RequestCard: React.FC<RequestCardProps> = ({ contract, isOutbox, onActionC
 
         <div className="flex justify-between items-center text-sm font-semibold">
           <span className="text-blue-600">
-            {contract.companyName}
+            {contract?.companyName}
           </span>
 
           <span className="text-xs capitalize text-gray-600">
-            {contract.contractStatus.replace(/_/g, " ")}
+            {contract?.contractStatus?.replace(/_/g, " ") || 'Unknown Status'}
           </span>
         </div>
 
         <h3 className="mt-2 font-bold text-gray-900">
-          {contract.contractTitle}
+          {contract?.contractTitle}
         </h3>
 
         <p className="mt-1 text-sm text-gray-500 line-clamp-2">
@@ -80,11 +80,11 @@ const RequestCard: React.FC<RequestCardProps> = ({ contract, isOutbox, onActionC
         <div className="mt-3 flex gap-3 text-xs text-gray-500">
           <div className="flex items-center gap-1">
             <Calendar className="w-4 h-4 text-blue-500" />
-            {new Date(contract.startDate).toDateString()}
+            {contract?.startDate ? new Date(contract.startDate).toDateString() : 'N/A'}
           </div>
           <div className="flex items-center gap-1">
             <Clock className="w-4 h-4 text-orange-500" />
-            {new Date(contract.deadline).toDateString()}
+            {contract?.deadline ? new Date(contract.deadline).toDateString() : 'N/A'}
           </div>
         </div>
 
@@ -109,7 +109,7 @@ const RequestCard: React.FC<RequestCardProps> = ({ contract, isOutbox, onActionC
         <div className="mt-6 flex gap-2">
             <button
             onClick={() =>
-                router.push(`/dashboard/requests/${contract.contractId}`)
+                router.push(`/dashboard/requests/${contract?.contractId}`)
             }
             className="flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-all"
             >
@@ -117,7 +117,7 @@ const RequestCard: React.FC<RequestCardProps> = ({ contract, isOutbox, onActionC
             View
             </button>
 
-            {isOutbox && ["draft", "sent_for_review", "in_negotiation"].includes(contract.contractStatus) && (
+            {isOutbox && contract?.contractStatus && ["draft", "sent_for_review", "in_negotiation"].includes(contract.contractStatus) && (
                 <button
                     onClick={handleCancel}
                     disabled={isCancelling}

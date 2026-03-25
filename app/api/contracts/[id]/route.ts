@@ -7,6 +7,7 @@ import Contract from "@/db/models/Contract";
 import Financial from "@/db/models/Finance";
 import User from "@/db/models/User";
 import { getContractAndRole } from "@/lib/contractAuth";
+import { generateUserNotifications } from "@/lib/notificationService";
 
 export const dynamic = "force-dynamic";
 export async function GET(
@@ -215,6 +216,22 @@ export async function PATCH(
     updateDoc,
     { new: true } // Return the freshly updated document
   );
+
+  // TRIGGER NOTIFICATIONS for both parties
+  try {
+    const UserModel = (await import("@/db/models/User")).default;
+    const { generateUserNotifications } = await import("@/lib/notificationService");
+    
+    const ownerDoc = await UserModel.findOne({ clerkId: updated.ownerId });
+    if (ownerDoc) await generateUserNotifications(ownerDoc._id as any);
+    
+    if (updated.partyB_ClerkId) {
+        const partyBDoc = await UserModel.findOne({ clerkId: updated.partyB_ClerkId });
+        if (partyBDoc) await generateUserNotifications(partyBDoc._id as any);
+    }
+  } catch (err) {
+    console.error("Failed to trigger notifications after patch", err);
+  }
 
   return NextResponse.json(updated);
 }

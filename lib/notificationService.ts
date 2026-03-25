@@ -98,20 +98,35 @@ export async function generateUserNotifications(userId: mongoose.Types.ObjectId)
         daysUntilDeadline <= 3 ? 'urgent' :
             daysUntilDeadline <= 7 ? 'high' : 'medium';
 
+      const counterpartyAgreed = isOwner ? contract.partyBAgreed : contract.ownerAgreed;
+      const title = counterpartyAgreed ? 'Agreement Pending: Final Review' : 'Action Required: Your Turn';
+      const description = counterpartyAgreed
+        ? `${otherPartyName} has already agreed to the contract. Review and approve to finalize the deal!`
+        : `${otherPartyName} has passed the pen. It is your turn to review the ${contract.contractTitle}.`;
+
       // Check if notification already exists
       const existingNotification = await Notification.findOne({
         user: userId,
         contract: contract._id,
         type: 'request',
+        title: title,
         status: 'pending'
       });
 
       if (!existingNotification) {
+        // Also remove any stale notification for this contract
+        await Notification.deleteMany({
+            user: userId,
+            contract: contract._id,
+            type: 'request',
+            title: { $ne: title }
+        });
+
         notificationsToCreate.push({
           user: userId,
           type: 'request',
-          title: 'Action Required: Your Turn',
-          description: `${otherPartyName} has passed the pen. It is your turn to review the ${contract.contractTitle}.`,
+          title: title,
+          description: description,
           priority,
           status: 'pending',
           contractName: contract.contractTitle,
@@ -202,35 +217,36 @@ export async function generateUserNotifications(userId: mongoose.Types.ObjectId)
       }
     }
 
-    // 4. Contract status updates (completed contracts)
-    if (contract.contractStatus === 'completed') {
-      const completedDate = new Date(contract.deadline); // assuming deadline becomes completion date
-      const daysSinceCompletion = Math.ceil((now.getTime() - completedDate.getTime()) / (1000 * 60 * 60 * 24));
+    // 4. Contract status updates (completed or terminated)
+    if (contract.contractStatus === 'completed' || contract.contractStatus === 'terminated') {
+      const isTerminated = contract.contractStatus === 'terminated';
+      const title = isTerminated ? 'Negotiation Terminated' : 'Contract Completed';
+      const description = isTerminated
+        ? `The negotiation for ${contract.contractTitle} has been terminated.`
+        : `The ${contract.contractTitle} has been completed and is now archived.`;
 
-      if (daysSinceCompletion >= 0 && daysSinceCompletion <= 7) {
-        const existingNotification = await Notification.findOne({
+      const existingNotification = await Notification.findOne({
+        user: userId,
+        contract: contract._id,
+        type: isTerminated ? 'alert' : 'update',
+        title: title
+      });
+
+      if (!existingNotification) {
+        notificationsToCreate.push({
           user: userId,
+          type: isTerminated ? 'alert' : 'update',
+          title: title,
+          description: description,
+          priority: isTerminated ? 'high' : 'low',
+          status: isTerminated ? 'rejected' : 'completed',
+          contractName: contract.contractTitle,
+          contractId: contract.contractId,
           contract: contract._id,
-          type: 'update',
-          title: 'Contract Completed'
+          actions: isTerminated ? [] : [
+            { label: 'View Contract', type: 'primary', action: 'view' },
+          ],
         });
-
-        if (!existingNotification) {
-          notificationsToCreate.push({
-            user: userId,
-            type: 'update',
-            title: 'Contract Completed',
-            description: `The ${contract.contractTitle} has been completed and is now archived.`,
-            priority: 'low',
-            status: 'completed',
-            contractName: contract.contractTitle,
-            contractId: contract.contractId,
-            contract: contract._id,
-            actions: [
-              { label: 'View Contract', type: 'primary', action: 'view' },
-            ],
-          });
-        }
       }
     }
   }

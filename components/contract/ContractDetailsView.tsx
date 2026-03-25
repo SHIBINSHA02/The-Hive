@@ -106,16 +106,16 @@ export default function ContractDetailsView({
   if (!data) return <div className="p-6">No contract found</div>;
 
   const activeFinance = tempFinance || finance;
-  const isStarted = data.contractStatus === "active" || data.contractStatus === "completed";
+  const isStarted = data?.contractStatus === "active" || data?.contractStatus === "completed";
   const totalMilestones = activeFinance?.milestones?.length || 0;
   const paidMilestonesCount = activeFinance?.milestones?.filter(m => m.isPaid).length || 0;
-  const financialProgress = totalMilestones > 0 ? Math.round((paidMilestonesCount / totalMilestones) * 100) : (data.progress || 0);
+  const financialProgress = totalMilestones > 0 ? Math.round((paidMilestonesCount / totalMilestones) * 100) : (data?.progress || 0);
 
-  const displayedProgress = isStarted ? ((activeFinance && totalMilestones > 0) ? financialProgress : (data.progress || 0)) : 0;
+  const displayedProgress = isStarted ? ((activeFinance && totalMilestones > 0) ? financialProgress : (data?.progress || 0)) : 0;
 
   return (
     <div className="w-full lg:px-6 px-0 lg:py-6 py-0 space-y-6 relative">
-      {data.contractStatus === "terminated" && (
+      {data?.contractStatus === "terminated" && (
         <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-red-800 shadow-sm animate-in fade-in slide-in-from-top-4">
           <ShieldAlert className="w-5 h-5 text-red-600" />
           <div>
@@ -174,7 +174,7 @@ export default function ContractDetailsView({
             <p>
               <strong>Status: </strong> 
               <span className="capitalize px-2 py-0.5 bg-gray-100 rounded text-gray-800 font-medium">
-                {data.contractStatus.replace(/_/g, " ")}
+                {data?.contractStatus?.replace(/_/g, " ") || 'Draft'}
               </span>
             </p>
             <div className="pt-2 border-t border-gray-100 mt-2 space-y-1">
@@ -471,7 +471,7 @@ export default function ContractDetailsView({
                         <span className="bg-green-100 text-green-700 text-xs px-3 py-1.5 rounded-full font-bold flex items-center gap-1">
                           Paid
                         </span>
-                      ) : data.contractStatus === "active" ? (
+                      ) : data?.contractStatus === "active" ? (
                         <button 
                           onClick={() => onPayMilestone?.(idx)}
                           disabled={isPaying === idx}

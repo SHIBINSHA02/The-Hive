@@ -30,14 +30,14 @@ export default function NegotiationControls({
   isRejecting,
   isTerminating
 }: NegotiationControlsProps) {
-  const isOwner = contract.viewerRole === "owner";
-  const isMyTurn = contract.currentTurn === (isOwner ? "owner" : "partyB");
-  const hasAgreed = isOwner ? contract.ownerAgreed : contract.partyBAgreed;
-  const counterpartyAgreed = isOwner ? contract.partyBAgreed : contract.ownerAgreed;
+  const isOwner = contract?.viewerRole === "owner";
+  const isMyTurn = contract?.currentTurn === (isOwner ? "owner" : "partyB");
+  const hasAgreed = isOwner ? contract?.ownerAgreed : contract?.partyBAgreed;
+  const counterpartyAgreed = isOwner ? contract?.partyBAgreed : contract?.ownerAgreed;
 
   // Check if there is a legit change request from the other side
-  const hasHistoryFromOthers = contract.versionHistory?.some(v => v.updatedBy !== (isOwner ? contract.ownerId : contract.partyB_ClerkId));
-  const hasCounterpartyProposal = hasHistoryFromOthers || (contract.contractStatus === "sent_for_review" && !isOwner);
+  const hasHistoryFromOthers = contract?.versionHistory?.some(v => v.updatedBy !== (isOwner ? contract?.ownerId : contract?.partyB_ClerkId));
+  const hasCounterpartyProposal = hasHistoryFromOthers || (contract?.contractStatus === "sent_for_review" && !isOwner);
 
   return (
     <div className="bg-white border rounded-xl p-4 shadow-sm space-y-4">

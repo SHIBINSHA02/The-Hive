@@ -5,6 +5,7 @@ import Contract from "@/db/models/Contract";
 import Notification from "@/db/models/Notification";
 import User from "@/db/models/User";
 import { getContractAndRole } from "@/lib/contractAuth";
+import { generateUserNotifications } from "@/lib/notificationService";
 
 export async function POST(
   req: Request,
@@ -48,21 +49,12 @@ export async function POST(
       { new: true }
     );
 
-    // 4. Create notification for the owner if Party B terminates
-    if (role === "partyB") {
-      const ownerUser = await User.findOne({ clerkId: contract.ownerId });
-      if (ownerUser) {
-        await Notification.create({
-          user: ownerUser._id,
-          type: "alert",
-          title: "Negotiation Terminated",
-          description: `The counterparty has terminated the negotiation for "${contract.contractTitle}".`,
-          priority: "high",
-          status: "pending",
-          contractId: contract._id.toString(),
-          contractName: contract.contractTitle,
-        });
-      }
+    // TRIGGER NOTIFICATIONS
+    try {
+        const ownerDoc = await User.findOne({ clerkId: contract.ownerId });
+        if (ownerDoc) await generateUserNotifications(ownerDoc._id as any);
+    } catch (err) {
+        console.error("Failed to trigger notifications after termination", err);
     }
 
     return NextResponse.json({
