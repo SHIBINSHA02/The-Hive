@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import ContractDetailsView from "@/components/contract/ContractDetailsView";
 import { Contract, Financial } from "@/types/contract";
 
-export default function OnProgressContractPage() {
+export default function NegotiateContractPage() {
   const { contractname } = useParams();
   const contractId = decodeURIComponent(contractname as string);
 
@@ -38,23 +38,6 @@ export default function OnProgressContractPage() {
     fetchData();
   }, [fetchData]);
 
-  const handlePayMilestone = async (milestoneIndex: number) => {
-    try {
-      const res = await fetch(`/api/contracts/${contractId}/finance/pay`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ milestoneIndex })
-      });
-      
-      if (!res.ok) throw new Error("Payment update failed");
-      
-      const updated = await res.json();
-      setFinance(updated);
-    } catch (err: any) {
-      alert(err.message);
-    }
-  };
-
   return (
     <ContractDetailsView 
       contractId={contractId}
@@ -62,7 +45,6 @@ export default function OnProgressContractPage() {
       finance={finance}
       loading={loading}
       error={error}
-      onPayMilestone={handlePayMilestone}
     />
   );
 }
