@@ -179,11 +179,6 @@ export async function PATCH(
       updateDoc.$set.currentTurn = "partyB";
   }
 
-  // Also pass the pen if the owner is sending a draft for review
-  if (body.contractStatus === "sent_for_review") {
-      updateDoc.$set.currentTurn = "partyB";
-  }
-
   // Execute the secure update
   const updated = await Contract.findByIdAndUpdate(
     internalId,
