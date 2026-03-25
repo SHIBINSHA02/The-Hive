@@ -65,6 +65,7 @@ Either party may terminate this agreement with prior written notice.
     partyBSigned: false,
     ownerAgreed: false,
     partyBAgreed: false,
+    ownerId: "user_mock_owner_1",
   },
 
   {
@@ -124,5 +125,6 @@ Either party may terminate the agreement with a 30-day written notice.
     partyBSigned: false,
     ownerAgreed: false,
     partyBAgreed: false,
+    ownerId: "user_mock_owner_1",
   },
 ];
