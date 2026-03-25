@@ -13,7 +13,10 @@ import {
   CheckCircle2,
   BrainCircuit,
   Scale,
-  ArrowLeft
+  ArrowLeft,
+  Send,
+  MessageSquare,
+  Sparkles
 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -42,6 +45,11 @@ export default function RiskDetectPage({ params }: PageProps) {
   const [expandedSections, setExpandedSections] = useState<Set<string>>(new Set(['executive_summary']));
   const [fetchLoading, setFetchLoading] = useState(true);
   const [fetchError, setFetchError] = useState("");
+  
+  // Chat state
+  const [chatInput, setChatInput] = useState("");
+  const [chatMessages, setChatMessages] = useState<Array<{ role: 'user' | 'ai', content: string }>>([]);
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     const fetchContract = async () => {
@@ -51,6 +59,12 @@ export default function RiskDetectPage({ params }: PageProps) {
         if (!res.ok) throw new Error("Failed to fetch contract data");
         const data = await res.json();
         setContract(data.contract);
+
+        // Silently refresh the embedding so vector search stays up to date
+        fetch(`/api/contracts/${contractId}/reembed`, { method: "POST" })
+          .then(r => r.json())
+          .then(d => console.log("Embedding refreshed:", d.dimensions, "dims"))
+          .catch(e => console.warn("Re-embed skipped:", e));
       } catch (err: any) {
         setFetchError(err.message || "An error occurred while fetching the contract.");
       } finally {
@@ -200,6 +214,33 @@ export default function RiskDetectPage({ params }: PageProps) {
       setLoadingText("An error occurred during analysis.");
     } finally {
       setIsAnalyzing(false);
+    }
+  };
+
+  const handleSendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!chatInput.trim() || isSending) return;
+
+    const userMessage = chatInput.trim();
+    setChatMessages(prev => [...prev, { role: 'user', content: userMessage }]);
+    setChatInput("");
+    setIsSending(true);
+
+    try {
+      const res = await fetch('/api/ai/contract-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: userMessage, contractId }),
+      });
+
+      if (!res.ok) throw new Error("Failed to get response");
+      const data = await res.json();
+      setChatMessages(prev => [...prev, { role: 'ai', content: data.response }]);
+    } catch (err) {
+      console.error(err);
+      setChatMessages(prev => [...prev, { role: 'ai', content: "Sorry, I encountered an error. Please try again." }]);
+    } finally {
+      setIsSending(false);
     }
   };
 
@@ -451,6 +492,78 @@ export default function RiskDetectPage({ params }: PageProps) {
           </pre>
         </div>
       )}
+
+      {/* Gemini Conversational Chat */}
+      <div className="mt-12 bg-white rounded-[2.5rem] border border-slate-200 shadow-xl overflow-hidden flex flex-col h-[600px]">
+        <div className="bg-slate-50 px-8 py-6 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="bg-blue-600 p-2 rounded-xl">
+              <MessageSquare className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="font-bold text-slate-900">Contract AI Assistant</h3>
+              <p className="text-xs text-slate-500 font-medium">Powered by Gemini 2.0 Flash</p>
+            </div>
+          </div>
+          <Sparkles className="w-5 h-5 text-amber-400 animate-pulse" />
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-8 space-y-6 custom-scrollbar bg-slate-50/30">
+          {chatMessages.length === 0 && (
+            <div className="h-full flex flex-col items-center justify-center text-center space-y-4">
+              <div className="bg-blue-50 p-6 rounded-3xl">
+                <BrainCircuit className="w-12 h-12 text-blue-400 opacity-50" />
+              </div>
+              <div className="max-w-xs">
+                <p className="text-slate-900 font-bold mb-1">Ask anything about this contract</p>
+                <p className="text-slate-500 text-sm">Get instant answers about clauses, risks, or specific terms using AI.</p>
+              </div>
+            </div>
+          )}
+          {chatMessages.map((msg, i) => (
+            <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+              <div className={`max-w-[80%] px-6 py-4 rounded-2xl ${
+                msg.role === 'user' 
+                ? 'bg-blue-600 text-white rounded-tr-none' 
+                : 'bg-white border border-slate-100 text-slate-700 shadow-sm rounded-tl-none'
+              }`}>
+                <div className="prose prose-sm max-w-none prose-p:leading-relaxed">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                    {msg.content}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            </div>
+          ))}
+          {isSending && (
+            <div className="flex justify-start">
+              <div className="bg-white border border-slate-100 p-4 rounded-2xl rounded-tl-none shadow-sm flex items-center gap-2">
+                <Loader2 className="w-4 h-4 text-blue-600 animate-spin" />
+                <span className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Thinking...</span>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="p-6 bg-white border-t border-slate-100">
+          <form onSubmit={handleSendMessage} className="flex gap-3">
+            <input
+              type="text"
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              placeholder="Ask a question about this contract..."
+              className="flex-1 bg-slate-50 border border-slate-200 rounded-2xl px-6 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
+            />
+            <button
+              type="submit"
+              disabled={isSending || !chatInput.trim()}
+              className="bg-blue-600 hover:bg-blue-700 disabled:bg-slate-200 text-white p-4 rounded-2xl transition-all shadow-lg shadow-blue-500/20 active:scale-95"
+            >
+              <Send className="w-5 h-5" />
+            </button>
+          </form>
+        </div>
+      </div>
 
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar {

@@ -6,7 +6,7 @@
 import "dotenv/config";
 import mongoose from "mongoose";
 import Contract from "../db/models/Contract";
-import { customAIClient } from "../lib/customAIClient";
+import { getGeminiEmbedding } from "../lib/gemini";
 
 const MONGO_URI = process.env.MONGODB_URI;
 
@@ -42,7 +42,7 @@ async function migrate() {
 
         try {
             const textToEmbed = getEmbedText(contract);
-            const newEmbedding = await customAIClient.getEmbedding(textToEmbed);
+            const newEmbedding = await getGeminiEmbedding(textToEmbed);
             
             // bypass middleware to avoid infinite loop or extra calls
             await Contract.updateOne(

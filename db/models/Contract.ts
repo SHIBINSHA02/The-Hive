@@ -1,5 +1,6 @@
 import mongoose, { Schema, Document, Model } from "mongoose";
 import { customAIClient } from "@/lib/customAIClient";
+import { getGeminiEmbedding } from "@/lib/gemini";
 
 
 // --- NEW: Interface for Version History Objects ---
@@ -149,7 +150,7 @@ ContractSchema.pre("save", async function () {
 
   if (needsUpdate) {
     try {
-      this.embeddings = await customAIClient.getEmbedding(getEmbedText(this));
+      this.embeddings = await getGeminiEmbedding(getEmbedText(this));
     } catch (err) {
       console.error("Embedding generation failed on save:", err);
     }
@@ -167,7 +168,7 @@ ContractSchema.pre("findOneAndUpdate", async function () {
 
   if (textChanged) {
     try {
-      const newEmbeddings = await customAIClient.getEmbedding(getEmbedText(update));
+      const newEmbeddings = await getGeminiEmbedding(getEmbedText(update));
       this.setUpdate({ ...update, embeddings: newEmbeddings });
     } catch (err) {
       console.error("Embedding generation failed on update:", err);

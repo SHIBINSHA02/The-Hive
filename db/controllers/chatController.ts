@@ -1,4 +1,4 @@
-import { customAIClient } from "@/lib/customAIClient";
+import { getGeminiEmbedding, geminiChat } from "@/lib/gemini";
 import Contract from "@/db/models/Contract";
 
 export const handleChatLogic = async (
@@ -30,43 +30,52 @@ export const handleChatLogic = async (
 
 
         // -----------------------------
-        // 1. Generate embedding
+        // 1. Generate embedding using Gemini
         // -----------------------------
 
-        const queryVector = await customAIClient.getEmbedding(prompt);
+        const queryVector = await getGeminiEmbedding(prompt);
 
         console.log("Embedding length:", queryVector.length);
 
 
         // -----------------------------
-        // 2. Vector Search in MongoDB
+        // 2. Fetch contract context
         // -----------------------------
 
-        const docs = await Contract.aggregate([
-            {
-                $vectorSearch: {
-                    index: "hive_index",
-                    path: "embeddings",
-                    queryVector: queryVector,
-                    numCandidates: 100,
-                    limit: 3,
-                    filter: contractId
-                        ? { contractId: contractId }
-                        : {},
-                },
-            },
-            {
-                $project: {
-                    _id: 0,
-                    contractId: 1,
-                    contractTitle: 1,
-                    contractContent: 1,
-                    summary: 1,
-                },
-            },
-        ]);
+        let docs: any[] = [];
 
-        console.log("Vector search results:", docs.length);
+        if (contractId) {
+            // Direct fetch when we know the contract — avoids cross-contract leakage
+            // since Atlas $vectorSearch filter requires the field to be declared in the index
+            const contract = await Contract.findOne({ contractId }).select(
+                "contractId contractTitle contractContent summary"
+            );
+            if (contract) docs = [contract];
+        } else {
+            // Global vector search (no specific contract)
+            docs = await Contract.aggregate([
+                {
+                    $vectorSearch: {
+                        index: "hive_index",
+                        path: "embeddings",
+                        queryVector: queryVector,
+                        numCandidates: 100,
+                        limit: 3,
+                    },
+                },
+                {
+                    $project: {
+                        _id: 0,
+                        contractId: 1,
+                        contractTitle: 1,
+                        contractContent: 1,
+                        summary: 1,
+                    },
+                },
+            ]);
+        }
+
+        console.log("Contract context results:", docs.length);
 
 
         // -----------------------------
@@ -120,11 +129,7 @@ ${prompt}
 ANSWER:
 `;
 
-        const response = await customAIClient.generateText(finalPrompt, {
-
-            temperature: 0.3,
-            max_new_tokens: 1024
-        });
+        const response = await geminiChat(prompt, contextText);
 
         return response;
 
