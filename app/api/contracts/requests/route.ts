@@ -24,21 +24,19 @@ export async function GET() {
 
     const clerkId = user.id;
     
-    // 2. Extract the user's primary email address from the Clerk object
-    const userEmail = user.emailAddresses.find(
-      (emailObj) => emailObj.id === user.primaryEmailAddressId
-    )?.emailAddress;
+    // 2. Extract all email addresses from the Clerk object
+    const userEmails = user.emailAddresses.map(e => e.emailAddress.toLowerCase().trim());
 
-    if (!userEmail) {
-      return NextResponse.json({ error: "No primary email found for user" }, { status: 400 });
+    if (userEmails.length === 0) {
+      return NextResponse.json({ error: "No email found for user" }, { status: 400 });
     }
 
     await connectDB();
 
     // 3. FETCH INBOX (Received Requests)
-    // Find contracts where this user's email matches partyB_Email AND it is currently in the negotiation loop.
+    // Find contracts where any of this user's emails matches partyB_Email AND it is currently in the negotiation loop.
     const receivedRequests = await Contract.find({
-      partyB_Email: userEmail.toLowerCase().trim(),
+      partyB_Email: { $in: userEmails },
       contractStatus: { $in: ["sent_for_review", "in_negotiation", "locked"] }
     }).sort({ updatedAt: -1 }); // Sort by newest first
 

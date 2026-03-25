@@ -1,6 +1,5 @@
-// app/api/lifecycle/route.ts
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 import { connectDB } from "@/lib/db";
 import User from "@/db/models/User";
 import Contract from "@/db/models/Contract";
@@ -12,9 +11,18 @@ export async function GET() {
     const { userId: clerkId } = await auth();
     if (!clerkId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
+    const clerkUser = await currentUser();
     const user = await User.findOne({ clerkId });
     if (!user) return NextResponse.json({ error: "User not found" }, { status: 404 });
-    const userEmails = user.email ? [user.email.toLowerCase().trim()] : [];
+
+    const userEmails: string[] = user.email ? [user.email.toLowerCase().trim()] : [];
+
+    if (clerkUser) {
+      const clerkEmails = clerkUser.emailAddresses.map(e => e.emailAddress.toLowerCase().trim());
+      // Combine and unique-ify
+      const allEmails = Array.from(new Set([...userEmails, ...clerkEmails]));
+      userEmails.splice(0, userEmails.length, ...allEmails);
+    }
 
     // 1. Fetch ALL contracts involving this user
     const contracts = await Contract.find({

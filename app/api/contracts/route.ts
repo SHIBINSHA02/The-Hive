@@ -1,6 +1,6 @@
 // app/api/contracts/route.ts
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
 
 import { connectDB } from "@/lib/db";
 import User from "@/db/models/User";
@@ -26,8 +26,15 @@ export async function GET() {
     const clientProfileId = clientProfile?._id?.toString();
     const contractorProfileId = contractorProfile?._id?.toString();
 
-    // Collect all potential emails for this user to match Party B invitations
+    const clerkUser = await currentUser();
     const userEmails: string[] = user.email ? [user.email.toLowerCase().trim()] : [];
+    
+    if (clerkUser) {
+      const clerkEmails = clerkUser.emailAddresses.map(e => e.emailAddress.toLowerCase().trim());
+      // Combine and unique-ify
+      const allEmails = Array.from(new Set([...userEmails, ...clerkEmails]));
+      userEmails.splice(0, userEmails.length, ...allEmails);
+    }
     
     // ---------- FIX FOR VISIBILITY ----------
     const conditions: Record<string, unknown>[] = [];
@@ -55,6 +62,24 @@ export async function GET() {
       .populate("contractor")
       .sort({ createdAt: -1 })
       .lean();
+
+    // CLAIMING LOGIC: If a contract matched by email but has no clerkId, link it now
+    const unlinkedContracts = contracts.filter(
+      c => !c.partyB_ClerkId && 
+           c.ownerId !== clerkId && 
+           c.partyB_Email && 
+           userEmails.includes(c.partyB_Email.toLowerCase().trim())
+    );
+
+    if (unlinkedContracts.length > 0) {
+      const unlinkedIds = unlinkedContracts.map(c => c._id);
+      await Contract.updateMany(
+        { _id: { $in: unlinkedIds } },
+        { $set: { partyB_ClerkId: clerkId } }
+      );
+      // Update local objects to reflect the new state (optional for UI but good for consistency)
+      unlinkedContracts.forEach(c => { (c as any).partyB_ClerkId = clerkId; });
+    }
 
     const formattedContracts = contracts.map((contract: any) => {
       // Security: Drafts are only visible to the owner
