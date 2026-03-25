@@ -203,7 +203,7 @@ export default function ContractConversationPage() {
 
   if (error && !conversation)
     return (
-      <div className="p-6 text-red-600">
+      <div className="p-6 text-blue-600">
         <p className="font-semibold">Error</p>
         <p>{error}</p>
         <Link
@@ -341,7 +341,7 @@ export default function ContractConversationPage() {
                         {canUndo(msg) && (
                             <button
                                 onClick={() => handleUndoMessage(msg._id!)}
-                                className="absolute -top-2 -right-2 bg-red-500 text-white text-[9px] px-1.5 py-0.5 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
+                                className="absolute -top-2 -right-2 bg-blue-500 text-white text-[9px] px-1.5 py-0.5 rounded-full shadow-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap"
                             >
                                 Undo
                             </button>
