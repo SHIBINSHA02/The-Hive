@@ -93,10 +93,12 @@ export default function ContractDetailsView({
     }
   };
 
+  const isStarted = data.contractStatus === "active" || data.contractStatus === "completed";
   const totalMilestones = finance?.milestones?.length || 0;
   const paidMilestonesCount = finance?.milestones?.filter(m => m.isPaid).length || 0;
-  const financialProgress = totalMilestones > 0 ? Math.round((paidMilestonesCount / totalMilestones) * 100) : data.progress;
-  const displayedProgress = (finance && totalMilestones > 0) ? financialProgress : data.progress;
+  const financialProgress = totalMilestones > 0 ? Math.round((paidMilestonesCount / totalMilestones) * 100) : (data.progress || 0);
+  
+  const displayedProgress = isStarted ? ((finance && totalMilestones > 0) ? financialProgress : (data.progress || 0)) : 0;
 
   if (loading) return (
     <div className="flex items-center justify-center p-12">
@@ -180,9 +182,15 @@ export default function ContractDetailsView({
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
           <div className="flex items-center justify-between">
             <h2 className="font-semibold text-lg">Progress</h2>
-            {(finance && totalMilestones > 0) && (
-              <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-blue-100">
-                Milestone Based
+            {isStarted ? (
+              (finance && totalMilestones > 0) && (
+                <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-blue-100">
+                  Milestone Based
+                </span>
+              )
+            ) : (
+              <span className="text-[10px] bg-gray-50 text-gray-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-gray-100">
+                Awaiting Agreement
               </span>
             )}
           </div>
