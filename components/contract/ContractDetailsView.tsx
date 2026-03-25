@@ -93,6 +93,11 @@ export default function ContractDetailsView({
     }
   };
 
+  const totalMilestones = finance?.milestones?.length || 0;
+  const paidMilestonesCount = finance?.milestones?.filter(m => m.isPaid).length || 0;
+  const financialProgress = totalMilestones > 0 ? Math.round((paidMilestonesCount / totalMilestones) * 100) : data.progress;
+  const displayedProgress = (finance && totalMilestones > 0) ? financialProgress : data.progress;
+
   if (loading) return (
     <div className="flex items-center justify-center p-12">
       <Loader2 className="h-8 w-8 text-blue-600 animate-spin" />
@@ -173,11 +178,26 @@ export default function ContractDetailsView({
         </div>
 
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
-          <h2 className="font-semibold text-lg">Progress</h2>
-          <div className="mt-3 w-full bg-gray-200 rounded-full h-3">
-            <div className="bg-blue-600 h-3 rounded-full" style={{ width: `${data.progress}%` }}></div>
+          <div className="flex items-center justify-between">
+            <h2 className="font-semibold text-lg">Progress</h2>
+            {(finance && totalMilestones > 0) && (
+              <span className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider border border-blue-100">
+                Milestone Based
+              </span>
+            )}
           </div>
-          <p className="mt-2 text-sm text-gray-700">{data.progress}% Completed</p>
+          <div className="mt-3 w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+            <div 
+              className="bg-blue-600 h-full rounded-full transition-all duration-700 ease-out shadow-sm" 
+              style={{ width: `${displayedProgress}%` }}
+            />
+          </div>
+          <div className="flex justify-between items-center mt-2">
+            <p className="text-sm font-bold text-gray-900">{displayedProgress}% Completed</p>
+            {(finance && totalMilestones > 0) && (
+              <p className="text-xs text-gray-500 font-medium">{paidMilestonesCount} of {totalMilestones} Paid</p>
+            )}
+          </div>
           <div className="mt-4">
             <h3 className="font-semibold">Key Points</h3>
             <ul className="list-disc ml-6 mt-2 text-sm text-gray-700">
@@ -207,7 +227,7 @@ export default function ContractDetailsView({
                   <div className="text-right">
                     <p className="text-xs text-gray-500 uppercase font-medium">Paid</p>
                     <p className="text-lg font-semibold text-blue-600 leading-none mt-1">
-                      {Math.round((finance.paidAmount / finance.totalAmount) * 100)}%
+                      {displayedProgress}%
                     </p>
                   </div>
                 </div>
@@ -215,7 +235,7 @@ export default function ContractDetailsView({
                 <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
                   <div 
                     className="bg-blue-500 h-full rounded-full transition-all duration-500" 
-                    style={{ width: `${(finance.paidAmount / finance.totalAmount) * 100}%` }}
+                    style={{ width: `${displayedProgress}%` }}
                   />
                 </div>
 
@@ -325,13 +345,13 @@ export default function ContractDetailsView({
               <p className="text-xs font-medium text-gray-500 uppercase">Total Amount</p>
               <p className="font-bold text-2xl text-gray-900 mt-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.totalAmount)}</p>
             </div>
-            <div className="bg-green-50 p-4 rounded-lg border border-green-100">
-              <p className="text-xs font-medium text-green-600 uppercase">Paid Amount</p>
-              <p className="font-bold text-2xl text-green-700 mt-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.paidAmount)}</p>
+            <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
+              <p className="text-xs font-medium text-blue-600 uppercase">Paid Amount</p>
+              <p className="font-bold text-2xl text-blue-700 mt-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.paidAmount)}</p>
             </div>
-            <div className="bg-amber-50 p-4 rounded-lg border border-amber-100">
-              <p className="text-xs font-medium text-amber-600 uppercase">Due Amount</p>
-              <p className="font-bold text-2xl text-amber-700 mt-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.dueAmount)}</p>
+            <div className="bg-cyan-50 p-4 rounded-lg border border-cyan-100">
+              <p className="text-xs font-medium text-cyan-600 uppercase">Due Amount</p>
+              <p className="font-bold text-2xl text-cyan-700 mt-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.dueAmount)}</p>
             </div>
           </div>
 
@@ -365,7 +385,7 @@ export default function ContractDetailsView({
                           {isPaying === idx ? "Processing..." : "Mark as Paid"}
                         </button>
                       ) : (
-                        <span className="text-[11px] text-amber-600 font-medium bg-amber-50 px-2.5 py-1 rounded border border-amber-200">
+                        <span className="text-[11px] text-cyan-600 font-medium bg-cyan-50 px-2.5 py-1 rounded border border-cyan-200">
                           Awaiting Signatures
                         </span>
                       )}
