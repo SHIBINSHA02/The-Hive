@@ -10,24 +10,17 @@ export function LivePreview() {
   const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // ==========================================
-  // ADDED: TRACK CURRENTLY UPDATING FIELD
+  // FIXED: TRACK FIELD BY CURSOR FOCUS
   // ==========================================
   const [activeKey, setActiveKey] = useState<string | null>(null);
-  const prevFormData = useRef<Record<string, any>>(formData);
 
   useEffect(() => {
-    // 1. Compare new formData against old to find what just changed
-    const allKeys = Array.from(new Set([...Object.keys(formData), ...Object.keys(prevFormData.current)]));
-    const changedKey = allKeys.find(k => formData[k] !== prevFormData.current[k]);
+    // Listen for the shout from FormField.tsx
+    const handleFocus = (e: any) => setActiveKey(e.detail);
     
-    if (changedKey) {
-      setActiveKey(changedKey);
-    }
-    
-    prevFormData.current = formData;
-
-  }, [formData]);
-
+    window.addEventListener("field-focus", handleFocus);
+    return () => window.removeEventListener("field-focus", handleFocus);
+  }, []);
 
   const hasData = Object.values(formData).some((val) => val && String(val).trim() !== "");
 
@@ -41,8 +34,15 @@ export function LivePreview() {
       // We clone the data so we don't accidentally save HTML tags to the real database
       const previewData = { ...formData };
       
-      if (activeKey && previewData[activeKey] && String(previewData[activeKey]).trim() !== "") {
-        previewData[activeKey] = `<span class="active-highlight bg-blue-200 text-blue-900 border border-blue-300 px-1 py-0.5 rounded shadow-sm transition-all duration-300">${previewData[activeKey]}</span>`;
+      // FIX 1: Ensure we highlight the active field EVEN IF it is currently empty
+      if (activeKey) {
+        const currentVal = previewData[activeKey];
+        if (currentVal && String(currentVal).trim() !== "") {
+          previewData[activeKey] = `<span class="active-highlight bg-blue-200 text-blue-900 border border-blue-300 px-1 py-0.5 rounded shadow-sm transition-all duration-300">${currentVal}</span>`;
+        } else {
+          // Inject a temporary placeholder so the scroller has a target when navigating to an empty field
+          previewData[activeKey] = `<span class="active-highlight bg-blue-100/70 text-blue-800 border border-blue-300 border-dashed px-1.5 py-0.5 rounded shadow-sm transition-all duration-300 text-xs font-bold">[Editing...]</span>`;
+        }
       }
 
       // Generate text using our cloned, highlighted data
@@ -80,25 +80,31 @@ export function LivePreview() {
   }, [formData, selectedClauses, template, hasData, activeKey]);
 
   // ==========================================
-  // UPDATED: AUTO-SCROLL ENGINE
+  // FIXED: AUTO-SCROLL ENGINE
   // ==========================================
   useEffect(() => {
     const scrollTimeout = setTimeout(() => {
       if (scrollContainerRef.current) {
-        // Look for the active typing highlight first. If not found, look for the next missing token.
-        const targetElement = 
-          scrollContainerRef.current.querySelector('.active-highlight') || 
-          scrollContainerRef.current.querySelector('.missing-token');
+        // 1. Look for the actively highlighted field first
+        let targetElement = scrollContainerRef.current.querySelector('.active-highlight');
         
+        // 2. If nothing is actively highlighted, fallback to missing tokens
+        if (!targetElement) {
+          targetElement = scrollContainerRef.current.querySelector('.missing-token');
+        }
+        
+        // FIX 2: Use the native browser API to center the element smoothly
         if (targetElement) {
-          targetElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          targetElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center', 
+          });
         }
       }
-    }, 100);
+    }, 150);
 
     return () => clearTimeout(scrollTimeout);
-  }, [liveHtmlPreview]); 
-
+  }, [activeKey]); // ONLY run when changing inputs, NOT on every keystroke!
 
   return (
     <div className="flex flex-col h-full bg-gray-200/50 rounded-xl overflow-hidden border border-gray-200">
@@ -135,7 +141,7 @@ export function LivePreview() {
           <div className="relative w-full max-w-[210mm] min-h-[min(800px,calc(100vh-200px))] bg-white shadow-[0_10px_40px_rgba(0,0,0,0.04)] border border-slate-200 rounded-sm p-8 sm:p-14 animate-in fade-in zoom-in-95 duration-500 overflow-hidden group">
             
             {/* PAPER DECOR - Top left corner fold feeling */}
-            <div className="absolute top-0 right-0 w-24 h-24 bg-linear-to-bl from-slate-50 to-transparent opacity-50 pointer-events-none" />
+            <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-bl from-slate-50 to-transparent opacity-50 pointer-events-none" />
             
             <div 
               className="prose prose-slate prose-sm sm:prose-base max-w-none text-slate-800 font-serif leading-relaxed"
