@@ -142,20 +142,43 @@ export async function PATCH(
   
   // Security: Ensure ownerId can't be patched by a bad actor
   delete body.ownerId;
-
   const internalId = exists.contract._id;
-  
-  // LECTURE: We fetch the currently saved document *before* we apply any updates. 
-  // We need to compare the incoming text with the old text.
+
   const existingContract = await Contract.findById(internalId);
   if (!existingContract) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
+  const { finance, ...contractBody } = body;
+
+  if (finance) {
+    const paidAmt = finance.milestones?.filter((m: any) => m.isPaid).reduce((acc: number, m: any) => acc + Number(m.amount), 0) || 0;
+    const totalAmt = Number(finance.totalAmount) || 0;
+    const dueAmt = totalAmt - paidAmt;
+    
+    await Financial.findOneAndUpdate(
+       { contract: internalId },
+       {
+           $set: {
+               contract: internalId,
+               client: existingContract.client,
+               contractor: existingContract.contractor,
+               financialId: `FIN-${internalId}`,
+               totalAmount: totalAmt,
+               currency: finance.currency || "USD",
+               paidAmount: paidAmt,
+               dueAmount: dueAmt,
+               milestones: finance.milestones || []
+           }
+       },
+       { upsert: true, new: true }
+    );
+  }
+
   // LECTURE: This is a complex Mongoose update object. We separate $set (replacing fields) 
   // from $push (adding an item to an array) so they execute simultaneously.
-  const updateDoc: any = { $set: { ...body } };
+  const updateDoc: any = { $set: { ...contractBody } };
 
   // LECTURE: The crucial version control & mutual exclusion check.
-  if (body.contractContent && body.contractContent !== existingContract.contractContent) {
+  if (contractBody.contractContent && contractBody.contractContent !== existingContract.contractContent) {
     
     // 1. Reset the "Handshake" flags
     updateDoc.$set.ownerAgreed = false;
@@ -182,7 +205,7 @@ export async function PATCH(
   }
 
   // Also pass the pen if the owner is sending a draft for review
-  if (body.contractStatus === "sent_for_review") {
+  if (contractBody.contractStatus === "sent_for_review") {
       updateDoc.$set.currentTurn = "partyB";
   }
 

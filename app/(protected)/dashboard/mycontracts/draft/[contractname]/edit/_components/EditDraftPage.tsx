@@ -14,7 +14,11 @@ import {
   ListChecks,
   AlertCircle,
   Clock,
-  Mail
+  Mail,
+  IndianRupee,
+  Milestone,
+  Plus as PlusIcon,
+  Trash
 } from "lucide-react";
 import { Contract } from "@/types/contract";
 import Link from "next/link";
@@ -41,6 +45,12 @@ export default function EditDraftPage() {
     clauses: []
   });
 
+  const [finance, setFinance] = useState({
+    totalAmount: 0,
+    currency: "USD",
+    milestones: [] as { title: string; amount: number; dueDate: string; isPaid: boolean }[],
+  });
+
   useEffect(() => {
     if (!contractId) return;
 
@@ -63,6 +73,20 @@ export default function EditDraftPage() {
           keypoints: c.keypoints || [],
           clauses: c.clauses || []
         });
+
+        if (json.finance) {
+          const f = json.finance;
+          setFinance({
+            totalAmount: f.totalAmount || 0,
+            currency: f.currency || "USD",
+            milestones: f.milestones?.map((m: any) => ({
+                title: m.title || "",
+                amount: m.amount || 0,
+                dueDate: m.dueDate ? new Date(m.dueDate).toISOString().split('T')[0] : "",
+                isPaid: m.isPaid || false
+            })) || []
+          });
+        }
       } catch (err: any) {
         setError(err.message || "Failed to load draft");
       } finally {
@@ -81,7 +105,7 @@ export default function EditDraftPage() {
       const res = await fetch(`/api/contracts/${contractId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({ ...formData, finance })
       });
 
       if (!res.ok) {
@@ -263,6 +287,110 @@ export default function EditDraftPage() {
                   className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-sm resize-none"
                 />
               </div>
+            </div>
+          </section>
+
+          <section className="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm mt-6">
+            <h2 className="flex items-center gap-2 font-bold text-gray-900 mb-6 pb-2 border-b border-gray-100">
+              <IndianRupee className="w-5 h-5 text-blue-600" />
+              Finance Overview
+            </h2>
+            
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">
+                  Total Amount
+                </label>
+                <input
+                  type="number"
+                  value={finance.totalAmount}
+                  onChange={(e) => setFinance({...finance, totalAmount: Number(e.target.value)})}
+                  placeholder="0.00"
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1.5 ml-1">
+                  Currency
+                </label>
+                <select
+                  value={finance.currency}
+                  onChange={(e) => setFinance({...finance, currency: e.target.value})}
+                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-blue-500 focus:bg-white transition-all outline-none text-sm appearance-none"
+                >
+                  <option value="USD">USD ($)</option>
+                  <option value="EUR">EUR (€)</option>
+                  <option value="GBP">GBP (£)</option>
+                  <option value="INR">INR (₹)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-gray-900 text-sm flex items-center gap-2">
+                <Milestone className="w-4 h-4 text-blue-600" /> Payment Schedule
+              </h3>
+              <button 
+                onClick={() => setFinance(f => ({ ...f, milestones: [...f.milestones, { title: "", amount: 0, dueDate: "", isPaid: false }] }))}
+                className="text-xs bg-blue-50 text-blue-600 font-semibold px-2 py-1 rounded hover:bg-blue-100 flex items-center gap-1"
+              >
+                <PlusIcon className="w-3 h-3" /> Add
+              </button>
+            </div>
+            
+            <div className="space-y-3">
+              {finance.milestones.length === 0 ? (
+                <p className="text-xs text-center text-gray-400 py-4 bg-gray-50 rounded-lg border border-dashed border-gray-200">No milestones added yet.</p>
+              ) : (
+                finance.milestones.map((m, idx) => (
+                  <div key={idx} className="p-3 bg-gray-50 rounded-xl border border-gray-200 flex flex-col gap-2 relative group">
+                    <button 
+                      onClick={() => setFinance(f => ({...f, milestones: f.milestones.filter((_, i) => i !== idx)}))}
+                      className="absolute top-2 right-2 p-1 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <Trash className="w-3.5 h-3.5" />
+                    </button>
+                    <div>
+                      <input 
+                        type="text" 
+                        value={m.title} 
+                        onChange={e => {
+                          const newM = [...finance.milestones];
+                          newM[idx].title = e.target.value;
+                          setFinance({...finance, milestones: newM});
+                        }}
+                        placeholder="Milestone Title" 
+                        className="w-[90%] bg-transparent border-b border-gray-300 text-sm font-semibold outline-none focus:border-blue-500 pb-1"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 mt-1 cursor-text">
+                      <div className="flex items-center gap-1 bg-white border border-gray-200 px-2 py-1.5 rounded-lg">
+                        <span className="text-xs text-gray-500 font-medium w-full max-w-[20px] truncate">{finance.currency === "INR" ? "₹" : finance.currency === "GBP" ? "£" : finance.currency === "EUR" ? "€" : "$"}</span>
+                        <input 
+                          type="number" 
+                          value={m.amount}
+                          onChange={e => {
+                            const newM = [...finance.milestones];
+                            newM[idx].amount = Number(e.target.value);
+                            setFinance({...finance, milestones: newM});
+                          }}
+                          className="w-full text-sm outline-none bg-transparent"
+                        />
+                      </div>
+                      <input 
+                        type="date" 
+                        value={m.dueDate}
+                        onChange={e => {
+                          const newM = [...finance.milestones];
+                          newM[idx].dueDate = e.target.value;
+                          setFinance({...finance, milestones: newM});
+                        }}
+                        className="text-xs bg-white border border-gray-200 px-2 py-1.5 rounded-lg outline-none focus:border-blue-500"
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </section>
         </div>

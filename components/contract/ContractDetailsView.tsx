@@ -8,7 +8,7 @@ import remarkGfm from "remark-gfm";
 import ReactDiffViewer from 'react-diff-viewer-continued';
 import { Contract, Financial } from "@/types/contract";
 import type { ConversationType } from "@/types/conversation";
-import { Bot, Send, X, MessageSquare, Sparkles, Loader2, ShieldAlert, ArrowLeft } from "lucide-react";
+import { Bot, Send, X, MessageSquare, Sparkles, Loader2, ShieldAlert, ArrowLeft, Landmark, CreditCard, Calendar } from "lucide-react";
 
 interface ContractDetailsViewProps {
   contractId: string;
@@ -152,7 +152,7 @@ export default function ContractDetailsView({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <div className="rounded-xl border border-gray-200 bg-white p-5 shadow">
           <h2 className="font-semibold text-lg">Summary</h2>
           <p className="mt-2 text-gray-700 whitespace-pre-line">{data.summary}</p>
@@ -186,6 +186,91 @@ export default function ContractDetailsView({
               ))}
             </ul>
           </div>
+        </div>
+
+        <div className="rounded-xl border border-gray-200 bg-white p-5 shadow flex flex-col">
+          <div className="flex items-center justify-between mb-2">
+            <h2 className="font-semibold text-lg">Finance Overview</h2>
+            <Landmark className="w-5 h-5 text-gray-400" />
+          </div>
+
+          {finance ? (
+            <div className="flex-1 flex flex-col gap-4">
+              <div className="space-y-4">
+                <div className="flex justify-between items-end">
+                  <div>
+                    <p className="text-xs text-gray-500 uppercase font-medium">Total Value</p>
+                    <p className="text-2xl font-bold text-gray-900 leading-none mt-1">
+                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.totalAmount)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-gray-500 uppercase font-medium">Paid</p>
+                    <p className="text-lg font-semibold text-blue-600 leading-none mt-1">
+                      {Math.round((finance.paidAmount / finance.totalAmount) * 100)}%
+                    </p>
+                  </div>
+                </div>
+
+                <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
+                  <div 
+                    className="bg-blue-500 h-full rounded-full transition-all duration-500" 
+                    style={{ width: `${(finance.paidAmount / finance.totalAmount) * 100}%` }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                    <p className="text-[10px] text-gray-500 uppercase font-bold mb-0.5">Paid to date</p>
+                    <p className="text-sm font-bold text-gray-900">
+                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD', maximumFractionDigits: 0 }).format(finance.paidAmount)}
+                    </p>
+                  </div>
+                  <div className="bg-blue-50 p-2.5 rounded-lg border border-blue-100">
+                    <p className="text-[10px] text-blue-600 uppercase font-bold mb-0.5">Remaining</p>
+                    <p className="text-sm font-bold text-blue-700">
+                      {new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD', maximumFractionDigits: 0 }).format(finance.dueAmount)}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {finance.milestones && finance.milestones.length > 0 && (
+                <div className="mt-auto pt-4 border-t border-gray-100">
+                  {(() => {
+                    const nextMilestone = finance.milestones.find(m => !m.isPaid);
+                    if (!nextMilestone) return (
+                      <div className="flex items-center gap-2 text-green-600 text-xs font-semibold py-1">
+                        <CreditCard size={14} />
+                        All payments completed
+                      </div>
+                    );
+                    return (
+                      <div className="space-y-1.5">
+                        <p className="text-[10px] text-gray-500 uppercase font-bold">Next Milestone</p>
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-gray-700 truncate max-w-[140px]">{nextMilestone.title || "Payment"}</span>
+                          <span className="text-xs font-extrabold text-blue-600">
+                            {new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(nextMilestone.amount)}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
+                          <Calendar size={12} className="text-gray-400" />
+                          <span className="font-medium">Due: {new Date(nextMilestone.dueDate).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
+                        </div>
+                      </div>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-center p-6 bg-gray-50 rounded-xl border border-dashed border-gray-200 mt-2">
+              <CreditCard className="w-10 h-10 text-gray-200 mb-3" />
+              <p className="text-sm text-gray-400 font-medium">No financial structure defined</p>
+              <p className="text-[11px] text-gray-400 mt-1 max-w-[180px]">Finance overview will appear once milestones are set.</p>
+            </div>
+          )}
         </div>
       </div>
 
