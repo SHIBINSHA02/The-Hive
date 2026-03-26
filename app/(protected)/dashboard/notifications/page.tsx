@@ -144,7 +144,7 @@ export default function NotificationsPage() {
     // If it is a "request" (meaning someone sent it to them), route them to the Requests view.
     // Otherwise, route them to their My Contracts view.
     if (notification.type === 'request' || action === 'review' || action === 'sign') {
-      router.push(`/dashboard/requests/${encodeURIComponent(notification.contractId)}`);
+      router.push(`/dashboard/mycontracts/negotiate/${encodeURIComponent(notification.contractId)}`);
     } else {
       router.push(`/dashboard/mycontracts/${encodeURIComponent(notification.contractId)}`);
     }

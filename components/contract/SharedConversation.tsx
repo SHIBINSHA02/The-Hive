@@ -14,18 +14,12 @@ export default function ContractConversationPage() {
   const contractId = decodeURIComponent(idValue as string);
 
   // Determine back link base
-  const isRequestPath = pathname.includes("/dashboard/requests/");
-  let backPath: string;
-  if (isRequestPath) {
-    backPath = `/dashboard/requests/${encodeURIComponent(contractId)}`;
-  } else {
-    // Extract the status segment from the pathname, e.g. /dashboard/mycontracts/draft/:id/conversation → draft
-    const mycontractsMatch = pathname.match(/\/dashboard\/mycontracts\/([^/]+)\//);
-    const statusSegment = mycontractsMatch ? mycontractsMatch[1] : null;
-    backPath = statusSegment
-      ? `/dashboard/mycontracts/${statusSegment}/${encodeURIComponent(contractId)}`
-      : `/dashboard/mycontracts`;
-  }
+  // Extract the status segment from the pathname, e.g. /dashboard/mycontracts/draft/:id/conversation → draft
+  const mycontractsMatch = pathname.match(/\/dashboard\/mycontracts\/([^/]+)\//);
+  const statusSegment = mycontractsMatch ? mycontractsMatch[1] : null;
+  const backPath = statusSegment
+    ? `/dashboard/mycontracts/${statusSegment}/${encodeURIComponent(contractId)}`
+    : `/dashboard/mycontracts`;
 
   const [conversation, setConversation] = useState<ConversationType | null>(null);
   const [viewerInfo, setViewerInfo] = useState<{ role: string; senderProfileId: string } | null>(null);

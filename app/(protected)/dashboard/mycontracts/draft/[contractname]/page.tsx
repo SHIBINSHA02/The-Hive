@@ -88,7 +88,7 @@ export default function DraftContractDetailsPage() {
         throw new Error(errData.error || "Failed to send invite");
       }
 
-      router.push(`/dashboard/requests/${contractId}`);
+      router.push(`/dashboard/mycontracts/negotiate/${contractId}`);
     } catch (err: any) {
       alert(err.message || "Something went wrong sending the invite.");
     } finally {

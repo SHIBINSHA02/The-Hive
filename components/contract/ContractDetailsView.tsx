@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
+import { usePathname } from "next/navigation";
 import Image from "next/image";
 import Link from "next/link";
 import ReactMarkdown from "react-markdown";
@@ -49,6 +50,7 @@ export default function ContractDetailsView({
   onFinanceChange,
   tempFinance
 }: ContractDetailsViewProps) {
+  const pathname = usePathname();
   const [conversationPreview, setConversationPreview] = useState<ConversationType | null>(null);
 
   // --- AI CHAT STATES ---
@@ -214,9 +216,20 @@ export default function ContractDetailsView({
           <div className="mt-4">
             <h3 className="font-semibold">Key Points</h3>
             <ul className="list-disc ml-6 mt-2 text-sm text-gray-700">
-              {data.keypoints?.map((k: string, idx: number) => (
-                <li key={idx}>{k}</li>
-              ))}
+              {data.keypoints?.map((k: string, idx: number) => {
+                const isPaymentPoint = k.toLowerCase().trim().startsWith("payment:");
+                if (isPaymentPoint && activeFinance) {
+                  return (
+                    <li key={idx}>
+                      <strong>Payment:</strong> {new Intl.NumberFormat('en-US', { 
+                        style: 'currency', 
+                        currency: activeFinance.currency || 'USD' 
+                      }).format(activeFinance.totalAmount)}
+                    </li>
+                  );
+                }
+                return <li key={idx}>{k}</li>;
+              })}
             </ul>
           </div>
         </div>
@@ -405,7 +418,7 @@ export default function ContractDetailsView({
           </button>
 
           <Link
-            href={`/dashboard/requests/${encodeURIComponent(contractId)}/conversation`}
+            href={`${pathname}/conversation`}
             className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
             <MessageSquare size={16} />
@@ -413,7 +426,7 @@ export default function ContractDetailsView({
           </Link>
 
           <Link
-            href={`/dashboard/requests/${encodeURIComponent(contractId)}/riskdetect`}
+            href={`${pathname}/riskdetect`}
             className="inline-flex items-center gap-2 rounded-lg border border-blue-600 text-blue-600 bg-blue-100 px-4 py-2 text-sm font-medium hover:bg-blue-200 transition-colors"
           >
             <ShieldAlert size={16} />
