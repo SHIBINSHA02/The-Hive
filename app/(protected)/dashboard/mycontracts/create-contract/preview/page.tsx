@@ -89,9 +89,13 @@ export default function PreviewPage() {
       if (response.ok) {
         resetForm();
         router.push("/dashboard/mycontracts?status=created");
+      } else {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to save to database");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(error);
+      alert(`Save Error: ${error.message}`);
     } finally {
       setIsProcessing(false);
     }
@@ -144,7 +148,7 @@ export default function PreviewPage() {
         </div>
       </header>
 
-      <div className="max-w-[1600px] mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-[300px_1fr_300px] gap-10">
+      <div className="max-w-[1600px] mx-auto px-6 py-10 grid grid-cols-1 lg:grid-cols-[250px_1fr_250px] xl:grid-cols-[300px_1fr_300px] gap-8 xl:gap-10 min-h-[calc(100vh-64px)]">
 
         {/* --- LEFT SIDEBAR: PROPERTIES --- */}
         <aside className="hidden lg:block space-y-6">
@@ -195,7 +199,7 @@ export default function PreviewPage() {
         <main className="flex justify-center flex-1 min-w-0">
           <div className="relative group perspective-[1000px]">
              {/* Realistic shadow layer handled in side the component or as a wrapper */}
-             <div className="absolute -inset-4 bg-slate-200/40 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+             <div className="absolute -inset-4 bg-slate-200/40 blur-3xl opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
              
              <ContractDocument 
                formData={formData} 
@@ -242,6 +246,16 @@ export default function PreviewPage() {
           <Download className="h-4 w-4" /> Download
         </button>
       </div>
+      {/* GLOBAL LOADING OVERLAY */}
+      {isProcessing && (
+        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-sm flex flex-col items-center justify-center text-white animate-in fade-in duration-300">
+           <div className="bg-white p-8 rounded-2xl shadow-2xl flex flex-col items-center gap-4 border border-white/20">
+              <Loader2 className="h-10 w-10 text-blue-600 animate-spin" />
+              <p className="text-slate-900 font-bold text-sm tracking-tight">Processing Instrument...</p>
+              <p className="text-slate-400 text-[10px] uppercase font-black">Please do not refresh the page</p>
+           </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -35,7 +35,7 @@ export interface IFinancial extends Document {
 }
 
 const TransactionSchema = new Schema({
-  transactionId: { type: String, required: true, unique: true },
+  transactionId: { type: String, required: true },
 
   type: {
     type: String,

@@ -103,11 +103,10 @@ export function ContractDocument({
   /* ================= RENDER ================= */
   return (
     <div
-      ref={containerRef}
       className="flex flex-col items-center gap-6 pb-20"
     >
       {/* CONTROLS */}
-      <div className="flex items-center gap-4 bg-slate-900 px-5 py-2 rounded-full text-white mt-4">
+      <div className="flex items-center gap-4 bg-slate-900 px-5 py-2 rounded-full text-white mt-4 relative z-20 shadow-xl">
         <button onClick={prev} disabled={currentPage === 1}>
           <ChevronLeft />
         </button>
@@ -139,7 +138,7 @@ export function ContractDocument({
             width: A4_WIDTH,
             height: A4_HEIGHT,
           }}
-          className="relative origin-top"
+          className="relative origin-top transition-transform duration-200 ease-out"
         >
           <div className="bg-white border shadow-xl w-full h-full relative">
             {/* HEADER */}

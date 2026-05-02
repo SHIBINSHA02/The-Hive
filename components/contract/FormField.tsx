@@ -10,6 +10,7 @@
 import { useState } from "react";
 import { useContract } from "@/app/(protected)/dashboard/mycontracts/create-contract/_context/ContractContext";
 import { Loader2, Sparkles, CheckCircle2 } from "lucide-react";
+import { SUPPORTED_CURRENCIES } from "@/lib/currency";
 
 type FormFieldProps = {
   fieldKey: string;
@@ -157,6 +158,20 @@ export function FormField({ fieldKey }: FormFieldProps) {
               <div className="mt-2 text-xs text-green-600 font-medium">Image uploaded successfully</div>
             )}
           </div>
+        ) : fieldKey === "PAYMENT_CURRENCY" ? (
+          <select
+            value={value}
+            onChange={(e) => updateField(fieldKey, e.target.value)}
+            className={inputBaseStyle + " appearance-none bg-white"}
+            disabled={isDisabled}
+          >
+            <option value="" disabled>Select Currency</option>
+            {SUPPORTED_CURRENCIES.map((c) => (
+              <option key={c.code} value={c.code}>
+                {c.label}
+              </option>
+            ))}
+          </select>
         ) : (
           <input
             type={config.type === "date" ? "date" : "text"}

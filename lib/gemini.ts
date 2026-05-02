@@ -4,6 +4,11 @@ const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 
 export async function getGeminiEmbedding(text: string): Promise<number[]> {
+  if (!process.env.GEMINI_API_KEY) {
+    console.warn("GEMINI_API_KEY is not set. Skipping embedding generation.");
+    return [];
+  }
+
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-embedding-001" });
 
@@ -21,7 +26,8 @@ export async function getGeminiEmbedding(text: string): Promise<number[]> {
     return embedding;
   } catch (error) {
     console.error("Gemini Embedding Error:", error);
-    throw error;
+    // Return empty array instead of throwing to prevent save failures if the hook was strict
+    return [];
   }
 }
 

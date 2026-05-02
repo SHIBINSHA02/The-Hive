@@ -39,16 +39,29 @@ export async function POST(req: NextRequest) {
     // 3. Parse Request
     const { contractType, formData, selectedClauses } = await req.json();
 
-    // IDENTITY CHECK: Ensure Party A and Party B are different people
-    const invitedEmail = formData.PARTY_B_EMAIL?.toLowerCase().trim();
-    if (invitedEmail) {
+    // IDENTITY CHECK: Ensure Party A and Party B are not the same person
+    const partyAEmail = formData.PARTY_A_EMAIL?.toLowerCase().trim();
+    const partyBEmail = formData.PARTY_B_EMAIL?.toLowerCase().trim();
+
+    if (partyAEmail && partyBEmail) {
+      if (partyAEmail === partyBEmail) {
+        return NextResponse.json(
+          { error: "Party A and Party B must have different email addresses." },
+          { status: 400 }
+        );
+      }
+
       const { currentUser: getClerkUser } = await import("@clerk/nextjs/server");
       const clerkUser = await getClerkUser();
       const myEmails = clerkUser?.emailAddresses.map(e => e.emailAddress.toLowerCase().trim()) || [];
       
-      if (myEmails.includes(invitedEmail)) {
+      // We only block if BOTH emails belong to the current user (truly inviting yourself)
+      const isPartyAMine = myEmails.includes(partyAEmail);
+      const isPartyBMine = myEmails.includes(partyBEmail);
+
+      if (isPartyAMine && isPartyBMine) {
         return NextResponse.json(
-          { error: "You cannot invite yourself as the counterparty. Party A and Party B must be different people." },
+          { error: "You cannot invite yourself as the counterparty. Both Party A and Party B emails are associated with your account." },
           { status: 400 }
         );
       }
@@ -69,7 +82,7 @@ export async function POST(req: NextRequest) {
     const finalContent = templateLogic.generate({
       placeholderValues: formData,
       selectedOptionalClauses: selectedClauses,
-      isDraft: false,
+      isDraft: true,
     });
 
     /**

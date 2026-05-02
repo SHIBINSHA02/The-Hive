@@ -4,6 +4,7 @@ import { connectDB } from "@/lib/db";
 import User from "@/db/models/User";
 import Contract from "@/db/models/Contract";
 import Financial from "@/db/models/Finance";
+import { formatCurrency } from "@/lib/currency";
 
 export async function GET() {
   try {
@@ -71,7 +72,7 @@ export async function GET() {
         clientName: contract.companyName || "Unknown Entity",
         contractTitle: contract.contractTitle || "Untitled Contract",
         deadline: deadlineDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-        amount: finance ? new Intl.NumberFormat('en-US', { style: 'currency', currency: finance.currency || 'USD' }).format(finance.totalAmount) : "$0.00",
+        amount: finance ? formatCurrency(finance.totalAmount, finance.currency) : "$0.00",
         status: "normal",
         email: counterpartyEmail || "No email",
         category: "deadline"

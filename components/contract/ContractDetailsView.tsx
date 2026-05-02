@@ -10,6 +10,7 @@ import ReactDiffViewer from 'react-diff-viewer-continued';
 import { Contract, Financial } from "@/types/contract";
 import type { ConversationType } from "@/types/conversation";
 import { Bot, Send, X, MessageSquare, Sparkles, Loader2, ShieldAlert, ArrowLeft, Landmark, CreditCard, Calendar } from "lucide-react";
+import { formatCurrency } from "@/lib/currency";
 
 interface ContractDetailsViewProps {
   contractId: string;
@@ -221,10 +222,7 @@ export default function ContractDetailsView({
                 if (isPaymentPoint && activeFinance) {
                   return (
                     <li key={idx}>
-                      <strong>Payment:</strong> {new Intl.NumberFormat('en-US', { 
-                        style: 'currency', 
-                        currency: activeFinance.currency || 'USD' 
-                      }).format(activeFinance.totalAmount)}
+                      <strong>Payment:</strong> {formatCurrency(activeFinance.totalAmount, activeFinance.currency)}
                     </li>
                   );
                 }
@@ -248,12 +246,12 @@ export default function ContractDetailsView({
                     <div>
                       <label className="text-[10px] text-gray-500 uppercase font-bold mb-1 block">Total Amount</label>
                       <div className="relative">
-                        <span className="absolute left-2 top-1.5 text-xs text-gray-400 font-bold">$</span>
+                        <span className="absolute left-2.5 top-1.5 text-xs text-gray-400 font-bold">$</span>
                         <input 
                           type="number"
                           value={activeFinance?.totalAmount || 0}
                           onChange={(e) => onFinanceChange?.({ ...activeFinance, totalAmount: Number(e.target.value) })}
-                          className="w-full pl-5 pr-2 py-1.5 bg-gray-50 border border-gray-200 rounded text-sm font-bold focus:ring-1 focus:ring-blue-500 outline-none"
+                          className="w-full pl-6 pr-2 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all"
                         />
                       </div>
                     </div>
@@ -262,60 +260,91 @@ export default function ContractDetailsView({
                       <select 
                         value={activeFinance?.currency || "USD"}
                         onChange={(e) => onFinanceChange?.({ ...activeFinance, currency: e.target.value })}
-                        className="w-full px-2 py-1.5 bg-gray-50 border border-gray-200 rounded text-sm font-bold focus:ring-1 focus:ring-blue-500 outline-none"
+                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-blue-500 focus:bg-white outline-none transition-all appearance-none"
                       >
-                        <option value="USD">USD</option>
-                        <option value="EUR">EUR</option>
-                        <option value="GBP">GBP</option>
-                        <option value="INR">INR</option>
+                        <option value="USD">USD ($)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="GBP">GBP (£)</option>
+                        <option value="INR">INR (₹)</option>
                       </select>
                     </div>
                   </div>
-                  <div className="pt-2 border-t border-gray-100 mt-2">
-                    <p className="text-[10px] text-blue-600 uppercase font-bold mb-2">Milestones Schedule</p>
-                    <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-                      {activeFinance?.milestones?.map((m, idx) => (
-                        <div key={idx} className="flex gap-2 items-center bg-gray-50 p-2 rounded relative group">
-                          <input 
-                            type="text"
-                            value={m.title}
-                            onChange={(e) => {
-                              const newM = [...(activeFinance?.milestones || [])];
-                              newM[idx].title = e.target.value;
-                              onFinanceChange?.({ ...activeFinance, milestones: newM });
-                            }}
-                            placeholder="Milestone"
-                            className="flex-1 bg-transparent border-b border-gray-200 text-[11px] font-bold outline-none focus:border-blue-500"
-                          />
-                          <input 
-                            type="number"
-                            value={m.amount}
-                            onChange={(e) => {
-                              const newM = [...(activeFinance?.milestones || [])];
-                              newM[idx].amount = Number(e.target.value);
-                              onFinanceChange?.({ ...activeFinance, milestones: newM });
-                            }}
-                            className="w-16 bg-transparent border-b border-gray-200 text-[11px] font-bold outline-none focus:border-blue-500"
-                          />
-                          <button 
-                            onClick={() => {
-                              const newM = activeFinance?.milestones?.filter((_, i) => i !== idx);
-                              onFinanceChange?.({ ...activeFinance, milestones: newM });
-                            }}
-                            className="p-1 text-gray-400 hover:text-red-500"
-                          >
-                            <X size={12} />
-                          </button>
+
+                  <div className="pt-4 border-t border-gray-100">
+                    <div className="flex items-center justify-between mb-3">
+                      <p className="text-[10px] text-blue-600 uppercase font-bold">Milestones Schedule</p>
+                      <span className="text-[10px] text-gray-400 font-medium">{activeFinance?.milestones?.length || 0} items</span>
+                    </div>
+                    
+                    <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1 custom-scrollbar pb-2">
+                      {activeFinance?.milestones?.length === 0 ? (
+                        <div className="text-center py-6 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                           <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">No milestones yet</p>
                         </div>
-                      ))}
+                      ) : (
+                        activeFinance?.milestones?.map((m, idx) => (
+                          <div key={idx} className="p-3 bg-gray-50 rounded-xl border border-gray-200 flex flex-col gap-2 relative group animate-in fade-in slide-in-from-top-2">
+                            <button 
+                              onClick={() => {
+                                const newM = activeFinance?.milestones?.filter((_, i) => i !== idx);
+                                onFinanceChange?.({ ...activeFinance, milestones: newM });
+                              }}
+                              className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-all bg-white rounded-full shadow-sm"
+                            >
+                              <X size={12} />
+                            </button>
+                            <div>
+                              <input 
+                                type="text"
+                                value={m.title}
+                                onChange={(e) => {
+                                  const newM = [...(activeFinance?.milestones || [])];
+                                  newM[idx].title = e.target.value;
+                                  onFinanceChange?.({ ...activeFinance, milestones: newM });
+                                }}
+                                placeholder="Milestone Title"
+                                className="w-[90%] bg-transparent border-b border-gray-200 text-xs font-bold outline-none focus:border-blue-500 pb-0.5 transition-colors"
+                              />
+                            </div>
+                            <div className="grid grid-cols-2 gap-2 mt-1">
+                              <div className="flex items-center gap-1.5 bg-white border border-gray-200 px-2 py-1.5 rounded-lg shadow-sm">
+                                <span className="text-[10px] text-gray-400 font-bold">
+                                  {activeFinance?.currency === "INR" ? "₹" : activeFinance?.currency === "GBP" ? "£" : activeFinance?.currency === "EUR" ? "€" : "$"}
+                                </span>
+                                <input 
+                                  type="number"
+                                  value={m.amount}
+                                  onChange={(e) => {
+                                    const newM = [...(activeFinance?.milestones || [])];
+                                    newM[idx].amount = Number(e.target.value);
+                                    onFinanceChange?.({ ...activeFinance, milestones: newM });
+                                  }}
+                                  className="w-full text-xs font-bold outline-none bg-transparent"
+                                />
+                              </div>
+                              <input 
+                                type="date"
+                                value={m.dueDate ? new Date(m.dueDate).toISOString().split('T')[0] : ""}
+                                onChange={(e) => {
+                                  const newM = [...(activeFinance?.milestones || [])];
+                                  newM[idx].dueDate = e.target.value;
+                                  onFinanceChange?.({ ...activeFinance, milestones: newM });
+                                }}
+                                className="text-[10px] bg-white border border-gray-200 px-2 py-1.5 rounded-lg shadow-sm outline-none focus:border-blue-500 font-bold text-gray-700"
+                              />
+                            </div>
+                          </div>
+                        ))
+                      )}
+                      
                       <button 
                          onClick={() => {
-                           const newM = [...(activeFinance?.milestones || []), { title: "", amount: 0, dueDate: new Date().toISOString(), isPaid: false }];
+                           const newM = [...(activeFinance?.milestones || []), { title: "", amount: 0, dueDate: new Date().toISOString().split('T')[0], isPaid: false }];
                            onFinanceChange?.({ ...activeFinance, milestones: newM });
                          }}
-                         className="w-full py-1.5 border border-dashed border-blue-200 text-blue-600 text-[10px] font-bold rounded hover:bg-blue-50 transition-colors"
+                         className="w-full py-2.5 border-2 border-dashed border-gray-200 text-gray-400 text-xs font-bold rounded-xl hover:border-blue-300 hover:text-blue-600 hover:bg-blue-50 transition-all flex items-center justify-center gap-2 group"
                       >
-                        + Add Milestone
+                        <Bot size={14} className="group-hover:animate-bounce" /> Add Milestone
                       </button>
                     </div>
                   </div>
@@ -327,7 +356,7 @@ export default function ContractDetailsView({
                       <div>
                         <p className="text-xs text-gray-500 uppercase font-medium">Total Value</p>
                         <p className="text-2xl font-bold text-gray-900 leading-none mt-1">
-                          {new Intl.NumberFormat('en-US', { style: 'currency', currency: activeFinance?.currency || 'USD' }).format(activeFinance?.totalAmount || 0)}
+                          {formatCurrency(activeFinance?.totalAmount || 0, activeFinance?.currency)}
                         </p>
                       </div>
                       <div className="text-right">
@@ -349,13 +378,13 @@ export default function ContractDetailsView({
                       <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-100">
                         <p className="text-[10px] text-gray-500 uppercase font-bold mb-0.5">Paid to date</p>
                         <p className="text-sm font-bold text-gray-900">
-                          {new Intl.NumberFormat('en-US', { style: 'currency', currency: activeFinance?.currency || 'USD', maximumFractionDigits: 0 }).format(activeFinance?.paidAmount || 0)}
+                          {formatCurrency(activeFinance?.paidAmount || 0, activeFinance?.currency, 0)}
                         </p>
                       </div>
                       <div className="bg-blue-50 p-2.5 rounded-lg border border-blue-100">
                         <p className="text-[10px] text-blue-600 uppercase font-bold mb-0.5">Remaining</p>
                         <p className="text-sm font-bold text-blue-700">
-                          {new Intl.NumberFormat('en-US', { style: 'currency', currency: activeFinance?.currency || 'USD', maximumFractionDigits: 0 }).format(activeFinance?.dueAmount || 0)}
+                          {formatCurrency(activeFinance?.dueAmount || 0, activeFinance?.currency, 0)}
                         </p>
                       </div>
                     </div>
@@ -377,7 +406,7 @@ export default function ContractDetailsView({
                             <div className="flex items-center justify-between">
                               <span className="text-xs font-bold text-gray-700 truncate max-w-[140px]">{nextMilestone.title || "Payment"}</span>
                               <span className="text-xs font-extrabold text-blue-600">
-                                {new Intl.NumberFormat('en-US', { style: 'currency', currency: activeFinance.currency || 'USD' }).format(nextMilestone.amount)}
+                                {formatCurrency(nextMilestone.amount, activeFinance.currency)}
                               </span>
                             </div>
                             <div className="flex items-center gap-1.5 text-[10px] text-gray-500">
@@ -451,15 +480,15 @@ export default function ContractDetailsView({
           <div className="mt-5 grid grid-cols-1 sm:grid-cols-3 gap-6">
             <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
               <p className="text-xs font-medium text-gray-500 uppercase">Total Amount</p>
-              <p className="font-bold text-2xl text-gray-900 mt-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: activeFinance.currency || 'USD' }).format(activeFinance.totalAmount)}</p>
+              <p className="font-bold text-2xl text-gray-900 mt-1">{formatCurrency(activeFinance.totalAmount, activeFinance.currency)}</p>
             </div>
             <div className="bg-blue-50 p-4 rounded-lg border border-blue-100">
               <p className="text-xs font-medium text-blue-600 uppercase">Paid Amount</p>
-              <p className="font-bold text-2xl text-blue-700 mt-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: activeFinance.currency || 'USD' }).format(activeFinance.paidAmount)}</p>
+              <p className="font-bold text-2xl text-blue-700 mt-1">{formatCurrency(activeFinance.paidAmount, activeFinance.currency)}</p>
             </div>
             <div className="bg-cyan-50 p-4 rounded-lg border border-cyan-100">
               <p className="text-xs font-medium text-cyan-600 uppercase">Due Amount</p>
-              <p className="font-bold text-2xl text-cyan-700 mt-1">{new Intl.NumberFormat('en-US', { style: 'currency', currency: activeFinance.currency || 'USD' }).format(activeFinance.dueAmount)}</p>
+              <p className="font-bold text-2xl text-cyan-700 mt-1">{formatCurrency(activeFinance.dueAmount, activeFinance.currency)}</p>
             </div>
           </div>
 
@@ -477,7 +506,7 @@ export default function ContractDetailsView({
                     </div>
                     <div className="flex items-center gap-4">
                       <span className={`font-semibold ${milestone.isPaid ? 'text-gray-400' : 'text-gray-900'}`}>
-                        {new Intl.NumberFormat('en-US', { style: 'currency', currency: activeFinance.currency || 'USD' }).format(milestone.amount)}
+                        {formatCurrency(milestone.amount, activeFinance.currency)}
                       </span>
                       
                       {milestone.isPaid ? (
