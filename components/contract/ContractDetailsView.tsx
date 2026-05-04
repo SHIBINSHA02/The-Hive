@@ -16,6 +16,7 @@ interface ContractDetailsViewProps {
   contractId: string;
   data: Contract | null;
   finance?: Financial | null;
+  userRoles?: { isClient: boolean; isContractor: boolean; isOwner: boolean; isPartyB: boolean } | null;
   loading?: boolean;
   error?: string;
   headerActions?: React.ReactNode;
@@ -36,6 +37,7 @@ export default function ContractDetailsView({
   contractId,
   data,
   finance,
+  userRoles,
   loading,
   error,
   headerActions,
@@ -514,13 +516,19 @@ export default function ContractDetailsView({
                           Paid
                         </span>
                       ) : data?.contractStatus === "active" ? (
-                        <button 
-                          onClick={() => onPayMilestone?.(idx)}
-                          disabled={isPaying === idx}
-                          className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-1.5 rounded-md font-bold transition-all shadow shadow-blue-200 hover:shadow-md disabled:bg-blue-400"
-                        >
-                          {isPaying === idx ? "Processing..." : "Mark as Paid"}
-                        </button>
+                        userRoles?.isContractor ? (
+                          <button 
+                            onClick={() => onPayMilestone?.(idx)}
+                            disabled={isPaying === idx}
+                            className="bg-blue-600 hover:bg-blue-700 text-white text-xs px-4 py-1.5 rounded-md font-bold transition-all shadow shadow-blue-200 hover:shadow-md disabled:bg-blue-400"
+                          >
+                            {isPaying === idx ? "Processing..." : "Mark as Paid"}
+                          </button>
+                        ) : (
+                          <span className="text-[11px] text-gray-600 font-medium bg-gray-100 px-2.5 py-1 rounded border border-gray-200">
+                            Awaiting Payment
+                          </span>
+                        )
                       ) : (
                         <span className="text-[11px] text-cyan-600 font-medium bg-cyan-50 px-2.5 py-1 rounded border border-cyan-200">
                           Awaiting Signatures

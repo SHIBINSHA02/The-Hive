@@ -33,7 +33,7 @@ export async function GET(
   }
 
   // result now includes 'owner' in the role union
-  const { contract, role } = result;
+  const { contract, role, userRoles } = result;
 
   const client = (contract as any).client as { name?: string } | undefined;
   const contractor = (contract as any).contractor as { name?: string } | undefined;
@@ -93,7 +93,7 @@ export async function GET(
 
   const finance = await Financial.findOne({ contract: contract._id });
 
-  return NextResponse.json({ contract: finalContract, finance, role });
+  return NextResponse.json({ contract: finalContract, finance, role, userRoles });
 }
 
 export async function PUT(

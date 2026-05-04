@@ -11,6 +11,7 @@ export default function OnProgressContractPage() {
 
   const [data, setData] = useState<Contract | null>(null);
   const [finance, setFinance] = useState<Financial | null>(null);
+  const [userRoles, setUserRoles] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -27,6 +28,7 @@ export default function OnProgressContractPage() {
       const json = await res.json();
       setData(json.contract);
       setFinance(json.finance ?? null);
+      setUserRoles(json.userRoles ?? null);
     } catch (err: any) {
       setError(err.message || "Something went wrong");
     } finally {
@@ -60,6 +62,7 @@ export default function OnProgressContractPage() {
       contractId={contractId}
       data={data}
       finance={finance}
+      userRoles={userRoles}
       loading={loading}
       error={error}
       onPayMilestone={handlePayMilestone}

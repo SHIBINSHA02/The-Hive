@@ -129,5 +129,11 @@ export async function getContractAndRole(contractId: string, clerkId: string) {
     senderProfileId,
     clientProfileId: contract.client?._id?.toString() || "",
     contractorProfileId: contract.contractor?._id?.toString() || "",
+    userRoles: {
+      isClient,
+      isContractor,
+      isOwner,
+      isPartyB
+    }
   };
 }

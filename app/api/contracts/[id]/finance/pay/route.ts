@@ -25,7 +25,12 @@ export async function POST(
     await connectDB();
 
     // 1. Find the Contract first to ensure it exists and get its internal _id
-    const contractDoc = await Contract.findOne({ contractId: id });
+    const mongoose = require("mongoose");
+    const idFilter = mongoose.Types.ObjectId.isValid(id) 
+      ? { $or: [{ _id: id }, { contractId: id }] }
+      : { contractId: id };
+      
+    const contractDoc = await Contract.findOne(idFilter);
     if (!contractDoc) {
       return NextResponse.json({ error: "Contract not found" }, { status: 404 });
     }

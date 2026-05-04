@@ -15,7 +15,7 @@ export default function Hero() {
         </p>
 
         {/* Heading */}
-        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold text-slate-900 leading-tight tracking-tight mb-6">
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-semibold text-gray-900 leading-tight tracking-tight mb-6">
           Smarter Contracts.
           <br />
           <span className="text-slate-400">Less Risk.</span>
@@ -32,7 +32,7 @@ export default function Hero() {
 
           <SignedOut>
             <SignInButton mode="modal">
-              <button className="px-6 py-3 bg-slate-900 text-white rounded-xl text-base font-medium hover:bg-slate-800 transition flex items-center justify-center">
+              <button className="px-6 py-3 bg-blue-700 text-white rounded-xl text-base font-medium hover:bg-slate-800 transition flex items-center justify-center">
                 Get Started <ArrowRight className="ml-2 w-4 h-4" />
               </button>
             </SignInButton>
@@ -41,7 +41,7 @@ export default function Hero() {
           <SignedIn>
             <Link
               href="/dashboard"
-              className="px-6 py-3 bg-slate-900 text-white rounded-xl text-base font-medium hover:bg-slate-800 transition flex items-center justify-center"
+              className="px-6 py-3 bg-blue-700 text-white rounded-xl text-base font-medium hover:bg-blue-800 transition flex items-center justify-center"
             >
               Dashboard <ArrowRight className="ml-2 w-4 h-4" />
             </Link>
