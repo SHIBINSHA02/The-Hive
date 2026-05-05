@@ -52,7 +52,9 @@ export interface IContract extends Document {
 
   // --- NEW: Mutual Agreement Fields ---
   ownerAgreed: boolean;
-  partyBAgreed: boolean;
+  // --- NEW: Mutual Termination Fields ---
+  ownerRequestedTermination: boolean;
+  partyBRequestedTermination: boolean;
 }
 
 const ContractSchema = new Schema<IContract>(
@@ -120,7 +122,9 @@ const ContractSchema = new Schema<IContract>(
 
     // --- NEW: Mutual Agreement Tracking ---
     ownerAgreed: { type: Boolean, default: false },
-    partyBAgreed: { type: Boolean, default: false },
+    // --- NEW: Mutual Termination Fields ---
+    ownerRequestedTermination: { type: Boolean, default: false },
+    partyBRequestedTermination: { type: Boolean, default: false },
   },
   { timestamps: true }
 );

@@ -76,6 +76,8 @@ export async function GET(
     partyBSigned: (contract as any).partyBSigned ?? false,
     ownerAgreed: (contract as any).ownerAgreed ?? false,
     partyBAgreed: (contract as any).partyBAgreed ?? false,
+    ownerRequestedTermination: (contract as any).ownerRequestedTermination ?? false,
+    partyBRequestedTermination: (contract as any).partyBRequestedTermination ?? false,
     currentTurn: (contract as any).currentTurn ?? "owner",
     // LECTURE: Add this line to send the backup snapshots to the browser!
     versionHistory: (contract as any).versionHistory ?? [],

@@ -57,6 +57,19 @@ export default function OnProgressContractPage() {
     }
   };
 
+  const handleRequestTermination = async () => {
+    try {
+      const res = await fetch(`/api/contracts/${contractId}/request-termination`, {
+        method: "POST"
+      });
+      if (!res.ok) throw new Error("Failed to request termination");
+      
+      await fetchData(); // Refresh data to get latest status
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
   return (
     <ContractDetailsView 
       contractId={contractId}
@@ -66,6 +79,7 @@ export default function OnProgressContractPage() {
       loading={loading}
       error={error}
       onPayMilestone={handlePayMilestone}
+      onRequestTerminate={handleRequestTermination}
     />
   );
 }

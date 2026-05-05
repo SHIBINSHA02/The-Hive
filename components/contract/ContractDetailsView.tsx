@@ -31,6 +31,7 @@ interface ContractDetailsViewProps {
   isPaying?: number | null;
   onFinanceChange?: (finance: any) => void;
   tempFinance?: Financial | null;
+  onRequestTerminate?: () => Promise<void>;
 }
 
 export default function ContractDetailsView({ 
@@ -51,7 +52,8 @@ export default function ContractDetailsView({
   onPayMilestone,
   isPaying = null,
   onFinanceChange,
-  tempFinance
+  tempFinance,
+  onRequestTerminate
 }: ContractDetailsViewProps) {
   const pathname = usePathname();
   const [conversationPreview, setConversationPreview] = useState<ConversationType | null>(null);
@@ -110,6 +112,17 @@ export default function ContractDetailsView({
   if (error) return <div className="p-6 text-red-600 font-semibold">Error: {error}</div>;
   if (!data) return <div className="p-6">No contract found</div>;
 
+  const isOwner = userRoles?.isOwner;
+  const isPartyB = userRoles?.isPartyB;
+  const hasUserRequestedTermination = isOwner ? data?.ownerRequestedTermination : isPartyB ? data?.partyBRequestedTermination : false;
+  const hasOtherPartyRequestedTermination = isOwner ? data?.partyBRequestedTermination : isPartyB ? data?.ownerRequestedTermination : false;
+
+  const handleTerminationClick = () => {
+    if (window.confirm("Are you sure you want to terminate this contract? This action cannot be undone.")) {
+      onRequestTerminate?.();
+    }
+  };
+
   const activeFinance = tempFinance || finance;
   const isStarted = data?.contractStatus === "active" || data?.contractStatus === "completed";
   const totalMilestones = activeFinance?.milestones?.length || 0;
@@ -129,6 +142,34 @@ export default function ContractDetailsView({
           </div>
         </div>
       )}
+
+      {data?.contractStatus === "active" && (
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center justify-between gap-3 shadow-sm animate-in fade-in slide-in-from-top-4">
+          <div className="flex items-center gap-3 text-amber-800">
+            <ShieldAlert className="w-5 h-5 text-amber-600" />
+            <div>
+              <p className="text-sm font-bold">Contract Termination</p>
+              {hasUserRequestedTermination ? (
+                 <p className="text-xs opacity-90">Termination requested. Waiting for counterparty to agree.</p>
+              ) : hasOtherPartyRequestedTermination ? (
+                 <p className="text-xs opacity-90">The contract is wished to terminate by other party.</p>
+              ) : (
+                 <p className="text-xs opacity-90">You can mutually terminate this contract at any time.</p>
+              )}
+            </div>
+          </div>
+          <div>
+            {hasUserRequestedTermination ? (
+               <button disabled className="px-4 py-2 bg-amber-200 text-amber-700 font-bold text-sm rounded-lg cursor-not-allowed">Pending</button>
+            ) : hasOtherPartyRequestedTermination ? (
+               <button onClick={handleTerminationClick} className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-sm rounded-lg shadow transition-colors">Continue Terminate</button>
+            ) : (
+               <button onClick={handleTerminationClick} className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-sm rounded-lg shadow transition-colors">Terminate this contract</button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="relative w-full h-56 rounded-2xl overflow-hidden shadow flex flex-col justify-end group/bg">
         {data.bgImageUrl ? (
           <Image src={data.bgImageUrl} alt="Background" fill className="object-cover" />
