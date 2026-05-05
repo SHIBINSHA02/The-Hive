@@ -35,11 +35,13 @@ export async function getGeminiEmbedding(text: string): Promise<number[]> {
  * Generates a conversational response using Gemini.
  * Model: gemini-2.0-flash (User requested 2.5, using 2.0 as the latest available)
  */
-export async function geminiChat(prompt: string, context: string): Promise<string> {
+export async function geminiChat(prompt: string, context: string = ""): Promise<string> {
   try {
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
     
-    const fullPrompt = `
+    let fullPrompt = prompt;
+    if (context) {
+        fullPrompt = `
 You are Hive AI, a professional legal contract assistant.
 Use the following contract context to answer the user's question.
 If the answer is not in the context, be honest and say so.
@@ -52,6 +54,7 @@ ${prompt}
 
 ANSWER:
 `;
+    }
 
     const result = await model.generateContent(fullPrompt);
     const response = await result.response;

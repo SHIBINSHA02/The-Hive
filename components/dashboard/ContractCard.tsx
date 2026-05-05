@@ -15,6 +15,7 @@ interface ContractCardProps {
   backgroundImage: string;
   viewerRole?: "client" | "contractor" | "owner" | "partyB";
   counterpartyName?: string;
+  status?: string;
 }
 
 const ContractCard = ({
@@ -29,6 +30,7 @@ const ContractCard = ({
   backgroundImage,
   viewerRole,
   counterpartyName,
+  status,
 }: ContractCardProps) => {
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -151,6 +153,13 @@ const ContractCard = ({
             {counterpartyName && (
               <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 font-medium text-gray-700">
                 With: <span className="ml-1 max-w-[150px] truncate">{counterpartyName}</span>
+              </span>
+            )}
+            {status && (status === "terminated" || status === "completed") && (
+              <span className={`inline-flex items-center rounded-full px-2 py-0.5 font-medium ${
+                status === "terminated" ? "bg-red-100 text-red-700 border border-red-200" : "bg-green-100 text-green-700 border border-green-200"
+              }`}>
+                {status.charAt(0).toUpperCase() + status.slice(1)}
               </span>
             )}
           </div>

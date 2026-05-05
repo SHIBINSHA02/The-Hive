@@ -56,7 +56,7 @@ export async function GET() {
     const contracts = await Contract.find({ 
       $or: conditions,
       // Show all contract statuses for the "My Contracts" view
-      contractStatus: { $in: ["draft", "sent_for_review", "in_negotiation", "locked", "active", "completed"] }
+      contractStatus: { $in: ["draft", "sent_for_review", "in_negotiation", "locked", "active", "completed", "terminated"] }
     })
       .populate("client")
       .populate("contractor")

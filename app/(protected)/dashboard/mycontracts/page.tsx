@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, useRef } from "react";
-import { Plus, Filter, LayoutGrid, List, Search, Bot, Send, X, Sparkles } from "lucide-react";
+import { Plus, Filter, LayoutGrid, List, Search, Bot, Send, X, Sparkles, Trash2 } from "lucide-react";
 import ContractCard from "@/components/dashboard/ContractCard";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -81,6 +81,20 @@ export default function ContractPage() {
 
     fetchContracts();
   }, []);
+  
+  const handleDeleteTerminated = async () => {
+    if (!confirm("Are you sure you want to permanently delete all terminated contracts? This action cannot be undone.")) return;
+    try {
+      const res = await fetch("/api/contracts/terminated", { method: "DELETE" });
+      if (!res.ok) throw new Error("Failed to delete terminated contracts");
+      
+      // Refresh local state
+      setContracts(prev => prev.filter(c => c.contractStatus !== "terminated"));
+      alert("Successfully deleted terminated contracts");
+    } catch (err: any) {
+      alert(err.message || "Error deleting contracts");
+    }
+  };
 
   // Filter + Search
   const filteredContracts = contracts.filter((contract) => {
@@ -103,14 +117,18 @@ export default function ContractPage() {
     ["sent_for_review", "in_negotiation", "locked"].includes(c.contractStatus)
   );
   const onProgress = filteredContracts.filter(c => c.contractStatus === "active");
+  const terminated = filteredContracts.filter(c => c.contractStatus === "terminated");
+  const completed = filteredContracts.filter(c => c.contractStatus === "completed");
   const otherDocuments = filteredContracts.filter(c => 
-    !["draft", "sent_for_review", "in_negotiation", "locked", "active"].includes(c.contractStatus)
+    !["draft", "sent_for_review", "in_negotiation", "locked", "active", "terminated", "completed"].includes(c.contractStatus)
   );
 
   const sections = [
     { title: "Draft Contracts", data: drafts, color: "text-blue-600" },
     { title: "In Negotiation", data: inNegotiation, color: "text-blue-600" },
     { title: "On Progress", data: onProgress, color: "text-blue-600" },
+    { title: "Completed Contracts", data: completed, color: "text-blue-600" },
+    { title: "Terminated Contracts", data: terminated, color: "text-blue-600" },
     { title: "Other Documents", data: otherDocuments, color: "text-blue-600" },
   ];
 
@@ -238,6 +256,15 @@ export default function ContractPage() {
                     {section.title}
                   </h2>
                   <div className="h-px flex-1 bg-gray-200" />
+                  {section.title === "Terminated Contracts" && (
+                    <button
+                      onClick={handleDeleteTerminated}
+                      className="flex items-center gap-2 text-xs font-semibold text-red-600 hover:text-red-700 bg-white px-3 py-1.5 rounded-full border border-red-200 shadow-sm transition-all hover:bg-red-50"
+                    >
+                      <Trash2 size={14} />
+                      Clear All
+                    </button>
+                  )}
                   <span className="text-sm font-medium text-gray-400 bg-white px-2 rounded-full border border-gray-300 shadow-sm">
                     {section.data.length}
                   </span>
@@ -273,6 +300,7 @@ export default function ContractPage() {
                           backgroundImage={contract.bgImageUrl || ""}
                           viewerRole={contract.viewerRole}
                           counterpartyName={contract.counterpartyName}
+                          status={contract.contractStatus}
                         />
                       </Link>
                     </div>

@@ -1,5 +1,6 @@
 import { getGeminiEmbedding, geminiChat } from "@/lib/gemini";
 import Contract from "@/db/models/Contract";
+import Financial from "@/db/models/Finance";
 
 export const handleChatLogic = async (
     prompt: string,
@@ -25,108 +26,94 @@ export const handleChatLogic = async (
         ];
 
         if (greetings.includes(normalized)) {
-            return "Hello! I'm your Hive Assistant. Ask me anything about this contract's clauses, deadlines, or payments.";
+            return "Hello! I'm your Hive Assistant. Ask me anything about your contracts, deadlines, or payments.";
         }
 
-
         // -----------------------------
-        // 1. Generate embedding using Gemini
-        // -----------------------------
-
-        const queryVector = await getGeminiEmbedding(prompt);
-
-        console.log("Embedding length:", queryVector.length);
-
-
-        // -----------------------------
-        // 2. Fetch contract context
+        // 1. Fetch contract context
         // -----------------------------
 
         let docs: any[] = [];
 
         if (contractId) {
             // Direct fetch when we know the contract — avoids cross-contract leakage
-            // Securely checks if user has access to this specific `contractId`
             const contract = await Contract.findOne({ 
                 contractId, 
                 $or: accessConditions 
-            }).select("contractId contractTitle contractContent summary");
+            }).select("_id contractId contractTitle contractContent summary contractStatus");
             
             if (contract) docs = [contract];
         } else {
-            // Global vector search scoped to the user's contracts ONLY
-            docs = await Contract.aggregate([
-                {
-                    $vectorSearch: {
-                        index: "hive_index",
-                        path: "embeddings",
-                        queryVector: queryVector,
-                        numCandidates: 100,
-                        limit: 20, // Increased candidate limit before filtering
-                    },
-                },
-                {
-                    $match: {
-                        $or: accessConditions
-                    }
-                },
-                {
-                    $limit: 3 // Restrict context size
-                },
-                {
-                    $project: {
-                        _id: 0,
-                        contractId: 1,
-                        contractTitle: 1,
-                        contractContent: 1,
-                        summary: 1,
-                    },
-                },
-            ]);
+            // Global search: Fetch all user contracts but exclude huge contractContent to fit context window
+            docs = await Contract.find({
+                $or: accessConditions
+            }).select("_id contractId contractTitle summary contractStatus keypoints");
         }
 
         console.log("Contract context results:", docs.length);
 
 
         // -----------------------------
-        // 3. Handle no results safely
+        // 2. Handle no results safely
         // -----------------------------
 
         if (!docs || docs.length === 0) {
-            return "I couldn't find relevant information in this contract.";
+            return "I couldn't find any relevant contracts for your account.";
         }
 
 
         // -----------------------------
-        // 4. Build contract context
+        // 3. Build contract context with Finance Data
         // -----------------------------
 
-        const contextText = docs
-            .map(
-                (d) => `
+        const contextPromises = docs.map(async (d) => {
+            const finance = await Financial.findOne({ contract: d._id });
+            
+            let financeText = "No financial data available.";
+            if (finance) {
+                const ms = finance.milestones?.length 
+                    ? finance.milestones.map((m: any) => `- ${m.title || 'Milestone'}: ${m.amount} (Paid: ${m.isPaid})`).join("\n  ")
+                    : "None";
+                
+                financeText = `
+Total Amount: ${finance.totalAmount} ${finance.currency || "INR"}
+Paid Amount: ${finance.paidAmount} ${finance.currency || "INR"}
+Due Amount: ${finance.dueAmount} ${finance.currency || "INR"}
+Payment Status: ${finance.paymentStatus}
+Milestones:
+  ${ms}
+`.trim();
+            }
+
+            return `
 Contract Title: ${d.contractTitle}
+Status: ${d.contractStatus}
+Summary: ${d.summary || "No summary available"}
+${d.contractContent ? `\nContent:\n${d.contractContent}` : `\nKeypoints:\n${d.keypoints?.join(", ") || "None"}`}
 
-Summary:
-${d.summary}
+Financial Details:
+${financeText}
+`;
+        });
 
-Content:
-${d.contractContent}
-`
-            )
-            .join("\n--------------------\n");
+        const contextTextArray = await Promise.all(contextPromises);
+        const contextText = contextTextArray.join("\n--------------------\n");
 
 
         // -----------------------------
-        // 5. Generate answer with Gemini
+        // 4. Generate answer with Gemini
         // -----------------------------
 
+        // We explicitly tell Gemini it now has access to ALL contracts if we are in global mode
         const finalPrompt = `
-You are Hive AI, a professional legal contract assistant.
+You are Hive AI, a professional legal and financial contract assistant.
 
 You MUST answer ONLY using the contract context provided below.
+The context contains one or multiple contracts with their financial details.
+Answer the user's question clearly and concisely. 
 
-If the answer is not found, say:
-"I don't have that information in this contract."
+If the user asks for a total across all contracts, calculate it based on the data below.
+If the answer is not found, say: "I don't have that information in your contracts."
 
 --------------------
 CONTRACT CONTEXT:
@@ -139,7 +126,8 @@ ${prompt}
 ANSWER:
 `;
 
-        const response = await geminiChat(prompt, contextText);
+        // We bypass the older `geminiChat` memory limitations and pass the full explicit prompt
+        const response = await geminiChat(finalPrompt, "");
 
         return response;
 
